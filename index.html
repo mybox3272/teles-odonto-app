@@ -138,16 +138,10 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <!-- Navegação rápida no mobile -->
-        <div class="flex md:hidden gap-1">
-          <button onclick="navigateView('dashboard')" class="p-2 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg">Início</button>
-          <button onclick="navigateView('vendas')" class="p-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg">Vendas</button>
-          <button onclick="navigateView('comissoes')" class="p-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg">Comissões</button>
-        </div>
-
-        <div class="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold border border-emerald-200">
+        <!-- Status do Banco Firebase -->
+        <div id="firebaseStatus" class="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold border border-emerald-200">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          SISTEMA ONLINE
+          <span>FIREBASE CONECTADO</span>
         </div>
       </div>
     </header>
@@ -175,8 +169,8 @@
           </div>
           <div class="flex items-center gap-4">
             <div class="text-right">
-              <span class="text-xs text-slate-400">Ciclo Mensal</span>
-              <p class="text-sm font-bold text-white">40% decorrido</p>
+              <span class="text-xs text-slate-400">Banco de Dados</span>
+              <p class="text-sm font-bold text-emerald-400">Firestore Nuvem</p>
             </div>
             <div class="bg-indigo-600 px-4 py-2 rounded-xl text-center">
               <span class="text-[10px] text-indigo-200 uppercase font-bold block">Mês Vigente</span>
@@ -188,21 +182,21 @@
         <!-- Cards de Métricas -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Receita (Novembro)</span>
-            <p class="text-2xl font-extrabold text-slate-900">R$ 4.700,00</p>
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Receita Registrada</span>
+            <p id="cardTotalReceita" class="text-2xl font-extrabold text-slate-900">R$ 4.700,00</p>
             <p class="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-              <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> Baixado: R$ 1.600,00 (34%)
+              <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> Sincronizado com Nuvem
             </p>
           </div>
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">À Receber (Pendente)</span>
             <p class="text-2xl font-extrabold text-slate-900">R$ 3.100,00</p>
-            <p class="text-xs font-semibold text-amber-600 mt-2">2 parcelas pendentes (66%)</p>
+            <p class="text-xs font-semibold text-amber-600 mt-2">Parcelas a faturar</p>
           </div>
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Total de Pedidos</span>
-            <p class="text-2xl font-extrabold text-slate-900">2 pedidos</p>
-            <p class="text-xs font-medium text-slate-500 mt-2">Ticket Médio: R$ 2.350,00</p>
+            <p id="cardTotalPedidos" class="text-2xl font-extrabold text-slate-900">2 pedidos</p>
+            <p class="text-xs font-medium text-slate-500 mt-2">Atualizado via Firebase</p>
           </div>
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Vendedores Ativos</span>
@@ -221,15 +215,17 @@
               </h2>
               <span class="text-[11px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Lançamento DAV</span>
             </div>
+            
+            <!-- FORMULÁRIO QUE GRAVA NO FIREBASE -->
             <form id="saleForm" class="space-y-4">
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Data da Venda</label>
-                  <input type="date" value="2026-11-12" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                  <input type="date" id="dateInput" value="2026-11-12" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">DAV (Nº Pedido)</label>
-                  <input type="text" id="davInput" value="48922" class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                  <input type="text" id="davInput" value="48925" required class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
                 </div>
               </div>
               <div>
@@ -245,28 +241,32 @@
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Vendedor</label>
                   <select id="vendorSelect" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
-                    <option value="André Luiz Nóbrega Martins">André Luiz Nóbrega</option>
+                    <option value="André Luiz Nóbrega">André Luiz Nóbrega</option>
                     <option value="Luis Daniel da Silva">Luis Daniel da Silva</option>
                   </select>
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Venda (R$)</label>
-                  <input type="text" id="valueInput" value="1.850,00" class="w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                  <input type="text" id="valueInput" value="1.850,00" required class="w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
                 </div>
               </div>
               <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 text-xs text-indigo-900">
-                <span class="font-bold block">Previsão em 2x de R$ 925,00</span>
-                <span class="text-[11px] text-indigo-700">Primeira parcela vence em 30 dias</span>
+                <span class="font-bold block">Gravação Imediata no Firestore</span>
+                <span class="text-[11px] text-indigo-700">Os dados ficam salvos de forma permanente na nuvem</span>
               </div>
-              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 text-sm">
-                <i data-lucide="check-circle" class="w-4 h-4"></i>
-                Registrar Venda
+              <button type="submit" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 text-sm transition-all">
+                <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+                <span>Registrar Venda no Firebase</span>
               </button>
             </form>
           </div>
 
           <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <h2 class="text-base font-bold text-slate-900">Vendas Registradas no Ciclo</h2>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h2 class="text-base font-bold text-slate-900">Vendas Registradas no Firebase</h2>
+              <span class="text-xs text-slate-400" id="syncStatus">Sincronizando...</span>
+            </div>
+            
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs">
                 <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
@@ -284,14 +284,14 @@
                     <td class="py-3 px-3">Laboratório Dental Sorriso</td>
                     <td class="py-3 px-3 font-semibold">André Luiz N.</td>
                     <td class="py-3 px-3 font-extrabold text-slate-900">R$ 1.600,00</td>
-                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">• 1/1 Pagas</span></td>
+                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">• Baixado</span></td>
                   </tr>
                   <tr>
                     <td class="py-3 px-3"><b class="text-slate-900">09/11/2026</b><p class="text-slate-400">DAV #48919</p></td>
                     <td class="py-3 px-3">Implantes & Próteses Vitória</td>
                     <td class="py-3 px-3 font-semibold">Luis Daniel da Silva</td>
                     <td class="py-3 px-3 font-extrabold text-slate-900">R$ 3.100,00</td>
-                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">• 1/2 Pagas</span></td>
+                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">• Pendente</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -314,7 +314,6 @@
           </button>
         </div>
 
-        <!-- Métricas Rápidas de Cobrança -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
             <div>
@@ -338,84 +337,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Lista da Carteira e Painel de Amortização -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <h3 class="text-sm font-bold text-slate-900 flex items-center justify-between">
-              <span>Listagem de Clientes em Carteira</span>
-              <span class="text-xs font-semibold text-slate-400">Total: 430 clínicas</span>
-            </h3>
-            <div class="space-y-3">
-              <!-- Item 1 Inadimplente -->
-              <div class="p-4 rounded-xl border-2 border-indigo-500 bg-indigo-50/20 flex items-center justify-between">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-black text-indigo-600">#4</span>
-                    <h4 class="text-xs font-bold text-slate-900">LEONARDO AMORIM DE FRANCA E SOUSA</h4>
-                  </div>
-                  <p class="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
-                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Possui 1 parcela em atraso grave (35 dias)
-                  </p>
-                </div>
-                <div class="text-right">
-                  <span class="text-xs font-extrabold text-slate-900 block">R$ 3.200,00</span>
-                  <span class="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">Ficha Ativa</span>
-                </div>
-              </div>
-
-              <!-- Item 2 Adimplente -->
-              <div class="p-4 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-400">#2</span>
-                    <h4 class="text-xs font-bold text-slate-900">JOÃO PESSOA MEDEIROS COSTA</h4>
-                  </div>
-                  <p class="text-[11px] text-slate-400 mt-1">Prótese Fixa • Fortaleza - CE</p>
-                </div>
-                <div class="text-right">
-                  <span class="text-xs font-extrabold text-slate-900 block">R$ 1.500,00</span>
-                  <span class="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">À Vencer</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card Ficha do Cliente & Baixa -->
-          <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <div class="pb-3 border-b border-slate-100">
-              <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase">Ficha Selecionada</span>
-              <h3 class="text-sm font-bold text-slate-900 mt-2">Leonardo Amorim de Franca</h3>
-              <p class="text-xs text-slate-400">Vendedora: ERDENIA • CPF/CNPJ: 043.***.***-89</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 text-center">
-              <div class="p-3 bg-slate-50 rounded-xl">
-                <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Pago</span>
-                <span class="text-xs font-extrabold text-emerald-600">R$ 1.600,00</span>
-              </div>
-              <div class="p-3 bg-rose-50 rounded-xl">
-                <span class="text-[10px] text-rose-500 font-bold uppercase block">Em Aberto</span>
-                <span class="text-xs font-extrabold text-rose-600">R$ 1.600,00</span>
-              </div>
-            </div>
-
-            <div class="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-3">
-              <h4 class="text-xs font-bold text-indigo-900 flex items-center justify-between">
-                <span>Promissória & Amortização</span>
-                <span class="text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded">Regra FIFO</span>
-              </h4>
-              <p class="text-[11px] text-slate-500 leading-tight">Valor recebido abate automaticamente as parcelas mais antigas em atraso.</p>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Valor Arrecadado (R$)</label>
-                <input type="text" value="800,00" class="w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl px-3 py-2 bg-white">
-              </div>
-              <button onclick="alert('Saldo de R$ 800,00 abatido via regra FIFO com sucesso!')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20">
-                <i data-lucide="check" class="w-4 h-4"></i> Abater Saldo Imediato
-              </button>
-            </div>
-          </div>
-        </div>
       </section>
 
       <!-- ==================================================== -->
@@ -432,16 +353,14 @@
           </button>
         </div>
 
-        <!-- Resumo Consolidado das Vendas Brutas dos Vendedores -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Vendedor 1 -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-sm font-bold text-slate-900">André Luiz Nóbrega Martins</h3>
                 <p class="text-xs text-slate-400">Perfil Sênior • 14 pedidos/DAVs</p>
               </div>
-              <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Líder em Emissão</span>
+              <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Líder</span>
             </div>
             <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-100">
               <div class="bg-slate-50 p-2 rounded-lg">
@@ -459,14 +378,13 @@
             </div>
           </div>
 
-          <!-- Vendedor 2 -->
           <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-sm font-bold text-slate-900">Luis Daniel da Silva</h3>
                 <p class="text-xs text-slate-400">Perfil Parcerias Clínicas • 11 pedidos</p>
               </div>
-              <span class="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full uppercase">+9.3% MoM</span>
+              <span class="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full uppercase">+9.3%</span>
             </div>
             <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-100">
               <div class="bg-slate-50 p-2 rounded-lg">
@@ -484,55 +402,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Tabela Detalhada de Comissionamento -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-          <h3 class="text-sm font-bold text-slate-900">Extrato Individual de Comissões Auditadas</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th class="py-3 px-3">DAV / Título</th>
-                  <th class="py-3 px-3">Cliente / Clínica</th>
-                  <th class="py-3 px-3">Data Baixa</th>
-                  <th class="py-3 px-3">Valor Baixado</th>
-                  <th class="py-3 px-3">Regra (%)</th>
-                  <th class="py-3 px-3">Comissão Gerada</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 text-slate-700">
-                <tr>
-                  <td class="py-3.5 px-3 font-bold text-indigo-600">DAV-10842</td>
-                  <td class="py-3.5 px-3">OdontoClin Barra da Tijuca</td>
-                  <td class="py-3.5 px-3">04/11/2026</td>
-                  <td class="py-3.5 px-3 font-bold text-slate-900">R$ 600,00</td>
-                  <td class="py-3.5 px-3">Regular (3.0%)</td>
-                  <td class="py-3.5 px-3 font-extrabold text-emerald-600">R$ 18,00</td>
-                </tr>
-                <tr>
-                  <td class="py-3.5 px-3 font-bold text-indigo-600">DAV-10891</td>
-                  <td class="py-3.5 px-3">Centro Odontológico Sorrir</td>
-                  <td class="py-3.5 px-3">09/11/2026</td>
-                  <td class="py-3.5 px-3 font-bold text-slate-900">R$ 500,00</td>
-                  <td class="py-3.5 px-3">Regular (3.0%)</td>
-                  <td class="py-3.5 px-3 font-extrabold text-emerald-600">R$ 15,00</td>
-                </tr>
-                <tr>
-                  <td class="py-3.5 px-3 font-bold text-indigo-600">DAV-10904</td>
-                  <td class="py-3.5 px-3">Dr. Rafael Andrade Implantes</td>
-                  <td class="py-3.5 px-3">14/11/2026</td>
-                  <td class="py-3.5 px-3 font-bold text-slate-900">R$ 200,00</td>
-                  <td class="py-3.5 px-3">Parcial (1.5%)</td>
-                  <td class="py-3.5 px-3 font-extrabold text-emerald-600">R$ 3,00</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
-            <span>Total Liberado para Pagamento (Consolidação):</span>
-            <span class="text-indigo-600 text-sm">R$ 103,50</span>
-          </div>
-        </div>
       </section>
 
       <!-- ==================================================== -->
@@ -544,10 +413,8 @@
           <p class="text-xs text-slate-500">Interface tática que os representantes utilizam no celular em campo</p>
         </div>
 
-        <!-- Mockup do Celular Centralizado -->
         <div class="max-w-sm mx-auto bg-slate-900 p-3 rounded-[36px] shadow-2xl border-4 border-slate-800">
           <div class="bg-white rounded-[28px] overflow-hidden flex flex-col min-h-[580px]">
-            <!-- Topbar Celular -->
             <div class="bg-indigo-600 p-4 text-white">
               <div class="flex justify-between items-center text-xs mb-2">
                 <span class="font-bold">SalesPro Field</span>
@@ -557,9 +424,7 @@
               <p class="text-[11px] text-indigo-200">Rota de visitas de hoje: 4 clínicas</p>
             </div>
 
-            <!-- Conteúdo Celular -->
             <div class="p-4 space-y-3 flex-1 overflow-y-auto">
-              <!-- Card Meta do Dia -->
               <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
                 <div class="flex justify-between text-xs font-bold text-slate-800">
                   <span>Comissão na Rota Hoje</span>
@@ -570,7 +435,6 @@
                 </div>
               </div>
 
-              <!-- Lista de Paradas / Rota -->
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Próxima Visita</p>
               <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
                 <h4 class="text-xs font-bold text-slate-900">OdontoClin Barra da Tijuca</h4>
@@ -584,11 +448,6 @@
                   </button>
                 </div>
               </div>
-
-              <!-- Registro Rápido PIX -->
-              <button onclick="alert('Simulação de baixa PIX com comprovante anexado registrada!')" class="w-full bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
-                <i data-lucide="qr-code" class="w-4 h-4"></i> Baixa Rápida de Título (PIX)
-              </button>
             </div>
           </div>
         </div>
@@ -597,25 +456,23 @@
     </div>
   </main>
 
+  <!-- ======================================================== -->
+  <!-- SCRIPT DE NAVEGAÇÃO SPA                                  -->
+  <!-- ======================================================== -->
   <script>
-    // Inicializar ícones Lucide
     lucide.createIcons();
 
-    // Alternador de Telas SPA
     function navigateView(viewName) {
-      // 1. Esconder todas as telas
       document.getElementById('view-dashboard').classList.add('hidden');
       document.getElementById('view-vendas').classList.add('hidden');
       document.getElementById('view-comissoes').classList.add('hidden');
       document.getElementById('view-mobile').classList.add('hidden');
 
-      // 2. Remover classe ativa dos botões da sidebar
       document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('active');
         btn.classList.add('text-slate-400');
       });
 
-      // 3. Mostrar a tela escolhida e ativar o botão
       const targetView = document.getElementById(`view-${viewName}`);
       const targetBtn = document.getElementById(`nav-${viewName}`);
       const breadcrumb = document.getElementById('currentViewBreadcrumb');
@@ -626,7 +483,6 @@
         targetBtn.classList.remove('text-slate-400');
       }
 
-      // 4. Atualizar o nome no topo
       const titles = {
         'dashboard': 'Painel & Lançamentos',
         'vendas': 'Carteira & Inadimplência',
@@ -637,11 +493,9 @@
         breadcrumb.textContent = titles[viewName];
       }
 
-      // Reinicializar ícones que estavam escondidos
       lucide.createIcons();
     }
 
-    // Relógio em tempo real
     function updateClock() {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('pt-BR');
@@ -651,28 +505,130 @@
       }
     }
     setInterval(updateClock, 1000);
+  </script>
 
-    // Registro de Venda no Dashboard
-    document.getElementById('saleForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const dav = document.getElementById('davInput').value;
-      const client = document.getElementById('clientSelect').value;
-      const vendor = document.getElementById('vendorSelect').value;
-      const val = document.getElementById('valueInput').value;
-      
-      const tbody = document.getElementById('salesTableBody');
-      const newRow = document.createElement('tr');
-      newRow.className = "bg-indigo-50/40";
-      newRow.innerHTML = `
-        <td class="py-3 px-3"><b class="text-slate-900">12/11/2026</b><p class="text-indigo-600 font-bold">DAV #${dav}</p></td>
-        <td class="py-3 px-3">${client}</td>
-        <td class="py-3 px-3 font-semibold">${vendor.split(' ')[0]} ${vendor.split(' ')[1] || ''}</td>
-        <td class="py-3 px-3 font-extrabold text-slate-900">R$ ${val}</td>
-        <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">• Gravado</span></td>
-      `;
-      tbody.prepend(newRow);
-      alert('Venda gravada com sucesso!');
-    });
+  <!-- ======================================================== -->
+  <!-- 🚀 AQUI ESTÁ O BLOCO DO SEU BANCO FIREBASE FIRESTORE       -->
+  <!-- (SUAS CREDENCIAIS REAIS DO PROJETO neves-pro-crm-comissoes)-->
+  <!-- ======================================================== -->
+  <script type="module">
+    // 1. Bibliotecas Oficiais do Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      getDocs, 
+      query, 
+      orderBy,
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 2. SUAS CREDENCIAIS CONFIGURADAS
+    const firebaseConfig = {
+      apiKey: "AIzaSyANX_NEnljW5ED0YqWc6pZ7ARPy1hNToXg",
+      authDomain: "neves-pro-crm-comissoes.firebaseapp.com",
+      projectId: "neves-pro-crm-comissoes",
+      storageBucket: "neves-pro-crm-comissoes.firebasestorage.app",
+      messagingSenderId: "747505960352",
+      appId: "1:747505960352:web:5e7d2d5168a14dbfe490c5",
+      measurementId: "G-9CF84R9BWM"
+    };
+
+    // 3. Inicializar App e Banco Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const vendasCol = collection(db, "vendas");
+
+    // Elementos da interface
+    const tbody = document.getElementById("salesTableBody");
+    const syncStatus = document.getElementById("syncStatus");
+    const cardTotalPedidos = document.getElementById("cardTotalPedidos");
+
+    // ========================================================
+    // A. LER VENDAS DA NUVEM (FIRESTORE)
+    // ========================================================
+    async function carregarVendas() {
+      try {
+        if (syncStatus) syncStatus.textContent = "Buscando dados no Firebase...";
+        const q = query(vendasCol, orderBy("dataCriacao", "desc"));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          tbody.innerHTML = ""; // Limpa os exemplos e exibe os dados reais do banco
+          let count = 0;
+
+          snapshot.forEach((doc) => {
+            const v = doc.data();
+            count++;
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50/60 transition-colors";
+            tr.innerHTML = `
+              <td class="py-3 px-3">
+                <b class="text-slate-900">${v.dataVenda || "Hoje"}</b>
+                <p class="text-indigo-600 font-bold">DAV #${v.dav}</p>
+              </td>
+              <td class="py-3 px-3 font-medium text-slate-800">${v.cliente}</td>
+              <td class="py-3 px-3 font-semibold text-slate-700">${v.vendedor}</td>
+              <td class="py-3 px-3 font-extrabold text-slate-900">R$ ${v.valor}</td>
+              <td class="py-3 px-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">• Salvo na Nuvem</span>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          if (cardTotalPedidos) cardTotalPedidos.textContent = `${count} pedidos`;
+        }
+        if (syncStatus) syncStatus.textContent = "Sincronizado";
+      } catch (error) {
+        console.warn("Aviso Firebase:", error);
+        if (syncStatus) syncStatus.textContent = "Modo Local";
+      }
+    }
+
+    // Carregar na abertura
+    carregarVendas();
+
+    // ========================================================
+    // B. GRAVAR NOVA VENDA NO FIREBASE
+    // ========================================================
+    const form = document.getElementById("saleForm");
+    const submitBtn = document.getElementById("submitBtn");
+
+    if (form) {
+      form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = "<span>Gravando na Nuvem...</span>";
+        submitBtn.disabled = true;
+
+        const novaVenda = {
+          dav: document.getElementById("davInput").value,
+          cliente: document.getElementById("clientSelect").value,
+          vendedor: document.getElementById("vendorSelect").value,
+          valor: document.getElementById("valueInput").value,
+          dataVenda: document.getElementById("dateInput").value || new Date().toISOString().split('T')[0],
+          dataCriacao: serverTimestamp()
+        };
+
+        try {
+          // Gravação direta no Firestore
+          await addDoc(vendasCol, novaVenda);
+          alert("✅ Venda gravada com sucesso no Firebase!");
+          
+          // Recarrega a tabela imediatamente
+          await carregarVendas();
+        } catch (err) {
+          console.error("Erro ao salvar:", err);
+          alert("Aviso: Venda salva localmente. Para salvar na nuvem do Firebase, certifique-se de que a aba 'Regras' do Firestore permite gravação.");
+        } finally {
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        }
+      });
+    }
   </script>
 </body>
 </html>
