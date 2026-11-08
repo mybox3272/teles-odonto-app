@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teles Odonto - CRM & Gestão Comercial</title>
-  
+  <title>Teles Odonto - CRM & Gestão Comercial de Comissões</title>
+
   <!-- Fontes Google -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Tailwind CSS -->
+
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- React 18 & Babel Standalone (Para execução das regras reativas completas sem precisar de build local) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script>
     tailwind.config = {
@@ -57,474 +62,30 @@
       background: #cbd5e1;
       border-radius: 4px;
     }
-    .nav-btn.active {
-      background-color: #4f46e5;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    @media print {
+      aside, header, .no-print {
+        display: none !important;
+      }
+      main {
+        padding: 0 !important;
+        overflow: visible !important;
+      }
     }
   </style>
 </head>
-<body class="min-h-screen flex bg-slate-50 antialiased text-slate-800">
+<body class="min-h-screen bg-slate-50 antialiased text-slate-800">
+  <div id="root"></div>
 
-  <!-- SIDEBAR LATERAL FIXA -->
-  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0 hidden md:flex border-r border-slate-800 h-screen sticky top-0">
-    <div>
-      <!-- Header Marca Teles Odonto -->
-      <div class="p-5 border-b border-slate-800/80 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-          <i data-lucide="sparkles" class="w-6 h-6"></i>
-        </div>
-        <div>
-          <h1 class="text-white font-bold text-base leading-tight tracking-tight">Teles Odonto</h1>
-          <p class="text-xs text-indigo-400 font-medium">Materiais Protéticos</p>
-        </div>
-      </div>
+  <!-- SCRIPT REACT + FIREBASE FIRESTORE INTEGRADO -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
 
-      <!-- Navegação Comercial SPA -->
-      <div class="px-4 py-5">
-        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-2.5">Módulos do Sistema</p>
-        <nav class="space-y-1">
-          <!-- Botão 1: Início / Dashboard -->
-          <button onclick="navigateView('dashboard')" id="nav-dashboard" class="nav-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left">
-            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-            <span>Painel & Lançamentos</span>
-          </button>
+    // ========================================================
+    // 1. CARREGAMENTO E INICIALIZAÇÃO DO FIREBASE FIRESTORE
+    // ========================================================
+    let db = null;
+    let firebaseLoaded = false;
 
-          <!-- Botão 2: Vendas e Carteira -->
-          <button onclick="navigateView('vendas')" id="nav-vendas" class="nav-btn text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left">
-            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-            <span>Carteira & Inadimplência</span>
-          </button>
-
-          <!-- Botão 3: Comissões e Metas -->
-          <button onclick="navigateView('comissoes')" id="nav-comissoes" class="nav-btn text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left">
-            <i data-lucide="percent" class="w-4 h-4"></i>
-            <span>Comissões & Metas</span>
-          </button>
-
-          <!-- Botão 4: Visão Mobile do Vendedor -->
-          <button onclick="navigateView('mobile')" id="nav-mobile" class="nav-btn text-emerald-400 hover:text-emerald-300 hover:bg-slate-800/60 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left border border-emerald-500/20 mt-3">
-            <i data-lucide="smartphone" class="w-4 h-4"></i>
-            <span>Simulador Vendedor Campo</span>
-          </button>
-        </nav>
-      </div>
-    </div>
-
-    <!-- Usuário Rodapé -->
-    <div class="p-4 border-t border-slate-800 bg-slate-900/50">
-      <div class="flex items-center gap-3 p-2 rounded-lg bg-slate-800/60">
-        <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
-          TO
-        </div>
-        <div class="truncate">
-          <p class="text-xs font-semibold text-slate-200 leading-none">Operador Comercial</p>
-          <p class="text-[11px] text-slate-400 truncate mt-1">operador@salespro.com</p>
-        </div>
-      </div>
-      <p class="text-[10px] text-center text-slate-500 mt-2 font-medium">© 2026 Teles Odonto CRM</p>
-    </div>
-  </aside>
-
-  <!-- ÁREA DE CONTEÚDO PRINCIPAL (COM AS TELAS EMBUTIDAS) -->
-  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
-
-    <!-- Topbar Superior -->
-    <header class="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
-      <div class="flex items-center gap-2 text-sm text-slate-500">
-        <span class="font-bold text-slate-800">Teles Odonto CRM</span>
-        <span>/</span>
-        <span id="currentViewBreadcrumb" class="text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full text-xs">Painel & Lançamentos</span>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <!-- Status do Banco Firebase -->
-        <div id="firebaseStatus" class="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold border border-emerald-200">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>FIREBASE CONECTADO</span>
-        </div>
-      </div>
-    </header>
-
-    <!-- CONTAINER DAS VIEWS -->
-    <div class="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
-
-      <!-- ========================================== -->
-      <!-- VIEW 1: DASHBOARD & NOVA VENDA (DAV)       -->
-      <!-- ========================================== -->
-      <section id="view-dashboard" class="space-y-6">
-        <!-- Banner de Período -->
-        <div class="bg-slate-900 rounded-2xl p-4 md:p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl shadow-slate-900/10">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
-              <i data-lucide="calendar" class="w-5 h-5"></i>
-            </div>
-            <div>
-              <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                Horário de Brasília
-              </div>
-              <p id="clock" class="text-lg font-bold text-white tracking-tight">16:30:44 | Novembro de 2026</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-4">
-            <div class="text-right">
-              <span class="text-xs text-slate-400">Banco de Dados</span>
-              <p class="text-sm font-bold text-emerald-400">Firestore Nuvem</p>
-            </div>
-            <div class="bg-indigo-600 px-4 py-2 rounded-xl text-center">
-              <span class="text-[10px] text-indigo-200 uppercase font-bold block">Mês Vigente</span>
-              <span class="text-sm font-extrabold text-white">Novembro / 2026</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cards de Métricas -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Receita Registrada</span>
-            <p id="cardTotalReceita" class="text-2xl font-extrabold text-slate-900">R$ 4.700,00</p>
-            <p class="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
-              <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> Sincronizado com Nuvem
-            </p>
-          </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">À Receber (Pendente)</span>
-            <p class="text-2xl font-extrabold text-slate-900">R$ 3.100,00</p>
-            <p class="text-xs font-semibold text-amber-600 mt-2">Parcelas a faturar</p>
-          </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Total de Pedidos</span>
-            <p id="cardTotalPedidos" class="text-2xl font-extrabold text-slate-900">2 pedidos</p>
-            <p class="text-xs font-medium text-slate-500 mt-2">Atualizado via Firebase</p>
-          </div>
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Vendedores Ativos</span>
-            <p class="text-2xl font-extrabold text-slate-900">2 ativos</p>
-            <p class="text-xs font-medium text-indigo-600 mt-2">100% com emissão no ciclo</p>
-          </div>
-        </div>
-
-        <!-- Formulário Nova Venda + Lista -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                <i data-lucide="shopping-cart" class="w-4 h-4 text-indigo-600"></i>
-                Nova Venda
-              </h2>
-              <span class="text-[11px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Lançamento DAV</span>
-            </div>
-            
-            <!-- FORMULÁRIO QUE GRAVA NO FIREBASE -->
-            <form id="saleForm" class="space-y-4">
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Data da Venda</label>
-                  <input type="date" id="dateInput" value="2026-11-12" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">DAV (Nº Pedido)</label>
-                  <input type="text" id="davInput" value="48925" required class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
-                </div>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Cliente / Laboratório</label>
-                <select id="clientSelect" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
-                  <option value="Laboratório Dental Sorriso">CLI-088 - Laboratório Dental Sorriso</option>
-                  <option value="Implantes & Próteses Vitória">CLI-093 - Implantes & Próteses Vitória</option>
-                  <option value="Clínica OdontoPrime Dr. Valter" selected>CLI-104 - Clínica OdontoPrime Dr. Valter</option>
-                  <option value="Leonardo Amorim de Franca e Sousa">CLI-004 - Leonardo Amorim de Franca</option>
-                </select>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Vendedor</label>
-                  <select id="vendorSelect" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
-                    <option value="André Luiz Nóbrega">André Luiz Nóbrega</option>
-                    <option value="Luis Daniel da Silva">Luis Daniel da Silva</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Venda (R$)</label>
-                  <input type="text" id="valueInput" value="1.850,00" required class="w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
-                </div>
-              </div>
-              <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 text-xs text-indigo-900">
-                <span class="font-bold block">Gravação Imediata no Firestore</span>
-                <span class="text-[11px] text-indigo-700">Os dados ficam salvos de forma permanente na nuvem</span>
-              </div>
-              <button type="submit" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 text-sm transition-all">
-                <i data-lucide="cloud-upload" class="w-4 h-4"></i>
-                <span>Registrar Venda no Firebase</span>
-              </button>
-            </form>
-          </div>
-
-          <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h2 class="text-base font-bold text-slate-900">Vendas Registradas no Firebase</h2>
-              <span class="text-xs text-slate-400" id="syncStatus">Sincronizando...</span>
-            </div>
-            
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                  <tr>
-                    <th class="py-3 px-3">Data / DAV</th>
-                    <th class="py-3 px-3">Cliente</th>
-                    <th class="py-3 px-3">Vendedor</th>
-                    <th class="py-3 px-3">Valor</th>
-                    <th class="py-3 px-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="salesTableBody" class="divide-y divide-slate-100 text-slate-700">
-                  <tr>
-                    <td class="py-3 px-3"><b class="text-slate-900">04/11/2026</b><p class="text-slate-400">DAV #48911</p></td>
-                    <td class="py-3 px-3">Laboratório Dental Sorriso</td>
-                    <td class="py-3 px-3 font-semibold">André Luiz N.</td>
-                    <td class="py-3 px-3 font-extrabold text-slate-900">R$ 1.600,00</td>
-                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">• Baixado</span></td>
-                  </tr>
-                  <tr>
-                    <td class="py-3 px-3"><b class="text-slate-900">09/11/2026</b><p class="text-slate-400">DAV #48919</p></td>
-                    <td class="py-3 px-3">Implantes & Próteses Vitória</td>
-                    <td class="py-3 px-3 font-semibold">Luis Daniel da Silva</td>
-                    <td class="py-3 px-3 font-extrabold text-slate-900">R$ 3.100,00</td>
-                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">• Pendente</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================================================== -->
-      <!-- VIEW 2: CARTEIRA DE CLIENTES & INADIMPLÊNCIA        -->
-      <!-- ==================================================== -->
-      <section id="view-vendas" class="space-y-6 hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
-          <div>
-            <h2 class="text-xl font-bold text-slate-900">Carteira de Clientes e Inadimplência</h2>
-            <p class="text-xs text-slate-500">Gestão de títulos abertos, liquidação FIFO e amortização de débitos</p>
-          </div>
-          <button onclick="navigateView('dashboard')" class="bg-indigo-600 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i> Novo Pedido / DAV
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-            <div>
-              <span class="text-xs font-bold text-rose-600 uppercase tracking-wider block">Vencendo Hoje (12/11/2026)</span>
-              <p class="text-2xl font-extrabold text-slate-900 mt-1">R$ 1.600,00</p>
-              <p class="text-xs text-slate-500 mt-1">1 cliente com liquidação programada</p>
-            </div>
-            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-              <i data-lucide="alert-circle" class="w-6 h-6"></i>
-            </div>
-          </div>
-
-          <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-            <div>
-              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total a Vencer no Mês</span>
-              <p class="text-2xl font-extrabold text-slate-900 mt-1">R$ 3.100,00</p>
-              <p class="text-xs text-emerald-600 font-semibold mt-1">Projeção saudável de fluxo de caixa</p>
-            </div>
-            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <i data-lucide="wallet" class="w-6 h-6"></i>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================================================== -->
-      <!-- VIEW 3: COMISSÕES E METAS DOS VENDEDORES            -->
-      <!-- ==================================================== -->
-      <section id="view-comissoes" class="space-y-6 hidden">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
-          <div>
-            <h2 class="text-xl font-bold text-slate-900">Comissões e Metas de Vendedores</h2>
-            <p class="text-xs text-slate-500">Gestão escalonada de comissionamento por títulos baixados e liquidação efetiva</p>
-          </div>
-          <button onclick="alert('Exportando relatório comparativo em PDF / Excel...')" class="bg-slate-900 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
-            <i data-lucide="download" class="w-4 h-4"></i> Relatório Geral
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900">André Luiz Nóbrega Martins</h3>
-                <p class="text-xs text-slate-400">Perfil Sênior • 14 pedidos/DAVs</p>
-              </div>
-              <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Líder</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-100">
-              <div class="bg-slate-50 p-2 rounded-lg">
-                <span class="text-[10px] text-slate-400 block">Vendas Brutas</span>
-                <span class="text-xs font-bold text-slate-900">R$ 24.600</span>
-              </div>
-              <div class="bg-emerald-50 p-2 rounded-lg">
-                <span class="text-[10px] text-emerald-600 block">Baixadas</span>
-                <span class="text-xs font-bold text-emerald-700">R$ 1.600</span>
-              </div>
-              <div class="bg-indigo-50 p-2 rounded-lg">
-                <span class="text-[10px] text-indigo-600 block">Comissão Paga</span>
-                <span class="text-xs font-bold text-indigo-700">R$ 56,00</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-sm font-bold text-slate-900">Luis Daniel da Silva</h3>
-                <p class="text-xs text-slate-400">Perfil Parcerias Clínicas • 11 pedidos</p>
-              </div>
-              <span class="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full uppercase">+9.3%</span>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-100">
-              <div class="bg-slate-50 p-2 rounded-lg">
-                <span class="text-[10px] text-slate-400 block">Vendas Brutas</span>
-                <span class="text-xs font-bold text-slate-900">R$ 18.250</span>
-              </div>
-              <div class="bg-emerald-50 p-2 rounded-lg">
-                <span class="text-[10px] text-emerald-600 block">Baixadas</span>
-                <span class="text-xs font-bold text-emerald-700">R$ 1.500</span>
-              </div>
-              <div class="bg-indigo-50 p-2 rounded-lg">
-                <span class="text-[10px] text-indigo-600 block">Comissão Paga</span>
-                <span class="text-xs font-bold text-indigo-700">R$ 47,50</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================================================== -->
-      <!-- VIEW 4: SIMULADOR VISÃO VENDEDOR MOBILE             -->
-      <!-- ==================================================== -->
-      <section id="view-mobile" class="space-y-6 hidden">
-        <div class="text-center max-w-md mx-auto">
-          <h2 class="text-lg font-bold text-slate-900">Simulador SalesPro Mobile (Vendedor Externo)</h2>
-          <p class="text-xs text-slate-500">Interface tática que os representantes utilizam no celular em campo</p>
-        </div>
-
-        <div class="max-w-sm mx-auto bg-slate-900 p-3 rounded-[36px] shadow-2xl border-4 border-slate-800">
-          <div class="bg-white rounded-[28px] overflow-hidden flex flex-col min-h-[580px]">
-            <div class="bg-indigo-600 p-4 text-white">
-              <div class="flex justify-between items-center text-xs mb-2">
-                <span class="font-bold">SalesPro Field</span>
-                <span class="bg-emerald-400 text-slate-900 px-2 py-0.5 rounded-full text-[10px] font-black">GPS ATIVO</span>
-              </div>
-              <h3 class="font-extrabold text-sm">Olá, André Luiz!</h3>
-              <p class="text-[11px] text-indigo-200">Rota de visitas de hoje: 4 clínicas</p>
-            </div>
-
-            <div class="p-4 space-y-3 flex-1 overflow-y-auto">
-              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div class="flex justify-between text-xs font-bold text-slate-800">
-                  <span>Comissão na Rota Hoje</span>
-                  <span class="text-emerald-600">R$ 144,00</span>
-                </div>
-                <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
-                  <div class="bg-indigo-600 h-full w-2/3"></div>
-                </div>
-              </div>
-
-              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Próxima Visita</p>
-              <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                <h4 class="text-xs font-bold text-slate-900">OdontoClin Barra da Tijuca</h4>
-                <p class="text-[11px] text-slate-500">Av. das Américas, 4200</p>
-                <div class="flex gap-2 mt-2">
-                  <button onclick="alert('Iniciando navegação GPS...')" class="flex-1 bg-indigo-600 text-white text-[11px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1">
-                    <i data-lucide="navigation" class="w-3 h-3"></i> GPS
-                  </button>
-                  <button onclick="alert('Abrindo WhatsApp do Doutor...')" class="flex-1 bg-emerald-600 text-white text-[11px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1">
-                    <i data-lucide="phone" class="w-3 h-3"></i> Whats
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </div>
-  </main>
-
-  <!-- ======================================================== -->
-  <!-- SCRIPT DE NAVEGAÇÃO SPA                                  -->
-  <!-- ======================================================== -->
-  <script>
-    lucide.createIcons();
-
-    function navigateView(viewName) {
-      document.getElementById('view-dashboard').classList.add('hidden');
-      document.getElementById('view-vendas').classList.add('hidden');
-      document.getElementById('view-comissoes').classList.add('hidden');
-      document.getElementById('view-mobile').classList.add('hidden');
-
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('active');
-        btn.classList.add('text-slate-400');
-      });
-
-      const targetView = document.getElementById(`view-${viewName}`);
-      const targetBtn = document.getElementById(`nav-${viewName}`);
-      const breadcrumb = document.getElementById('currentViewBreadcrumb');
-
-      if (targetView) targetView.classList.remove('hidden');
-      if (targetBtn) {
-        targetBtn.classList.add('active');
-        targetBtn.classList.remove('text-slate-400');
-      }
-
-      const titles = {
-        'dashboard': 'Painel & Lançamentos',
-        'vendas': 'Carteira & Inadimplência',
-        'comissoes': 'Comissões & Metas',
-        'mobile': 'Visão do Vendedor (Campo)'
-      };
-      if (breadcrumb && titles[viewName]) {
-        breadcrumb.textContent = titles[viewName];
-      }
-
-      lucide.createIcons();
-    }
-
-    function updateClock() {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('pt-BR');
-      const clockEl = document.getElementById('clock');
-      if (clockEl) {
-        clockEl.textContent = `${timeStr} | Novembro de 2026`;
-      }
-    }
-    setInterval(updateClock, 1000);
-  </script>
-
-  <!-- ======================================================== -->
-  <!-- 🚀 AQUI ESTÁ O BLOCO DO SEU BANCO FIREBASE FIRESTORE       -->
-  <!-- (SUAS CREDENCIAIS REAIS DO PROJETO neves-pro-crm-comissoes)-->
-  <!-- ======================================================== -->
-  <script type="module">
-    // 1. Bibliotecas Oficiais do Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-      getFirestore, 
-      collection, 
-      addDoc, 
-      getDocs, 
-      query, 
-      orderBy,
-      serverTimestamp 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // 2. SUAS CREDENCIAIS CONFIGURADAS
     const firebaseConfig = {
       apiKey: "AIzaSyANX_NEnljW5ED0YqWc6pZ7ARPy1hNToXg",
       authDomain: "neves-pro-crm-comissoes.firebaseapp.com",
@@ -535,100 +96,1032 @@
       measurementId: "G-9CF84R9BWM"
     };
 
-    // 3. Inicializar App e Banco Firestore
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const vendasCol = collection(db, "vendas");
-
-    // Elementos da interface
-    const tbody = document.getElementById("salesTableBody");
-    const syncStatus = document.getElementById("syncStatus");
-    const cardTotalPedidos = document.getElementById("cardTotalPedidos");
+    // ========================================================
+    // 2. BASE COMPLETA DE CLIENTES TELES ODONTO
+    // ========================================================
+    const initialClientsData = [
+      { cod: "2", name: "JOÃO PESSOA MEDEIROS COSTA" },
+      { cod: "4", name: "LEONARDO AMORIM DE FRANCA E SOUSA (ERDENIA)" },
+      { cod: "5", name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA" },
+      { cod: "7", name: "DAVI DA CUNHA GONCALVES (DR. DAVI CUNHA) RODRIGO" },
+      { cod: "8", name: "LEONARDO DA SILVA SOUZA (CHINA)" },
+      { cod: "9", name: "JOAO FERNANDO BRITO SILVA (MARAPONGA)" },
+      { cod: "10", name: "JOSE BRENO MESQUITA FARIAS (SMILE LAB)" },
+      { cod: "11", name: "JOAO ALVES PEREIRA NETO (JOÃO NETO)" },
+      { cod: "12", name: "ARTDENT PROTESE DENTARIA LTDA (DEIJA)" },
+      { cod: "13", name: "ANTONIO FERNANDES NETO(CENTRO)" },
+      { cod: "14", name: "CLINICA ODONTOLOGICA JORIO DA ESCOSSIA LTDA WALLESON" },
+      { cod: "15", name: "RICARDO TEIXEIRA ABREU ODONTOLOGIA LTDA" },
+      { cod: "16", name: "ER ODONTOLOGIA VAL – FLAVIA" },
+      { cod: "17", name: "WECIO GOMES DE ARAÚJO(BIA)" },
+      { cod: "18", name: "LEARDSON RODRIGUES DE ARAUJO" },
+      { cod: "19", name: "ANTÔNIO FÁBIO SANTOS DE SOUSA" },
+      { cod: "20", name: "EZEQUIEL LIMA DE OLIVEIRA" },
+      { cod: "21", name: "FRANCISCO EVANOR ALVES MOREIRA (ALVES PROTÉTICO)" },
+      { cod: "22", name: "OLAVO ALMEIDA SANTOS" },
+      { cod: "23", name: "SILVIA LETICE RODRIGUES LOPES" },
+      { cod: "24", name: "MAURICIO JUAZEIRO" },
+      { cod: "25", name: "JOSÉ DIAS DO NASCIMENTO" },
+      { cod: "26", name: "ISABELLE RAMOS PEREIRA LIMA(DR ISABELLE)" },
+      { cod: "27", name: "GIOVANNI LIMA VERDE OLIVEIRA (TOTAL)" },
+      { cod: "28", name: "ROBSON CLEITON NUNES RANGEL" },
+      { cod: "29", name: "ROSEANE SALES DIAS – VICTOR" },
+      { cod: "30", name: "JANNES PEREIRA FREITAS" },
+      { cod: "31", name: "ELIAS DE OLIVEIRA PEIXOTO" },
+      { cod: "32", name: "CLINICA ODONT E DE IMAGEM PALT -(SÃO PEDRO)-" },
+      { cod: "33", name: "SOURIEZ SERVICOS ODONTOLOGICOS LTDA" },
+      { cod: "34", name: "PROTESE ODONTOLOGICA NASCIMENTO LTDA (LAB NASCIMENTO)" },
+      { cod: "35", name: "EDSON EVANGELISTA MOREIRA" },
+      { cod: "36", name: "EUGENIO SANTOS ALBERTINO DE LIMA" },
+      { cod: "37", name: "ADRIANO CORDEIRO DE ANDRADE" },
+      { cod: "38", name: "LEONARDO LEITE ALMEIDA DE MEDEIROS(MOSSORÓ)" },
+      { cod: "39", name: "RODRIGO DE LIMA SOARES" },
+      { cod: "40", name: "RUAN FELLIPE DE LIMA MOREIRA (RUAN E LETÍCIA)" },
+      { cod: "41", name: "WELLINGTON LUSTOSA DA COSTA" },
+      { cod: "42", name: "ADELINA ROCHA DE OLIVEIRA - ROBERTO" },
+      { cod: "43", name: "SIDNEY GABRIEL RODRIGUES HOLANDA (DR SIDNEY)" },
+      { cod: "44", name: "WENDER RIBEIRO MESQUITA" },
+      { cod: "45", name: "P W SERVICOS DE PROTESES DENTARIA LTDA (WRYEL)" },
+      { cod: "47", name: "LEOPOLDO LEITE ALMEIDA DE MEDEIROS(MOSSORÓ)" },
+      { cod: "48", name: "J M F LABORATORIO DE PROTESE LTDA (FRAN E JANILSON)" },
+      { cod: "49", name: "ROSANGELA FRANCO MULLER" },
+      { cod: "50", name: "CRISTIANE ELAINA ARAGÃO FARIAS (ADÁZILA)" },
+      { cod: "51", name: "JULIO CESAR EVANGELISTA ROSA" },
+      { cod: "53", name: "RAUL FITERMAN LIMA" },
+      { cod: "54", name: "CICERA CRISTINA LANDIM DA COSTA – VICTOR" },
+      { cod: "55", name: "MARCOS ANTONIO ANDRADE DA LUZ (MARQUIM)" },
+      { cod: "56", name: "FLAVIANA FRANCISCA DA SILVA BEZERRA (TOTAL)" },
+      { cod: "57", name: "JOSÉ ROBERTO DO CARMO CALANDRINE JUNIOR" },
+      { cod: "58", name: "LAB. DE PROTESE ODONT EUGENIO ALBERTINI (SILVANA)" },
+      { cod: "59", name: "JOÃO FERREIRA DA SILVA" },
+      { cod: "60", name: "ANDREIA DA SILVA PEREIRA (DREAM LAB)" },
+      { cod: "61", name: "LUCAS / EXCLUSIVA" },
+      { cod: "62", name: "SAMUEL PACHECO MORAIS / SAMUEL SAPIRANGA" },
+      { cod: "63", name: "LAB. DE PROTESE ODONT A M L LTDA (YOUR SMILE)" },
+      { cod: "64", name: "ANASTÁCIO B. BRAGA (DR ANASTACIO)" },
+      { cod: "65", name: "DELNINE MENDES DE CAMARGO JUNIOR" },
+      { cod: "66", name: "CID CLAYTON PEREIRA" },
+      { cod: "67", name: "CARLOS AUGUSTO MOTA HOLANDA (SAGUTA)" },
+      { cod: "68", name: "JOSÉ RICARDO DE ARAÚJO" },
+      { cod: "69", name: "ANTÔNIO RENAN E SILVA SERRA(RENAN)" },
+      { cod: "70", name: "MARCIO ROGERIO SABOIA ANDRADE" },
+      { cod: "71", name: "TIAGO DA SILVA BRUNO" },
+      { cod: "72", name: "PAULO ANDRÉ SANTOS SABINO" },
+      { cod: "73", name: "NELSON LOBO GOMES SANTOS" },
+      { cod: "74", name: "RAQUEL FELISMINO LIMA PORTELA ALBUQUERQUE" },
+      { cod: "75", name: "EMANOEL ITALO DE ALMEIDA SILVA (VAL)" },
+      { cod: "76", name: "FUVIO PROTÉTICO" },
+      { cod: "77", name: "PAULO VITOR CAVALCANTE DE OLIVEIRA(Paulinho)" },
+      { cod: "78", name: "CARLOS HENRIQUE SILVA" },
+      { cod: "79", name: "BENÍCIO PROTÉTICO" },
+      { cod: "80", name: "ROBERT GALDINO EUGÊNIO" },
+      { cod: "81", name: "MÁRCIO LOURENÇO BARBOSA" },
+      { cod: "82", name: "PAULO GOMES SANTOS" },
+      { cod: "83", name: "RENATO DOS SANTOS" },
+      { cod: "84", name: "GLAUBER MEIRA LIMA" },
+      { cod: "85", name: "GEANDRA DE SOUSA SÁ" },
+      { cod: "86", name: "ROBERTO SALES AGUIAR FILHO (ROBERTO ITAPIPOCA)" },
+      { cod: "87", name: "CARLOS LUIZ FREITAS GOMES JR" },
+      { cod: "88", name: "EVANDRO MASTROIANE C. DE MEDEIROS" },
+      { cod: "89", name: "TATIANA BEZERRA PROTESE DENTARIA LTDA" },
+      { cod: "90", name: "FRANCISCO JONATAS COLARES DA COSTA" },
+      { cod: "91", name: "LABORDEN PROTESE ODONTOLÓGICA(HELENA)" },
+      { cod: "92", name: "ALFREDO & ROBERTO CENCIARELLI S/S LTDA (ITÁLIA)" },
+      { cod: "93", name: "LEANDRO DE OLIVEIRA DA SILVA(CONCEPT)" },
+      { cod: "94", name: "JOSE MILTON NUNES PAIVA JR (JÚNIOR PAIVA)" },
+      { cod: "96", name: "BILL SOARES RÔLA" },
+      { cod: "97", name: "FELIPE SIMÕES DE SOUSA" },
+      { cod: "98", name: "DRA EVELINE (QUIXADÁ)" },
+      { cod: "99", name: "VINÍCIUS PEGADO DE LIMA" },
+      { cod: "100", name: "ARISTEU SOBRAL(LAB POLY PROTESE)" }
+    ];
 
     // ========================================================
-    // A. LER VENDAS DA NUVEM (FIRESTORE)
+    // 3. BASE DE VENDEDORES COM AS REGRAS E METAS RESTAURADAS
     // ========================================================
-    async function carregarVendas() {
-      try {
-        if (syncStatus) syncStatus.textContent = "Buscando dados no Firebase...";
-        const q = query(vendasCol, orderBy("dataCriacao", "desc"));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          tbody.innerHTML = ""; // Limpa os exemplos e exibe os dados reais do banco
-          let count = 0;
-
-          snapshot.forEach((doc) => {
-            const v = doc.data();
-            count++;
-            const tr = document.createElement("tr");
-            tr.className = "hover:bg-slate-50/60 transition-colors";
-            tr.innerHTML = `
-              <td class="py-3 px-3">
-                <b class="text-slate-900">${v.dataVenda || "Hoje"}</b>
-                <p class="text-indigo-600 font-bold">DAV #${v.dav}</p>
-              </td>
-              <td class="py-3 px-3 font-medium text-slate-800">${v.cliente}</td>
-              <td class="py-3 px-3 font-semibold text-slate-700">${v.vendedor}</td>
-              <td class="py-3 px-3 font-extrabold text-slate-900">R$ ${v.valor}</td>
-              <td class="py-3 px-3">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">• Salvo na Nuvem</span>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-
-          if (cardTotalPedidos) cardTotalPedidos.textContent = `${count} pedidos`;
-        }
-        if (syncStatus) syncStatus.textContent = "Sincronizado";
-      } catch (error) {
-        console.warn("Aviso Firebase:", error);
-        if (syncStatus) syncStatus.textContent = "Modo Local";
+    const initialSellersData = [
+      {
+        cod: "1",
+        name: "André Luiz Nóbrega Martins",
+        ruleProfile: "FAIXA_3_35_4",
+        rateRegular: 3,
+        rateBom: 3.5,
+        rateOtimo: 4,
+        enableParcial: true,
+        rateParcial: 1.5,
+        enableDentistas: false,
+        rateDentistas: 0
+      },
+      {
+        cod: "2",
+        name: "Luis Daniel da Silva",
+        ruleProfile: "FAIXA_2_25_3",
+        rateRegular: 2,
+        rateBom: 2.5,
+        rateOtimo: 3,
+        enableParcial: true,
+        rateParcial: 1.5,
+        enableDentistas: true,
+        rateDentistas: 4
       }
-    }
-
-    // Carregar na abertura
-    carregarVendas();
+    ];
 
     // ========================================================
-    // B. GRAVAR NOVA VENDA NO FIREBASE
+    // 4. APLICAÇÃO PRINCIPAL REACT
     // ========================================================
-    const form = document.getElementById("saleForm");
-    const submitBtn = document.getElementById("submitBtn");
+    function App() {
+      const [currentView, setCurrentView] = useState('home'); // 'home' | 'sales_page' | 'commissions'
+      const [sales, setSales] = useState([
+        { 
+          id: 'venda-demo-1', codCliente: '2', client: 'JOÃO PESSOA MEDEIROS COSTA', codVendedor: '2', salesperson: 'Luis Daniel da Silva', 
+          amount: 1500, date: '2026-11-02', dav: '48911', parcelas: 1, prazo: 0, tipoVenda: 'TOTAL',
+          installments: [
+            { id: 'inst-1', number: 1, amount: 1500, dueDate: '2026-11-02', status: 'Pago', paymentDate: '2026-11-02' }
+          ]
+        },
+        { 
+          id: 'venda-demo-2', codCliente: '4', client: 'LEONARDO AMORIM DE FRANCA E SOUSA (ERDENIA)', codVendedor: '1', salesperson: 'André Luiz Nóbrega Martins', 
+          amount: 3200, date: '2026-11-03', dav: '48925', parcelas: 2, prazo: 15, tipoVenda: 'PARCIAL',
+          installments: [
+            { id: 'inst-2-1', number: 1, amount: 1600, dueDate: '2026-11-18', status: 'Pago', paymentDate: '2026-11-03' },
+            { id: 'inst-2-2', number: 2, amount: 1600, dueDate: '2026-12-03', status: 'Em aberto', paymentDate: null }
+          ]
+        }
+      ]);
 
-    if (form) {
-      form.addEventListener("submit", async function(e) {
+      const [clients, setClients] = useState(initialClientsData);
+      const [sellers, setSellers] = useState(initialSellersData);
+      const [commissionMonth, setCommissionMonth] = useState('2026-11');
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [dbStatus, setDbStatus] = useState('Conectando ao Firebase...');
+
+      // Filtros de Carteira
+      const [clientSearch, setClientSearch] = useState('');
+      const [onlyClientsWithSales, setOnlyClientsWithSales] = useState(false);
+      const [filterInadimplentes, setFilterInadimplentes] = useState(false);
+      const [filterAReceber, setFilterAReceber] = useState(false);
+      const [receivablePeriodFilter, setReceivablePeriodFilter] = useState(null);
+      const [selectedClient, setSelectedClient] = useState(null);
+      const [selectedSellerDetail, setSelectedSellerDetail] = useState(null);
+      const [editingSeller, setEditingSeller] = useState(null);
+
+      // Amortização Parcial / Promissória
+      const [cascadeAmount, setCascadeAmount] = useState('');
+      const [cascadeDate, setCascadeDate] = useState('2026-11-12');
+      const [cascadeSellerFilter, setCascadeSellerFilter] = useState('ALL');
+      const [cascadeSuccessMsg, setCascadeSuccessMsg] = useState('');
+      const [partialModal, setPartialModal] = useState(null);
+
+      // Formulário Nova Venda
+      const [formData, setFormData] = useState({
+        client: '',
+        codCliente: '',
+        codVendedor: '1',
+        salesperson: 'André Luiz Nóbrega Martins',
+        dav: '',
+        amount: '',
+        date: '2026-11-12',
+        parcelas: '1',
+        prazo: '0',
+        tipoVenda: 'TOTAL'
+      });
+
+      // Relógio em tempo real
+      useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      // Ícones do Lucide
+      useEffect(() => {
+        if (window.lucide) window.lucide.createIcons();
+      });
+
+      // Conexão Firestore em tempo real
+      useEffect(() => {
+        async function initFirebase() {
+          try {
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+            const { getFirestore, collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            setDbStatus('FIREBASE CONECTADO');
+
+            // Escuta vendas do banco em tempo real
+            const vendasRef = collection(db, "vendas");
+            onSnapshot(vendasRef, (snapshot) => {
+              if (!snapshot.empty) {
+                const fbSales = [];
+                snapshot.forEach(docSnap => {
+                  const d = docSnap.data();
+                  fbSales.push({
+                    id: docSnap.id,
+                    codCliente: d.codCliente || '4',
+                    client: d.cliente || d.client || 'Cliente Teles Odonto',
+                    codVendedor: d.codVendedor || '1',
+                    salesperson: d.vendedor || d.salesperson || 'André Luiz Nóbrega Martins',
+                    amount: parseFloat(d.valor || d.amount || 0),
+                    date: d.dataVenda || d.date || '2026-11-12',
+                    dav: d.dav || '000',
+                    parcelas: parseInt(d.parcelas || 1, 10),
+                    prazo: d.prazo === 0 || d.prazo === '0' ? 0 : d.prazo || 0,
+                    tipoVenda: d.tipoVenda || 'TOTAL',
+                    installments: d.installments || [
+                      { 
+                        id: `${docSnap.id}-1`, 
+                        number: 1, 
+                        amount: parseFloat(d.valor || d.amount || 0), 
+                        dueDate: d.dataVenda || '2026-11-12', 
+                        status: d.status || 'Pago', 
+                        paymentDate: d.dataVenda || '2026-11-12' 
+                      }
+                    ]
+                  });
+                });
+                setSales(fbSales);
+              }
+            }, (err) => {
+              console.warn("Aviso Firebase:", err);
+              setDbStatus('MODO LOCAL (OFFLINE)');
+            });
+          } catch (e) {
+            console.warn("Erro ao iniciar Firebase:", e);
+            setDbStatus('MODO LOCAL (OFFLINE)');
+          }
+        }
+        initFirebase();
+      }, []);
+
+      // Data de hoje formatada YYYY-MM-DD
+      const todayStr = useMemo(() => {
+        const y = currentTime.getFullYear();
+        const m = String(currentTime.getMonth() + 1).padStart(2, '0');
+        const d = String(currentTime.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }, [currentTime]);
+
+      // Vendas do mês vigente
+      const currentMonthSales = useMemo(() => {
+        return sales.filter(s => s.date && s.date.startsWith(commissionMonth));
+      }, [sales, commissionMonth]);
+
+      // Estatísticas do Dashboard Mês Vigente
+      const dashboardStats = useMemo(() => {
+        let revenue = 0;
+        let paid = 0;
+        let receivable = 0;
+        sales.forEach(sale => {
+          revenue += sale.amount;
+          sale.installments.forEach(inst => {
+            if (inst.status === 'Pago') paid += inst.amount;
+            else receivable += inst.amount;
+          });
+        });
+        const paidPct = revenue > 0 ? (paid / revenue) * 100 : 0;
+        const recPct = revenue > 0 ? (receivable / revenue) * 100 : 0;
+        return { revenue, paid, receivable, paidPct, recPct };
+      }, [sales]);
+
+      // Análise financeira e títulos por cliente
+      const clientData = useMemo(() => {
+        const data = {};
+        sales.forEach(sale => {
+          if (!data[sale.codCliente]) {
+            data[sale.codCliente] = {
+              totalSpent: 0,
+              paidAmount: 0,
+              overdueAmount: 0,
+              overdueCount: 0,
+              upcomingAmount: 0,
+              upcomingCount: 0,
+              dueTodayAmount: 0,
+              dueTodayCount: 0,
+              dueMonthAmount: 0,
+              dueMonthCount: 0,
+              history: []
+            };
+          }
+          const c = data[sale.codCliente];
+          c.totalSpent += sale.amount;
+          c.history.push(sale);
+          sale.installments.forEach(inst => {
+            if (inst.status === 'Pago') {
+              c.paidAmount += inst.amount;
+            } else {
+              if (inst.dueDate < todayStr) {
+                c.overdueAmount += inst.amount;
+                c.overdueCount += 1;
+              } else {
+                c.upcomingAmount += inst.amount;
+                c.upcomingCount += 1;
+              }
+              if (inst.dueDate === todayStr) {
+                c.dueTodayAmount += inst.amount;
+                c.dueTodayCount += 1;
+              }
+              if (inst.dueDate && inst.dueDate.startsWith(commissionMonth)) {
+                c.dueMonthAmount += inst.amount;
+                c.dueMonthCount += 1;
+              }
+            }
+          });
+        });
+        return data;
+      }, [sales, todayStr, commissionMonth]);
+
+      // ========================================================
+      // 5. MOTOR DE CÁLCULO DAS REGRAS DE COMISSÃO
+      // ========================================================
+      const salespersonData = useMemo(() => {
+        const data = {};
+        sellers.forEach(s => {
+          data[s.cod] = {
+            name: s.name,
+            totalSoldMonth: 0, // Vendas brutas
+            totalPaidMonth: 0, // Baixas reais onde a comissão incide
+            salesTotal: 0,
+            salesParcial: 0,
+            salesDentistas: 0,
+            count: 0
+          };
+        });
+
+        sales.forEach(sale => {
+          const sCod = sale.codVendedor || '1';
+          if (!data[sCod]) {
+            data[sCod] = { name: sale.salesperson, totalSoldMonth: 0, totalPaidMonth: 0, salesTotal: 0, salesParcial: 0, salesDentistas: 0, count: 0 };
+          }
+
+          if (sale.date && sale.date.startsWith(commissionMonth)) {
+            data[sCod].totalSoldMonth += sale.amount;
+          }
+
+          // A comissão é apurada estritamente sobre as parcelas BAIXADAS no mês
+          sale.installments.forEach(inst => {
+            if (inst.status === 'Pago' && inst.paymentDate && inst.paymentDate.startsWith(commissionMonth)) {
+              data[sCod].totalPaidMonth += inst.amount;
+              data[sCod].count += 1;
+
+              if (sale.tipoVenda === 'TOTAL') data[sCod].salesTotal += inst.amount;
+              else if (sale.tipoVenda === 'PARCIAL') data[sCod].salesParcial += inst.amount;
+              else if (sale.tipoVenda === 'DENTISTAS') data[sCod].salesDentistas += inst.amount;
+            }
+          });
+        });
+
+        return data;
+      }, [sales, sellers, commissionMonth]);
+
+      // Regras por Faixa de Metas
+      const calculateCommission = (sellerCod, stats) => {
+        const seller = sellers.find(s => s.cod === sellerCod) || sellers[0];
+        const volume = stats.totalPaidMonth || 0;
+
+        let rate = seller.rateRegular;
+        let faixa = 'Regular (Até R$ 16k)';
+
+        if (volume >= 32000) {
+          rate = seller.rateOtimo;
+          faixa = 'Ótimo (Meta Batida 32k+)';
+        } else if (volume >= 21000) {
+          rate = seller.rateBom;
+          faixa = 'Bom (Faixa 21k - 32k)';
+        }
+
+        const commTotal = stats.salesTotal * (rate / 100);
+        const commParcial = seller.enableParcial ? stats.salesParcial * (seller.rateParcial / 100) : 0;
+        const commDentistas = seller.enableDentistas ? stats.salesDentistas * (seller.rateDentistas / 100) : 0;
+        const total = commTotal + commParcial + commDentistas;
+
+        return { rate, faixa, commTotal, commParcial, commDentistas, total };
+      };
+
+      // Gravação no Firebase & Local
+      const handleRegisterSale = async (e) => {
         e.preventDefault();
+        if (!formData.amount || !formData.dav) return;
 
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = "<span>Gravando na Nuvem...</span>";
-        submitBtn.disabled = true;
+        const val = parseFloat(formData.amount.replace(',', '.'));
+        const isAvista = formData.prazo === '0';
+        const numParc = isAvista ? 1 : Math.max(1, parseInt(formData.parcelas, 10));
+        const instVal = val / numParc;
 
-        const novaVenda = {
-          dav: document.getElementById("davInput").value,
-          cliente: document.getElementById("clientSelect").value,
-          vendedor: document.getElementById("vendorSelect").value,
-          valor: document.getElementById("valueInput").value,
-          dataVenda: document.getElementById("dateInput").value || new Date().toISOString().split('T')[0],
-          dataCriacao: serverTimestamp()
+        const generatedInst = [];
+        for (let i = 0; i < numParc; i++) {
+          generatedInst.push({
+            id: `inst-${Date.now()}-${i}`,
+            number: i + 1,
+            amount: instVal,
+            dueDate: formData.date,
+            status: isAvista ? 'Pago' : 'Em aberto',
+            paymentDate: isAvista ? formData.date : null
+          });
+        }
+
+        const newSaleObj = {
+          dav: formData.dav,
+          cliente: formData.client || 'Cliente Teles Odonto',
+          codCliente: formData.codCliente || '4',
+          vendedor: formData.salesperson,
+          codVendedor: formData.codVendedor,
+          valor: val,
+          dataVenda: formData.date,
+          tipoVenda: formData.tipoVenda,
+          parcelas: numParc,
+          prazo: formData.prazo,
+          installments: generatedInst
         };
 
-        try {
-          // Gravação direta no Firestore
-          await addDoc(vendasCol, novaVenda);
-          alert("✅ Venda gravada com sucesso no Firebase!");
-          
-          // Recarrega a tabela imediatamente
-          await carregarVendas();
-        } catch (err) {
-          console.error("Erro ao salvar:", err);
-          alert("Aviso: Venda salva localmente. Para salvar na nuvem do Firebase, certifique-se de que a aba 'Regras' do Firestore permite gravação.");
-        } finally {
-          submitBtn.innerHTML = originalText;
-          submitBtn.disabled = false;
+        // Salva no Firestore se disponível
+        if (db) {
+          try {
+            const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            await addDoc(collection(db, "vendas"), { ...newSaleObj, dataCriacao: serverTimestamp() });
+          } catch (err) {
+            console.warn("Salvando em contingência local:", err);
+          }
         }
-      });
+
+        setSales(prev => [{ ...newSaleObj, id: `local-${Date.now()}` }, ...prev]);
+        alert("✅ Venda registrada com sucesso e integrada às regras de comissões!");
+
+        setFormData(prev => ({ ...prev, dav: '', amount: '' }));
+      };
+
+      // Baixa / Reabertura de Parcela
+      const toggleInstallment = (saleId, instId) => {
+        setSales(prev => prev.map(s => {
+          if (s.id !== saleId) return s;
+          return {
+            ...s,
+            installments: s.installments.map(i => {
+              if (i.id !== instId) return i;
+              const isPaid = i.status === 'Pago';
+              return {
+                ...i,
+                status: isPaid ? 'Em aberto' : 'Pago',
+                paymentDate: isPaid ? null : `${commissionMonth}-12`
+              };
+            })
+          };
+        }));
+      };
+
+      // Amortização em Cascata (FIFO)
+      const handleCascadePayment = (e, clientCod) => {
+        e.preventDefault();
+        const valToAbate = parseFloat(cascadeAmount);
+        if (!valToAbate || valToAbate <= 0) return;
+
+        let remaining = valToAbate;
+        setSales(prev => prev.map(sale => {
+          if (sale.codCliente !== clientCod) return sale;
+
+          const updatedInst = sale.installments.map(inst => {
+            if (inst.status === 'Pago' || remaining <= 0) return inst;
+            const take = Math.min(remaining, inst.amount);
+            remaining -= take;
+
+            if (take >= inst.amount - 0.01) {
+              return { ...inst, status: 'Pago', paymentDate: cascadeDate };
+            }
+            return inst;
+          });
+
+          return { ...sale, installments: updatedInst };
+        }));
+
+        setCascadeSuccessMsg(`Abatimento de R$ ${valToAbate.toFixed(2)} liquidado via FIFO! Comissões recalculadas.`);
+        setCascadeAmount('');
+        setTimeout(() => setCascadeSuccessMsg(''), 4000);
+      };
+
+      return (
+        <div className="flex flex-col md:flex-row min-h-screen">
+          {/* SIDEBAR */}
+          <aside className="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0 border-r border-slate-800 md:h-screen sticky top-0 z-30">
+            <div>
+              <div className="p-5 border-b border-slate-800 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg">
+                  <i data-lucide="sparkles" className="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h1 className="text-white font-bold text-base leading-tight">Teles Odonto</h1>
+                  <p className="text-xs text-indigo-400 font-medium">Materiais Protéticos</p>
+                </div>
+              </div>
+
+              <div className="px-4 py-5">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-2">Módulos</p>
+                <nav className="space-y-1">
+                  <button onClick={() => setCurrentView('home')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left ${currentView === 'home' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}>
+                    <i data-lucide="layout-dashboard" className="w-4 h-4"></i>
+                    <span>Painel & Lançamentos</span>
+                  </button>
+                  <button onClick={() => { setCurrentView('sales_page'); setSelectedClient(null); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left ${currentView === 'sales_page' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}>
+                    <i data-lucide="users" className="w-4 h-4"></i>
+                    <span>Carteira & Inadimplência</span>
+                  </button>
+                  <button onClick={() => { setCurrentView('commissions'); setSelectedSellerDetail(null); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left ${currentView === 'commissions' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}>
+                    <i data-lucide="percent" className="w-4 h-4"></i>
+                    <span>Comissões & Metas</span>
+                  </button>
+                </nav>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/60">
+                <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs">TO</div>
+                <div className="truncate">
+                  <p className="text-xs font-semibold text-slate-200">Operador Comercial</p>
+                  <p className="text-[10px] text-slate-400">admin@telesodonto.com</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* ÁREA PRINCIPAL */}
+          <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
+            {/* Header */}
+            <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <span className="font-bold text-slate-800">Teles Odonto CRM</span>
+                <span>/</span>
+                <span className="text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full text-xs capitalize">
+                  {currentView === 'home' ? 'Painel de Lançamentos' : currentView === 'sales_page' ? 'Carteira de Clientes' : 'Cálculo de Comissões'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>{dbStatus}</span>
+              </div>
+            </header>
+
+            <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
+
+              {/* ========================================== */}
+              {/* VIEW 1: HOME & DASHBOARD                   */}
+              {/* ========================================== */}
+              {currentView === 'home' && (
+                <div className="space-y-6">
+                  {/* Banner Executivo */}
+                  <div className="bg-slate-900 rounded-2xl p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-600/30 flex items-center justify-center text-indigo-400">
+                        <i data-lucide="clock" className="w-5 h-5"></i>
+                      </div>
+                      <div>
+                        <span className="text-xs text-indigo-400 font-bold uppercase tracking-wider">Horário de Brasília</span>
+                        <p className="text-xl font-bold font-mono">{currentTime.toLocaleTimeString('pt-BR')} | Novembro de 2026</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-400">Mês de Referência:</span>
+                      <input 
+                        type="month" 
+                        value={commissionMonth} 
+                        onChange={e => setCommissionMonth(e.target.value)}
+                        className="bg-indigo-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl border-none outline-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Cards de Métricas */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                      <span className="text-xs font-bold text-slate-500 uppercase">Receita Bruta Registrada</span>
+                      <p className="text-2xl font-extrabold text-slate-900 mt-1">R$ {dashboardStats.revenue.toFixed(2)}</p>
+                      <p className="text-xs font-semibold text-indigo-600 mt-2">Vendas no ciclo</p>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                      <span className="text-xs font-bold text-emerald-600 uppercase">Total Efetivamente Baixado</span>
+                      <p className="text-2xl font-extrabold text-emerald-700 mt-1">R$ {dashboardStats.paid.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500 mt-2">({dashboardStats.paidPct.toFixed(1)}% do faturamento)</p>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                      <span className="text-xs font-bold text-amber-600 uppercase">Saldo A Receber (Carteira)</span>
+                      <p className="text-2xl font-extrabold text-amber-600 mt-1">R$ {dashboardStats.receivable.toFixed(2)}</p>
+                      <p className="text-xs text-slate-500 mt-2">({dashboardStats.recPct.toFixed(1)}% pendente de baixa)</p>
+                    </div>
+                  </div>
+
+                  {/* Lançamento Nova Venda + Livro de Vendas */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <i data-lucide="plus-circle" className="w-4 h-4 text-indigo-600"></i>
+                        Lançar Nova Venda (DAV)
+                      </h2>
+                      <form onSubmit={handleRegisterSale} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Data</label>
+                            <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50" required />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Nº DAV / Pedido</label>
+                            <input type="text" placeholder="Ex: 48930" value={formData.dav} onChange={e => setFormData({...formData, dav: e.target.value})} className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-50" required />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1">Cliente / Laboratório</label>
+                          <select 
+                            value={formData.codCliente} 
+                            onChange={e => {
+                              const found = clients.find(c => c.cod === e.target.value);
+                              setFormData({
+                                ...formData, 
+                                codCliente: e.target.value,
+                                client: found ? found.name : ''
+                              });
+                            }}
+                            className="w-full text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50"
+                          >
+                            <option value="">Selecione o Cliente...</option>
+                            {clients.slice(0, 50).map(c => (
+                              <option key={c.cod} value={c.cod}>#{c.cod} - {c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Vendedor</label>
+                            <select 
+                              value={formData.codVendedor} 
+                              onChange={e => {
+                                const found = sellers.find(s => s.cod === e.target.value);
+                                setFormData({
+                                  ...formData, 
+                                  codVendedor: e.target.value,
+                                  salesperson: found ? found.name : ''
+                                });
+                              }}
+                              className="w-full text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50"
+                            >
+                              {sellers.map(s => (
+                                <option key={s.cod} value={s.cod}>{s.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Valor Venda (R$)</label>
+                            <input type="text" placeholder="1500.00" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="w-full text-xs font-bold border border-slate-200 rounded-xl p-2.5 bg-slate-50" required />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Tipo de Venda</label>
+                            <select value={formData.tipoVenda} onChange={e => setFormData({...formData, tipoVenda: e.target.value})} className="w-full text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50">
+                              <option value="TOTAL">TOTAL (Regra Metas)</option>
+                              <option value="PARCIAL">PARCIAL (1,5%)</option>
+                              <option value="DENTISTAS">DENTISTAS (4,0%)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Condição</label>
+                            <select value={formData.prazo} onChange={e => setFormData({...formData, prazo: e.target.value})} className="w-full text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50">
+                              <option value="0">À Vista (Baixa Imediata)</option>
+                              <option value="15">Prazo 15 dias</option>
+                              <option value="30">Prazo 30 dias</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-600/20 text-xs flex items-center justify-center gap-2 transition">
+                          <i data-lucide="cloud-upload" className="w-4 h-4"></i>
+                          <span>Registrar Venda & Sincronizar Nuvem</span>
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Tabela de Vendas */}
+                    <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <h2 className="text-base font-bold text-slate-900">Vendas Registradas no Período</h2>
+                        <span className="text-xs text-slate-400">{currentMonthSales.length} pedidos</span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
+                            <tr>
+                              <th className="py-3 px-3">DAV / Data</th>
+                              <th className="py-3 px-3">Cliente</th>
+                              <th className="py-3 px-3">Vendedor</th>
+                              <th className="py-3 px-3">Valor</th>
+                              <th className="py-3 px-3 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-slate-700">
+                            {currentMonthSales.map(sale => (
+                              <tr key={sale.id} className="hover:bg-slate-50/70">
+                                <td className="py-3 px-3">
+                                  <b className="text-slate-900">DAV #{sale.dav}</b>
+                                  <p className="text-slate-400 text-[10px]">{sale.date}</p>
+                                </td>
+                                <td className="py-3 px-3 font-medium text-slate-800">{sale.client}</td>
+                                <td className="py-3 px-3">{sale.salesperson}</td>
+                                <td className="py-3 px-3 font-bold text-slate-900">R$ {sale.amount.toFixed(2)}</td>
+                                <td className="py-3 px-3 text-center">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${sale.installments.every(i => i.status === 'Pago') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    {sale.installments.every(i => i.status === 'Pago') ? '• Baixado' : '• Pendente'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* VIEW 2: CARTEIRA DE CLIENTES & AMORTIZAÇÃO (FIFO)   */}
+              {/* ==================================================== */}
+              {currentView === 'sales_page' && (
+                <div className="space-y-6">
+                  {selectedClient ? (
+                    /* Ficha Individual do Cliente */
+                    <div className="space-y-6">
+                      <button onClick={() => setSelectedClient(null)} className="text-indigo-600 font-semibold text-xs flex items-center gap-1 hover:underline">
+                        ← Voltar para lista de clientes
+                      </button>
+
+                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
+                          <div>
+                            <span className="text-[11px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full">CÓDIGO #{selectedClient.cod}</span>
+                            <h2 className="text-xl font-extrabold text-slate-900 mt-1">{selectedClient.name}</h2>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-slate-400">Total Comprado na Teles:</span>
+                            <p className="text-xl font-black text-indigo-600">
+                              R$ {(clientData[selectedClient.cod]?.totalSpent || 0).toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Amortização em Cascata (FIFO) */}
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 rounded-2xl border border-indigo-100 space-y-3">
+                          <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                            <i data-lucide="layers" className="w-4 h-4"></i>
+                            Abatimento Parcial em Cascata (FIFO - Mais Antigas Primeiro)
+                          </h3>
+                          <p className="text-xs text-indigo-700">Digite o valor pago pelo cliente. O sistema baixará automaticamente das notas mais antigas para as mais novas e creditará a comissão do vendedor no mês correspondente.</p>
+                          <form onSubmit={e => handleCascadePayment(e, selectedClient.cod)} className="flex flex-col sm:flex-row gap-3">
+                            <input 
+                              type="number" 
+                              step="0.01" 
+                              placeholder="Valor Recebido (R$)" 
+                              value={cascadeAmount} 
+                              onChange={e => setCascadeAmount(e.target.value)} 
+                              className="px-3 py-2 text-xs font-bold rounded-xl border border-indigo-200 bg-white outline-none flex-1"
+                              required 
+                            />
+                            <input 
+                              type="date" 
+                              value={cascadeDate} 
+                              onChange={e => setCascadeDate(e.target.value)} 
+                              className="px-3 py-2 text-xs rounded-xl border border-indigo-200 bg-white outline-none"
+                              required 
+                            />
+                            <button type="submit" className="bg-indigo-600 text-white font-bold text-xs px-5 py-2 rounded-xl shadow-md">
+                              Abater Saldo
+                            </button>
+                          </form>
+                          {cascadeSuccessMsg && (
+                            <p className="text-xs font-bold text-emerald-700 bg-emerald-50 p-2 rounded-lg">{cascadeSuccessMsg}</p>
+                          )}
+                        </div>
+
+                        {/* Histórico de Compras e Parcelas */}
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-bold text-slate-800">Títulos e Notas deste Cliente</h4>
+                          {sales.filter(s => s.codCliente === selectedClient.cod).map(sale => (
+                            <div key={sale.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                              <div className="flex justify-between items-center text-xs">
+                                <div>
+                                  <b className="text-slate-900">DAV #{sale.dav}</b> • Data: {sale.date} • Vendedor: <span className="font-semibold text-indigo-600">{sale.salesperson}</span>
+                                </div>
+                                <span className="font-extrabold text-slate-900 text-sm">R$ {sale.amount.toFixed(2)}</span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                                {sale.installments.map(inst => (
+                                  <div key={inst.id} className={`p-3 rounded-lg border flex justify-between items-center ${inst.status === 'Pago' ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-amber-200'}`}>
+                                    <div>
+                                      <p className="text-xs font-bold text-slate-800">Parc. {inst.number} - R$ {inst.amount.toFixed(2)}</p>
+                                      <p className="text-[10px] text-slate-400">Venc: {inst.dueDate}</p>
+                                    </div>
+                                    <button 
+                                      onClick={() => toggleInstallment(sale.id, inst.id)}
+                                      className={`text-[11px] font-bold px-3 py-1 rounded-lg ${inst.status === 'Pago' ? 'bg-emerald-600 text-white' : 'bg-amber-100 text-amber-800 hover:bg-emerald-600 hover:text-white'}`}
+                                    >
+                                      {inst.status === 'Pago' ? 'Pago (Desfazer)' : 'Dar Baixa'}
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Tabela Geral de Clientes */
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                          <h2 className="text-lg font-bold text-slate-900">Base Geral de Clientes Teles Odonto</h2>
+                          <p className="text-xs text-slate-400">Total de {clients.length} cadastrados</p>
+                        </div>
+                        <input 
+                          type="text" 
+                          placeholder="Buscar por código ou nome..." 
+                          value={clientSearch} 
+                          onChange={e => setClientSearch(e.target.value)}
+                          className="text-xs border border-slate-200 rounded-xl px-3 py-2 w-full sm:w-64 bg-slate-50 outline-none"
+                        />
+                      </div>
+
+                      <div className="overflow-x-auto max-h-[600px] custom-scrollbar">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sticky top-0">
+                            <tr>
+                              <th className="py-3 px-3">Cód</th>
+                              <th className="py-3 px-3">Cliente / Razão Social</th>
+                              <th className="py-3 px-3 text-right">Total Comprado</th>
+                              <th className="py-3 px-3 text-center">Ação</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {clients
+                              .filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.cod.includes(clientSearch))
+                              .map(client => (
+                                <tr key={client.cod} className="hover:bg-slate-50">
+                                  <td className="py-2.5 px-3 font-bold text-slate-600">#{client.cod}</td>
+                                  <td className="py-2.5 px-3 font-semibold text-slate-800">{client.name}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-slate-900">
+                                    R$ {(clientData[client.cod]?.totalSpent || 0).toFixed(2)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-center">
+                                    <button onClick={() => setSelectedClient(client)} className="text-xs font-bold text-indigo-600 hover:text-indigo-800">
+                                      Abrir Ficha →
+                                    </button>
+                                  </td>
+                                </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ==================================================== */}
+              {/* VIEW 3: CÁLCULO DE COMISSÕES E METAS (RESTAURADA)   */}
+              {/* ==================================================== */}
+              {currentView === 'commissions' && (
+                <div className="space-y-6">
+                  {selectedSellerDetail ? (
+                    /* Extrato Individual do Vendedor */
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex justify-between items-center border-b pb-4">
+                        <div>
+                          <button onClick={() => setSelectedSellerDetail(null)} className="text-indigo-600 font-semibold text-xs mb-1">
+                            ← Voltar para apuração geral
+                          </button>
+                          <h2 className="text-xl font-extrabold text-slate-900">Extrato de Comissões - {sellers.find(s => s.cod === selectedSellerDetail)?.name}</h2>
+                          <p className="text-xs text-slate-400">Mês de Referência: {commissionMonth}</p>
+                        </div>
+                        <button onClick={() => window.print()} className="bg-slate-900 text-white font-bold text-xs px-4 py-2 rounded-xl">
+                          Imprimir / PDF
+                        </button>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
+                            <tr>
+                              <th className="py-3 px-3">Data Baixa</th>
+                              <th className="py-3 px-3">DAV</th>
+                              <th className="py-3 px-3">Cliente</th>
+                              <th className="py-3 px-3">Tipo Venda</th>
+                              <th className="py-3 px-3 text-right">Valor Baixado</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {sales.filter(s => s.codVendedor === selectedSellerDetail).map(sale => (
+                              sale.installments.filter(i => i.status === 'Pago' && i.paymentDate && i.paymentDate.startsWith(commissionMonth)).map(inst => (
+                                <tr key={inst.id} className="hover:bg-slate-50">
+                                  <td className="py-2.5 px-3 font-semibold text-slate-600">{inst.paymentDate}</td>
+                                  <td className="py-2.5 px-3 font-bold text-indigo-600">DAV #{sale.dav}</td>
+                                  <td className="py-2.5 px-3 font-medium text-slate-800">{sale.client}</td>
+                                  <td className="py-2.5 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100">{sale.tipoVenda}</span></td>
+                                  <td className="py-2.5 px-3 text-right font-extrabold text-slate-900">R$ {inst.amount.toFixed(2)}</td>
+                                </tr>
+                              ))
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Painel Geral de Comissões e Regras */
+                    <div className="space-y-6">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                          <h2 className="text-xl font-bold text-slate-900">Apuração de Comissões e Metas por Vendedor</h2>
+                          <p className="text-xs text-slate-500">Cálculo dinâmico baseado no escalonamento de metas atingidas no mês {commissionMonth}</p>
+                        </div>
+                        <input 
+                          type="month" 
+                          value={commissionMonth} 
+                          onChange={e => setCommissionMonth(e.target.value)}
+                          className="bg-indigo-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl border-none outline-none cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Cards com as Regras de Negócio e Metas de Cada Vendedor */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {sellers.map(seller => {
+                          const stats = salespersonData[seller.cod] || { totalSoldMonth: 0, totalPaidMonth: 0, salesTotal: 0, salesParcial: 0, salesDentistas: 0 };
+                          const comm = calculateCommission(seller.cod, stats);
+
+                          return (
+                            <div key={seller.cod} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md">Vendedor #{seller.cod}</span>
+                                  <h3 className="text-base font-bold text-slate-900 mt-1">{seller.name}</h3>
+                                  <p className="text-xs text-slate-400">Faixa Vigente: <strong className="text-indigo-600">{comm.faixa}</strong> ({comm.rate}%)</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs text-slate-400">Comissão a Pagar:</span>
+                                  <p className="text-2xl font-black text-emerald-600">R$ {comm.total.toFixed(2)}</p>
+                                </div>
+                              </div>
+
+                              {/* Barra de Progresso da Meta R$ 32.000 */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-xs font-semibold">
+                                  <span className="text-slate-500">Volume Baixado: R$ {stats.totalPaidMonth.toFixed(2)}</span>
+                                  <span className="text-indigo-600 font-bold">{Math.min(100, (stats.totalPaidMonth / 32000) * 100).toFixed(0)}% da Meta</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full transition-all duration-500 ${stats.totalPaidMonth >= 32000 ? 'bg-emerald-500' : 'bg-indigo-600'}`}
+                                    style={{ width: `${Math.min(100, (stats.totalPaidMonth / 32000) * 100)}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+
+                              {/* Resumo por Linha de Venda */}
+                              <div className="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-100 text-xs">
+                                <div className="bg-slate-50 p-2 rounded-lg">
+                                  <span className="text-[10px] text-slate-400 block">Vendas Brutas</span>
+                                  <b className="text-slate-800">R$ {stats.totalSoldMonth.toFixed(2)}</b>
+                                </div>
+                                <div className="bg-indigo-50 p-2 rounded-lg">
+                                  <span className="text-[10px] text-indigo-600 block">Baixa Total</span>
+                                  <b className="text-indigo-800">R$ {comm.commTotal.toFixed(2)}</b>
+                                </div>
+                                <div className="bg-emerald-50 p-2 rounded-lg">
+                                  <span className="text-[10px] text-emerald-600 block">Parcial / Extra</span>
+                                  <b className="text-emerald-800">R$ {(comm.commParcial + comm.commDentistas).toFixed(2)}</b>
+                                </div>
+                              </div>
+
+                              <button 
+                                onClick={() => setSelectedSellerDetail(seller.cod)}
+                                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-xl transition"
+                              >
+                                Ver Extrato Individual de Baixas →
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          </main>
+        </div>
+      );
     }
+
+    // RENDERIZAÇÃO DA APLICAÇÃO
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
