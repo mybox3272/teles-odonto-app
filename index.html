@@ -57,390 +57,542 @@
       background: #cbd5e1;
       border-radius: 4px;
     }
+    .nav-btn.active {
+      background-color: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
   </style>
 </head>
 <body class="min-h-screen flex bg-slate-50 antialiased text-slate-800">
 
-  <!-- SIDEBAR LATERAL -->
-  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0 hidden md:flex border-r border-slate-800">
+  <!-- SIDEBAR LATERAL FIXA -->
+  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between shrink-0 hidden md:flex border-r border-slate-800 h-screen sticky top-0">
     <div>
-      <!-- Header Marca -->
-      <div class="p-6 border-b border-slate-800/80 flex items-center gap-3">
+      <!-- Header Marca Teles Odonto -->
+      <div class="p-5 border-b border-slate-800/80 flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
           <i data-lucide="sparkles" class="w-6 h-6"></i>
         </div>
         <div>
-          <h1 class="text-white font-bold text-lg leading-tight tracking-tight">Teles Odonto</h1>
+          <h1 class="text-white font-bold text-base leading-tight tracking-tight">Teles Odonto</h1>
           <p class="text-xs text-indigo-400 font-medium">Materiais Protéticos</p>
         </div>
       </div>
 
-      <!-- Navegação Menu -->
-<div class="px-4 py-6">
-  <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-3">Navegação Comercial</p>
-  <nav class="space-y-1">
-    <!-- Página Inicial (Ativa) -->
-    <a href="index.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-indigo-600 text-white font-medium text-sm transition-all shadow-sm shadow-indigo-600/30">
-      <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-      Página Inicial
-    </a>
+      <!-- Navegação Comercial SPA -->
+      <div class="px-4 py-5">
+        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-2.5">Módulos do Sistema</p>
+        <nav class="space-y-1">
+          <!-- Botão 1: Início / Dashboard -->
+          <button onclick="navigateView('dashboard')" id="nav-dashboard" class="nav-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Painel & Lançamentos</span>
+          </button>
 
-    <!-- Link para a Página de Vendas -->
-    <a href="vendas.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 font-medium text-sm transition-all">
-      <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-      Página de Vendas
-    </a>
+          <!-- Botão 2: Vendas e Carteira -->
+          <button onclick="navigateView('vendas')" id="nav-vendas" class="nav-btn text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            <span>Carteira & Inadimplência</span>
+          </button>
 
-    <!-- Link para Comissões e Metas -->
-    <a href="comissoes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 font-medium text-sm transition-all">
-      <i data-lucide="percent" class="w-4 h-4"></i>
-      Comissões & Metas
-    </a>
+          <!-- Botão 3: Comissões e Metas -->
+          <button onclick="navigateView('comissoes')" id="nav-comissoes" class="nav-btn text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left">
+            <i data-lucide="percent" class="w-4 h-4"></i>
+            <span>Comissões & Metas</span>
+          </button>
 
-    <!-- Link para a Carteira de Clientes -->
-    <a href="clientes.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 font-medium text-sm transition-all">
-      <i data-lucide="users" class="w-4 h-4"></i>
-      Carteira de Clientes
-    </a>
+          <!-- Botão 4: Visão Mobile do Vendedor -->
+          <button onclick="navigateView('mobile')" id="nav-mobile" class="nav-btn text-emerald-400 hover:text-emerald-300 hover:bg-slate-800/60 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-all text-left border border-emerald-500/20 mt-3">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+            <span>Simulador Vendedor Campo</span>
+          </button>
+        </nav>
+      </div>
+    </div>
 
-    <!-- Link para a Visão Vendedor Mobile -->
-    <a href="mobile.html" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-slate-800/60 font-medium text-sm transition-all border border-emerald-500/20 mt-3">
-      <i data-lucide="smartphone" class="w-4 h-4"></i>
-      App Mobile (Campo)
-    </a>
-  </nav>
-</div>
     <!-- Usuário Rodapé -->
     <div class="p-4 border-t border-slate-800 bg-slate-900/50">
       <div class="flex items-center gap-3 p-2 rounded-lg bg-slate-800/60">
-        <div class="w-9 h-9 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
-          OP
+        <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
+          TO
         </div>
         <div class="truncate">
-          <p class="text-sm font-semibold text-slate-200 leading-none">Operador Comercial</p>
-          <p class="text-xs text-slate-400 truncate mt-1">Neves Pro CRM</p>
+          <p class="text-xs font-semibold text-slate-200 leading-none">Operador Comercial</p>
+          <p class="text-[11px] text-slate-400 truncate mt-1">operador@salespro.com</p>
         </div>
       </div>
-      <p class="text-[10px] text-center text-slate-500 mt-3 font-medium">© 2026 Teles Odonto CRM</p>
+      <p class="text-[10px] text-center text-slate-500 mt-2 font-medium">© 2026 Teles Odonto CRM</p>
     </div>
   </aside>
 
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar">
+  <!-- ÁREA DE CONTEÚDO PRINCIPAL (COM AS TELAS EMBUTIDAS) -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
 
     <!-- Topbar Superior -->
-    <header class="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20">
+    <header class="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
       <div class="flex items-center gap-2 text-sm text-slate-500">
-        <span class="font-semibold text-slate-800">SalesPro</span>
+        <span class="font-bold text-slate-800">Teles Odonto CRM</span>
         <span>/</span>
-        <span class="text-indigo-600 font-medium bg-indigo-50 px-2 py-0.5 rounded text-xs">Módulo Ativo</span>
+        <span id="currentViewBreadcrumb" class="text-indigo-600 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full text-xs">Painel & Lançamentos</span>
       </div>
 
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3">
+        <!-- Navegação rápida no mobile -->
+        <div class="flex md:hidden gap-1">
+          <button onclick="navigateView('dashboard')" class="p-2 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg">Início</button>
+          <button onclick="navigateView('vendas')" class="p-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg">Vendas</button>
+          <button onclick="navigateView('comissoes')" class="p-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg">Comissões</button>
+        </div>
+
         <div class="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold border border-emerald-200">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           SISTEMA ONLINE
         </div>
-        <button class="text-slate-400 hover:text-slate-600 transition-colors relative">
-          <i data-lucide="bell" class="w-5 h-5"></i>
-          <span class="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
-        </button>
       </div>
     </header>
 
-    <!-- Área de Trabalho / Dashboard -->
-    <div class="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <!-- CONTAINER DAS VIEWS -->
+    <div class="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
 
-      <!-- BANNER DE PERÍODO & TEMPO -->
-      <div class="bg-slate-900 rounded-2xl p-4 md:p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl shadow-slate-900/10">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
-            <i data-lucide="calendar" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Horário de Brasília
+      <!-- ========================================== -->
+      <!-- VIEW 1: DASHBOARD & NOVA VENDA (DAV)       -->
+      <!-- ========================================== -->
+      <section id="view-dashboard" class="space-y-6">
+        <!-- Banner de Período -->
+        <div class="bg-slate-900 rounded-2xl p-4 md:p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl shadow-slate-900/10">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+              <i data-lucide="calendar" class="w-5 h-5"></i>
             </div>
-            <p id="clock" class="text-lg font-bold text-white tracking-tight">16:30:44 | Novembro de 2026</p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-          <div class="text-right">
-            <span class="text-xs text-slate-400 font-medium">Ciclo Mensal</span>
-            <p class="text-sm font-bold text-white">40% decorrido</p>
-          </div>
-          <div class="bg-indigo-600 px-4 py-2 rounded-xl text-center shadow-md shadow-indigo-600/30">
-            <span class="text-[10px] text-indigo-200 uppercase font-bold block">Mês Vigente</span>
-            <span class="text-sm font-extrabold text-white">Novembro / 2026</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARDS DE MÉTRICAS -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Card 1 -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Receita (Novembro)</span>
-            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <i data-lucide="wallet" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <p class="text-2xl font-extrabold text-slate-900 tracking-tight">R$ 4.700,00</p>
-          <div class="flex items-center gap-2 mt-2 text-xs font-semibold text-emerald-600">
-            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
-            <span>Baixado: R$ 1.600,00 (34%)</span>
-          </div>
-        </div>
-
-        <!-- Card 2 -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">À Receber (Pendente)</span>
-            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <i data-lucide="clock" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <p class="text-2xl font-extrabold text-slate-900 tracking-tight">R$ 3.100,00</p>
-          <p class="text-xs font-semibold text-amber-600 mt-2">2 parcelas pendentes (66%)</p>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total de Pedidos</span>
-            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <i data-lucide="receipt" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <p class="text-2xl font-extrabold text-slate-900 tracking-tight">2 pedidos</p>
-          <p class="text-xs font-medium text-slate-500 mt-2">Ticket Médio: R$ 2.350,00</p>
-        </div>
-
-        <!-- Card 4 -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Clientes com Compras</span>
-            <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-              <i data-lucide="users" class="w-4 h-4"></i>
-            </div>
-          </div>
-          <p class="text-2xl font-extrabold text-slate-900 tracking-tight">2 ativos</p>
-          <p class="text-xs font-medium text-slate-500 mt-2">100% da base ativa no ciclo</p>
-        </div>
-      </div>
-
-      <!-- GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + TABELA DE VENDAS -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        <!-- FORMULÁRIO NOVA VENDA (DAV) -->
-        <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-          <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-            <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-              </div>
-              <h2 class="text-base font-bold text-slate-900">Nova Venda</h2>
-            </div>
-            <span class="text-[11px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Lançamento</span>
-          </div>
-
-          <form id="saleForm" class="space-y-4">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Data da Venda</label>
-                <input type="date" value="2026-11-12" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">DAV (Nº Pedido)</label>
-                <input type="text" id="davInput" value="48922" class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              </div>
-            </div>
-
             <div>
-              <div class="flex justify-between items-center mb-1">
-                <label class="text-xs font-semibold text-slate-600">Cliente / Laboratório</label>
-                <span class="text-[10px] text-indigo-600 font-bold">Cadastrado</span>
+              <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Horário de Brasília
               </div>
-              <select id="clientSelect" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="Laboratório Dental Sorriso">CLI-088 - Laboratório Dental Sorriso</option>
-                <option value="Implantes & Próteses Vitória">CLI-093 - Implantes & Próteses Vitória</option>
-                <option value="Clínica OdontoPrime Dr. Valter" selected>CLI-104 - Clínica OdontoPrime Dr. Valter</option>
-                <option value="Consultório Dr. Marcelo Ramos">CLI-112 - Consultório Dr. Marcelo Ramos</option>
-              </select>
+              <p id="clock" class="text-lg font-bold text-white tracking-tight">16:30:44 | Novembro de 2026</p>
             </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-right">
+              <span class="text-xs text-slate-400">Ciclo Mensal</span>
+              <p class="text-sm font-bold text-white">40% decorrido</p>
+            </div>
+            <div class="bg-indigo-600 px-4 py-2 rounded-xl text-center">
+              <span class="text-[10px] text-indigo-200 uppercase font-bold block">Mês Vigente</span>
+              <span class="text-sm font-extrabold text-white">Novembro / 2026</span>
+            </div>
+          </div>
+        </div>
 
-            <div class="grid grid-cols-2 gap-3">
+        <!-- Cards de Métricas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Receita (Novembro)</span>
+            <p class="text-2xl font-extrabold text-slate-900">R$ 4.700,00</p>
+            <p class="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
+              <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> Baixado: R$ 1.600,00 (34%)
+            </p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">À Receber (Pendente)</span>
+            <p class="text-2xl font-extrabold text-slate-900">R$ 3.100,00</p>
+            <p class="text-xs font-semibold text-amber-600 mt-2">2 parcelas pendentes (66%)</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Total de Pedidos</span>
+            <p class="text-2xl font-extrabold text-slate-900">2 pedidos</p>
+            <p class="text-xs font-medium text-slate-500 mt-2">Ticket Médio: R$ 2.350,00</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Vendedores Ativos</span>
+            <p class="text-2xl font-extrabold text-slate-900">2 ativos</p>
+            <p class="text-xs font-medium text-indigo-600 mt-2">100% com emissão no ciclo</p>
+          </div>
+        </div>
+
+        <!-- Formulário Nova Venda + Lista -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="shopping-cart" class="w-4 h-4 text-indigo-600"></i>
+                Nova Venda
+              </h2>
+              <span class="text-[11px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Lançamento DAV</span>
+            </div>
+            <form id="saleForm" class="space-y-4">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Data da Venda</label>
+                  <input type="date" value="2026-11-12" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">DAV (Nº Pedido)</label>
+                  <input type="text" id="davInput" value="48922" class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                </div>
+              </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Vendedor Responsável</label>
-                <select id="vendorSelect" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="André Luiz Nóbrega Martins">André Luiz Nóbrega Martins</option>
-                  <option value="Luis Daniel da Silva">Luis Daniel da Silva</option>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Cliente / Laboratório</label>
+                <select id="clientSelect" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                  <option value="Laboratório Dental Sorriso">CLI-088 - Laboratório Dental Sorriso</option>
+                  <option value="Implantes & Próteses Vitória">CLI-093 - Implantes & Próteses Vitória</option>
+                  <option value="Clínica OdontoPrime Dr. Valter" selected>CLI-104 - Clínica OdontoPrime Dr. Valter</option>
+                  <option value="Leonardo Amorim de Franca e Sousa">CLI-004 - Leonardo Amorim de Franca</option>
                 </select>
               </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Valor da Venda (R$)</label>
-                <input type="text" id="valueInput" value="1.850,00" class="w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Vendedor</label>
+                  <select id="vendorSelect" class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                    <option value="André Luiz Nóbrega Martins">André Luiz Nóbrega</option>
+                    <option value="Luis Daniel da Silva">Luis Daniel da Silva</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Venda (R$)</label>
+                  <input type="text" id="valueInput" value="1.850,00" class="w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50">
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Condição de Pagamento</label>
-              <select class="w-full text-xs font-medium border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option>À Vista via PIX (Comprovante)</option>
-                <option selected>Parcelado em 2x (30 / 60 dias)</option>
-                <option>Parcelado em 3x (30 / 60 / 90 dias)</option>
-              </select>
-            </div>
-
-            <div class="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 text-xs text-indigo-900 space-y-1">
-              <p class="font-bold flex items-center gap-1.5">
-                <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-600"></i>
-                Previsão de Parcelamento Automático
-              </p>
-              <div class="flex justify-between text-indigo-700 text-[11px] pt-1 border-t border-indigo-200/50">
-                <span>Parcela 1/2 (Venc. 12/12/2026):</span>
-                <span class="font-bold">R$ 925,00</span>
+              <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 text-xs text-indigo-900">
+                <span class="font-bold block">Previsão em 2x de R$ 925,00</span>
+                <span class="text-[11px] text-indigo-700">Primeira parcela vence em 30 dias</span>
               </div>
-              <div class="flex justify-between text-indigo-700 text-[11px]">
-                <span>Parcela 2/2 (Venc. 12/01/2027):</span>
-                <span class="font-bold">R$ 925,00</span>
-              </div>
-            </div>
+              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 text-sm">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                Registrar Venda
+              </button>
+            </form>
+          </div>
 
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] transition-all text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 text-sm">
-              <i data-lucide="check-circle" class="w-4 h-4"></i>
-              Registrar Venda
-            </button>
-          </form>
+          <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+            <h2 class="text-base font-bold text-slate-900">Vendas Registradas no Ciclo</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th class="py-3 px-3">Data / DAV</th>
+                    <th class="py-3 px-3">Cliente</th>
+                    <th class="py-3 px-3">Vendedor</th>
+                    <th class="py-3 px-3">Valor</th>
+                    <th class="py-3 px-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="salesTableBody" class="divide-y divide-slate-100 text-slate-700">
+                  <tr>
+                    <td class="py-3 px-3"><b class="text-slate-900">04/11/2026</b><p class="text-slate-400">DAV #48911</p></td>
+                    <td class="py-3 px-3">Laboratório Dental Sorriso</td>
+                    <td class="py-3 px-3 font-semibold">André Luiz N.</td>
+                    <td class="py-3 px-3 font-extrabold text-slate-900">R$ 1.600,00</td>
+                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">• 1/1 Pagas</span></td>
+                  </tr>
+                  <tr>
+                    <td class="py-3 px-3"><b class="text-slate-900">09/11/2026</b><p class="text-slate-400">DAV #48919</p></td>
+                    <td class="py-3 px-3">Implantes & Próteses Vitória</td>
+                    <td class="py-3 px-3 font-semibold">Luis Daniel da Silva</td>
+                    <td class="py-3 px-3 font-extrabold text-slate-900">R$ 3.100,00</td>
+                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">• 1/2 Pagas</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- VIEW 2: CARTEIRA DE CLIENTES & INADIMPLÊNCIA        -->
+      <!-- ==================================================== -->
+      <section id="view-vendas" class="space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Carteira de Clientes e Inadimplência</h2>
+            <p class="text-xs text-slate-500">Gestão de títulos abertos, liquidação FIFO e amortização de débitos</p>
+          </div>
+          <button onclick="navigateView('dashboard')" class="bg-indigo-600 text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Novo Pedido / DAV
+          </button>
         </div>
 
-        <!-- LIVRO DE LANÇAMENTOS E TABELA -->
-        <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
+        <!-- Métricas Rápidas de Cobrança -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
             <div>
-              <h2 class="text-base font-bold text-slate-900">Vendas de Novembro / 2026</h2>
-              <p class="text-xs text-slate-500">Livro de lançamentos e controle de parcelas</p>
+              <span class="text-xs font-bold text-rose-600 uppercase tracking-wider block">Vencendo Hoje (12/11/2026)</span>
+              <p class="text-2xl font-extrabold text-slate-900 mt-1">R$ 1.600,00</p>
+              <p class="text-xs text-slate-500 mt-1">1 cliente com liquidação programada</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">
-                <i data-lucide="filter" class="w-3.5 h-3.5"></i>
-                Filtrar
-              </button>
-              <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                Exportar
-              </button>
+            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+              <i data-lucide="alert-circle" class="w-6 h-6"></i>
             </div>
           </div>
 
-          <!-- Tabela de Lançamentos -->
+          <div class="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total a Vencer no Mês</span>
+              <p class="text-2xl font-extrabold text-slate-900 mt-1">R$ 3.100,00</p>
+              <p class="text-xs text-emerald-600 font-semibold mt-1">Projeção saudável de fluxo de caixa</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <i data-lucide="wallet" class="w-6 h-6"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista da Carteira e Painel de Amortização -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center justify-between">
+              <span>Listagem de Clientes em Carteira</span>
+              <span class="text-xs font-semibold text-slate-400">Total: 430 clínicas</span>
+            </h3>
+            <div class="space-y-3">
+              <!-- Item 1 Inadimplente -->
+              <div class="p-4 rounded-xl border-2 border-indigo-500 bg-indigo-50/20 flex items-center justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-black text-indigo-600">#4</span>
+                    <h4 class="text-xs font-bold text-slate-900">LEONARDO AMORIM DE FRANCA E SOUSA</h4>
+                  </div>
+                  <p class="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Possui 1 parcela em atraso grave (35 dias)
+                  </p>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-extrabold text-slate-900 block">R$ 3.200,00</span>
+                  <span class="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">Ficha Ativa</span>
+                </div>
+              </div>
+
+              <!-- Item 2 Adimplente -->
+              <div class="p-4 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-400">#2</span>
+                    <h4 class="text-xs font-bold text-slate-900">JOÃO PESSOA MEDEIROS COSTA</h4>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-1">Prótese Fixa • Fortaleza - CE</p>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-extrabold text-slate-900 block">R$ 1.500,00</span>
+                  <span class="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">À Vencer</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Ficha do Cliente & Baixa -->
+          <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+            <div class="pb-3 border-b border-slate-100">
+              <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase">Ficha Selecionada</span>
+              <h3 class="text-sm font-bold text-slate-900 mt-2">Leonardo Amorim de Franca</h3>
+              <p class="text-xs text-slate-400">Vendedora: ERDENIA • CPF/CNPJ: 043.***.***-89</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-center">
+              <div class="p-3 bg-slate-50 rounded-xl">
+                <span class="text-[10px] text-slate-400 font-bold uppercase block">Total Pago</span>
+                <span class="text-xs font-extrabold text-emerald-600">R$ 1.600,00</span>
+              </div>
+              <div class="p-3 bg-rose-50 rounded-xl">
+                <span class="text-[10px] text-rose-500 font-bold uppercase block">Em Aberto</span>
+                <span class="text-xs font-extrabold text-rose-600">R$ 1.600,00</span>
+              </div>
+            </div>
+
+            <div class="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-3">
+              <h4 class="text-xs font-bold text-indigo-900 flex items-center justify-between">
+                <span>Promissória & Amortização</span>
+                <span class="text-[10px] font-bold bg-indigo-600 text-white px-2 py-0.5 rounded">Regra FIFO</span>
+              </h4>
+              <p class="text-[11px] text-slate-500 leading-tight">Valor recebido abate automaticamente as parcelas mais antigas em atraso.</p>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Valor Arrecadado (R$)</label>
+                <input type="text" value="800,00" class="w-full text-xs font-bold text-slate-900 border border-slate-200 rounded-xl px-3 py-2 bg-white">
+              </div>
+              <button onclick="alert('Saldo de R$ 800,00 abatido via regra FIFO com sucesso!')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20">
+                <i data-lucide="check" class="w-4 h-4"></i> Abater Saldo Imediato
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- VIEW 3: COMISSÕES E METAS DOS VENDEDORES            -->
+      <!-- ==================================================== -->
+      <section id="view-comissoes" class="space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Comissões e Metas de Vendedores</h2>
+            <p class="text-xs text-slate-500">Gestão escalonada de comissionamento por títulos baixados e liquidação efetiva</p>
+          </div>
+          <button onclick="alert('Exportando relatório comparativo em PDF / Excel...')" class="bg-slate-900 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i> Relatório Geral
+          </button>
+        </div>
+
+        <!-- Resumo Consolidado das Vendas Brutas dos Vendedores -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Vendedor 1 -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900">André Luiz Nóbrega Martins</h3>
+                <p class="text-xs text-slate-400">Perfil Sênior • 14 pedidos/DAVs</p>
+              </div>
+              <span class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase">Líder em Emissão</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-100">
+              <div class="bg-slate-50 p-2 rounded-lg">
+                <span class="text-[10px] text-slate-400 block">Vendas Brutas</span>
+                <span class="text-xs font-bold text-slate-900">R$ 24.600</span>
+              </div>
+              <div class="bg-emerald-50 p-2 rounded-lg">
+                <span class="text-[10px] text-emerald-600 block">Baixadas</span>
+                <span class="text-xs font-bold text-emerald-700">R$ 1.600</span>
+              </div>
+              <div class="bg-indigo-50 p-2 rounded-lg">
+                <span class="text-[10px] text-indigo-600 block">Comissão Paga</span>
+                <span class="text-xs font-bold text-indigo-700">R$ 56,00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vendedor 2 -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900">Luis Daniel da Silva</h3>
+                <p class="text-xs text-slate-400">Perfil Parcerias Clínicas • 11 pedidos</p>
+              </div>
+              <span class="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full uppercase">+9.3% MoM</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-100">
+              <div class="bg-slate-50 p-2 rounded-lg">
+                <span class="text-[10px] text-slate-400 block">Vendas Brutas</span>
+                <span class="text-xs font-bold text-slate-900">R$ 18.250</span>
+              </div>
+              <div class="bg-emerald-50 p-2 rounded-lg">
+                <span class="text-[10px] text-emerald-600 block">Baixadas</span>
+                <span class="text-xs font-bold text-emerald-700">R$ 1.500</span>
+              </div>
+              <div class="bg-indigo-50 p-2 rounded-lg">
+                <span class="text-[10px] text-indigo-600 block">Comissão Paga</span>
+                <span class="text-xs font-bold text-indigo-700">R$ 47,50</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela Detalhada de Comissionamento -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+          <h3 class="text-sm font-bold text-slate-900">Extrato Individual de Comissões Auditadas</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-100">
+              <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th class="py-3 px-3">Data / DAV</th>
-                  <th class="py-3 px-3">Cliente</th>
-                  <th class="py-3 px-3">Vendedor</th>
-                  <th class="py-3 px-3">Valor</th>
-                  <th class="py-3 px-3">Status</th>
+                  <th class="py-3 px-3">DAV / Título</th>
+                  <th class="py-3 px-3">Cliente / Clínica</th>
+                  <th class="py-3 px-3">Data Baixa</th>
+                  <th class="py-3 px-3">Valor Baixado</th>
+                  <th class="py-3 px-3">Regra (%)</th>
+                  <th class="py-3 px-3">Comissão Gerada</th>
                 </tr>
               </thead>
-              <tbody id="salesTableBody" class="divide-y divide-slate-100 text-slate-700">
-                <tr class="hover:bg-slate-50/60 transition-colors">
-                  <td class="py-3.5 px-3">
-                    <p class="font-bold text-slate-900">04/11/2026</p>
-                    <p class="text-[11px] text-slate-400 font-medium">DAV #48911</p>
-                  </td>
-                  <td class="py-3.5 px-3">
-                    <p class="font-bold text-slate-900">Laboratório Dental Sorriso</p>
-                    <p class="text-[11px] text-slate-400">Cód: CLI-088</p>
-                  </td>
-                  <td class="py-3.5 px-3">
-                    <span class="inline-flex items-center gap-1 font-semibold text-slate-700">
-                      <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                      André Luiz N.
-                    </span>
-                  </td>
-                  <td class="py-3.5 px-3 font-extrabold text-slate-900">
-                    R$ 1.600,00
-                  </td>
-                  <td class="py-3.5 px-3">
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                      • 1/1 Pagas
-                    </span>
-                  </td>
+              <tbody class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td class="py-3.5 px-3 font-bold text-indigo-600">DAV-10842</td>
+                  <td class="py-3.5 px-3">OdontoClin Barra da Tijuca</td>
+                  <td class="py-3.5 px-3">04/11/2026</td>
+                  <td class="py-3.5 px-3 font-bold text-slate-900">R$ 600,00</td>
+                  <td class="py-3.5 px-3">Regular (3.0%)</td>
+                  <td class="py-3.5 px-3 font-extrabold text-emerald-600">R$ 18,00</td>
                 </tr>
-
-                <tr class="hover:bg-slate-50/60 transition-colors">
-                  <td class="py-3.5 px-3">
-                    <p class="font-bold text-slate-900">09/11/2026</p>
-                    <p class="text-[11px] text-slate-400 font-medium">DAV #48919</p>
-                  </td>
-                  <td class="py-3.5 px-3">
-                    <p class="font-bold text-slate-900">Implantes & Próteses Vitória</p>
-                    <p class="text-[11px] text-slate-400">Cód: CLI-093</p>
-                  </td>
-                  <td class="py-3.5 px-3">
-                    <span class="inline-flex items-center gap-1 font-semibold text-slate-700">
-                      <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                      Luis Daniel da Silva
-                    </span>
-                  </td>
-                  <td class="py-3.5 px-3 font-extrabold text-slate-900">
-                    R$ 3.100,00
-                  </td>
-                  <td class="py-3.5 px-3">
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                      • 1/2 Pagas
-                    </span>
-                  </td>
+                <tr>
+                  <td class="py-3.5 px-3 font-bold text-indigo-600">DAV-10891</td>
+                  <td class="py-3.5 px-3">Centro Odontológico Sorrir</td>
+                  <td class="py-3.5 px-3">09/11/2026</td>
+                  <td class="py-3.5 px-3 font-bold text-slate-900">R$ 500,00</td>
+                  <td class="py-3.5 px-3">Regular (3.0%)</td>
+                  <td class="py-3.5 px-3 font-extrabold text-emerald-600">R$ 15,00</td>
+                </tr>
+                <tr>
+                  <td class="py-3.5 px-3 font-bold text-indigo-600">DAV-10904</td>
+                  <td class="py-3.5 px-3">Dr. Rafael Andrade Implantes</td>
+                  <td class="py-3.5 px-3">14/11/2026</td>
+                  <td class="py-3.5 px-3 font-bold text-slate-900">R$ 200,00</td>
+                  <td class="py-3.5 px-3">Parcial (1.5%)</td>
+                  <td class="py-3.5 px-3 font-extrabold text-emerald-600">R$ 3,00</td>
                 </tr>
               </tbody>
             </table>
           </div>
-
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Mostrando lançamentos consolidados do mês</span>
-            <span class="font-bold text-slate-800">Subtotal: R$ 4.700,00</span>
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-900">
+            <span>Total Liberado para Pagamento (Consolidação):</span>
+            <span class="text-indigo-600 text-sm">R$ 103,50</span>
           </div>
         </div>
+      </section>
 
-      </div>
+      <!-- ==================================================== -->
+      <!-- VIEW 4: SIMULADOR VISÃO VENDEDOR MOBILE             -->
+      <!-- ==================================================== -->
+      <section id="view-mobile" class="space-y-6 hidden">
+        <div class="text-center max-w-md mx-auto">
+          <h2 class="text-lg font-bold text-slate-900">Simulador SalesPro Mobile (Vendedor Externo)</h2>
+          <p class="text-xs text-slate-500">Interface tática que os representantes utilizam no celular em campo</p>
+        </div>
 
-      <!-- SEÇÃO INFERIOR: RESUMO DE LIQUIDAÇÃO E VENDEDORES -->
-      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-        <h3 class="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-600"></i>
-          Visão de Liquidação de Títulos & Carteira por Vendedor
-        </h3>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <div>
-              <p class="font-bold text-slate-900 text-sm">André Luiz Nóbrega Martins</p>
-              <p class="text-xs text-emerald-600 font-semibold mt-0.5">100% Baixado — Risco Zero</p>
+        <!-- Mockup do Celular Centralizado -->
+        <div class="max-w-sm mx-auto bg-slate-900 p-3 rounded-[36px] shadow-2xl border-4 border-slate-800">
+          <div class="bg-white rounded-[28px] overflow-hidden flex flex-col min-h-[580px]">
+            <!-- Topbar Celular -->
+            <div class="bg-indigo-600 p-4 text-white">
+              <div class="flex justify-between items-center text-xs mb-2">
+                <span class="font-bold">SalesPro Field</span>
+                <span class="bg-emerald-400 text-slate-900 px-2 py-0.5 rounded-full text-[10px] font-black">GPS ATIVO</span>
+              </div>
+              <h3 class="font-extrabold text-sm">Olá, André Luiz!</h3>
+              <p class="text-[11px] text-indigo-200">Rota de visitas de hoje: 4 clínicas</p>
             </div>
-            <div class="text-right">
-              <span class="text-sm font-extrabold text-slate-900">R$ 1.600,00</span>
-              <span class="block text-[11px] text-slate-400">Total Pago</span>
-            </div>
-          </div>
 
-          <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
-            <div>
-              <p class="font-bold text-slate-900 text-sm">Luis Daniel da Silva</p>
-              <p class="text-xs text-amber-600 font-semibold mt-0.5">R$ 3.100,00 À Receber (Pendente)</p>
-            </div>
-            <div class="text-right">
-              <span class="text-sm font-extrabold text-slate-900">R$ 3.100,00</span>
-              <span class="block text-[11px] text-slate-400">Em Aberto</span>
+            <!-- Conteúdo Celular -->
+            <div class="p-4 space-y-3 flex-1 overflow-y-auto">
+              <!-- Card Meta do Dia -->
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div class="flex justify-between text-xs font-bold text-slate-800">
+                  <span>Comissão na Rota Hoje</span>
+                  <span class="text-emerald-600">R$ 144,00</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
+                  <div class="bg-indigo-600 h-full w-2/3"></div>
+                </div>
+              </div>
+
+              <!-- Lista de Paradas / Rota -->
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Próxima Visita</p>
+              <div class="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                <h4 class="text-xs font-bold text-slate-900">OdontoClin Barra da Tijuca</h4>
+                <p class="text-[11px] text-slate-500">Av. das Américas, 4200</p>
+                <div class="flex gap-2 mt-2">
+                  <button onclick="alert('Iniciando navegação GPS...')" class="flex-1 bg-indigo-600 text-white text-[11px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1">
+                    <i data-lucide="navigation" class="w-3 h-3"></i> GPS
+                  </button>
+                  <button onclick="alert('Abrindo WhatsApp do Doutor...')" class="flex-1 bg-emerald-600 text-white text-[11px] font-bold py-1.5 rounded-lg flex items-center justify-center gap-1">
+                    <i data-lucide="phone" class="w-3 h-3"></i> Whats
+                  </button>
+                </div>
+              </div>
+
+              <!-- Registro Rápido PIX -->
+              <button onclick="alert('Simulação de baixa PIX com comprovante anexado registrada!')" class="w-full bg-slate-900 text-white text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
+                <i data-lucide="qr-code" class="w-4 h-4"></i> Baixa Rápida de Título (PIX)
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
     </div>
   </main>
@@ -448,6 +600,46 @@
   <script>
     // Inicializar ícones Lucide
     lucide.createIcons();
+
+    // Alternador de Telas SPA
+    function navigateView(viewName) {
+      // 1. Esconder todas as telas
+      document.getElementById('view-dashboard').classList.add('hidden');
+      document.getElementById('view-vendas').classList.add('hidden');
+      document.getElementById('view-comissoes').classList.add('hidden');
+      document.getElementById('view-mobile').classList.add('hidden');
+
+      // 2. Remover classe ativa dos botões da sidebar
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('text-slate-400');
+      });
+
+      // 3. Mostrar a tela escolhida e ativar o botão
+      const targetView = document.getElementById(`view-${viewName}`);
+      const targetBtn = document.getElementById(`nav-${viewName}`);
+      const breadcrumb = document.getElementById('currentViewBreadcrumb');
+
+      if (targetView) targetView.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.classList.add('active');
+        targetBtn.classList.remove('text-slate-400');
+      }
+
+      // 4. Atualizar o nome no topo
+      const titles = {
+        'dashboard': 'Painel & Lançamentos',
+        'vendas': 'Carteira & Inadimplência',
+        'comissoes': 'Comissões & Metas',
+        'mobile': 'Visão do Vendedor (Campo)'
+      };
+      if (breadcrumb && titles[viewName]) {
+        breadcrumb.textContent = titles[viewName];
+      }
+
+      // Reinicializar ícones que estavam escondidos
+      lucide.createIcons();
+    }
 
     // Relógio em tempo real
     function updateClock() {
@@ -460,10 +652,9 @@
     }
     setInterval(updateClock, 1000);
 
-    // Manipulação de cadastro de nova venda
+    // Registro de Venda no Dashboard
     document.getElementById('saleForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      
       const dav = document.getElementById('davInput').value;
       const client = document.getElementById('clientSelect').value;
       const vendor = document.getElementById('vendorSelect').value;
@@ -471,33 +662,16 @@
       
       const tbody = document.getElementById('salesTableBody');
       const newRow = document.createElement('tr');
-      newRow.className = "hover:bg-slate-50/60 transition-colors bg-indigo-50/30";
+      newRow.className = "bg-indigo-50/40";
       newRow.innerHTML = `
-        <td class="py-3.5 px-3">
-          <p class="font-bold text-slate-900">12/11/2026</p>
-          <p class="text-[11px] text-indigo-600 font-semibold">DAV #${dav}</p>
-        </td>
-        <td class="py-3.5 px-3">
-          <p class="font-bold text-slate-900">${client}</p>
-          <p class="text-[11px] text-slate-400">Lançamento Recente</p>
-        </td>
-        <td class="py-3.5 px-3">
-          <span class="inline-flex items-center gap-1 font-semibold text-slate-700">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            ${vendor.split(' ')[0]} ${vendor.split(' ')[1] || ''}
-          </span>
-        </td>
-        <td class="py-3.5 px-3 font-extrabold text-slate-900">
-          R$ ${val}
-        </td>
-        <td class="py-3.5 px-3">
-          <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-            • Gravado
-          </span>
-        </td>
+        <td class="py-3 px-3"><b class="text-slate-900">12/11/2026</b><p class="text-indigo-600 font-bold">DAV #${dav}</p></td>
+        <td class="py-3 px-3">${client}</td>
+        <td class="py-3 px-3 font-semibold">${vendor.split(' ')[0]} ${vendor.split(' ')[1] || ''}</td>
+        <td class="py-3 px-3 font-extrabold text-slate-900">R$ ${val}</td>
+        <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">• Gravado</span></td>
       `;
       tbody.prepend(newRow);
-      alert('Venda lançada com sucesso no sistema local!');
+      alert('Venda gravada com sucesso!');
     });
   </script>
 </body>
