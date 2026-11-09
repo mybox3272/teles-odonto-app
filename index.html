@@ -57,7 +57,7 @@
       window.db = db;
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em index.html com busca cadastral completa!");
+      console.log("🔥 Firebase conectado em index.html com validação de débitos!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em index.html:", err);
     }
@@ -186,9 +186,13 @@
       const [vendedor, setVendedor] = useState(sellersList[0].name);
       const [valorVenda, setValorVenda] = useState('1850.00');
       const [tipoVenda, setTipoVenda] = useState('TOTAL');
-      const [condicaoPrazo, setCondicaoPrazo] = useState('2x'); // '0', '1x', '2x', '3x', '4x'
+      const [condicaoPrazo, setCondicaoPrazo] = useState('2x');
       const [statusMsg, setStatusMsg] = useState('');
       const [salvandoVenda, setSalvandoVenda] = useState(false);
+
+      // Controle de Autorização Gerencial para Débitos Vencidos
+      const [autorizacaoGerencia, setAutorizacaoGerencia] = useState(false);
+      const [justificativaLiberacao, setJustificativaLiberacao] = useState('');
 
       // Modal de Novo Cliente Rápido caso o código não exista
       const [showModalNovoCliente, setShowModalNovoCliente] = useState(false);
@@ -268,8 +272,55 @@
             const vMatch = sellersList.find(s => s.name.includes(clienteAtivo.vendor) || clienteAtivo.vendor.includes(s.name));
             if (vMatch) setVendedor(vMatch.name);
           }
+          // Reseta a autorização ao trocar de cliente
+          setAutorizacaoGerencia(false);
+          setJustificativaLiberacao('');
         }
       }, [clienteAtivo]);
+
+      // =========================================================================
+      // VALIDAÇÃO EM TEMPO REAL: VERIFICA SE O CLIENTE POSSUI DÉBITOS VENCIDOS
+      // =========================================================================
+      const analiseDebitos = useMemo(() => {
+        if (!clienteAtivo) {
+          return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, listaVencidos: [] };
+        }
+
+        const hoje = new Date().toISOString().split('T')[0];
+        let totalVencido = 0;
+        let titulosVencidos = 0;
+        let maxDiasAtraso = 0;
+        const listaVencidos = [];
+
+        sales.filter(s => String(s.codCliente) === String(clienteAtivo.cod)).forEach(sale => {
+          (sale.installments || []).forEach(inst => {
+            if (inst.status !== 'Pago' && inst.dueDate && inst.dueDate < hoje) {
+              const amt = Number(inst.amount) || 0;
+              totalVencido += amt;
+              titulosVencidos++;
+              const diffTime = Math.abs(new Date(hoje) - new Date(inst.dueDate));
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays > maxDiasAtraso) maxDiasAtraso = diffDays;
+
+              listaVencidos.push({
+                dav: sale.dav,
+                installmentNumber: inst.number,
+                amount: amt,
+                dueDate: inst.dueDate,
+                diffDays
+              });
+            }
+          });
+        });
+
+        return {
+          temDebitoVencido: titulosVencidos > 0,
+          totalVencido,
+          titulosVencidos,
+          maxDiasAtraso,
+          listaVencidos
+        };
+      }, [clienteAtivo, sales]);
 
       // Cálculo das Parcelas Automáticas
       const parcelasCalculadas = useMemo(() => {
@@ -319,7 +370,6 @@
 
         sales.forEach(s => {
           if (s.codCliente) clientesSet.add(s.codCliente);
-          const saleVal = Number(s.amount) || 0;
           (s.installments || []).forEach(inst => {
             const amt = Number(inst.amount) || 0;
             if (inst.status === 'Pago') recMes += amt;
@@ -331,9 +381,16 @@
         return { recMes, aReceberMes, totalPedidos, ticketMedio, clientesAtivos: clientesSet.size };
       }, [sales]);
 
-      // Gravação do DAV no Firebase
+      // Gravação do DAV no Firebase com validação de Débitos
       const handleRegistrarVenda = async (e) => {
         e.preventDefault();
+
+        // 1. Bloqueio por inadimplência
+        if (analiseDebitos.temDebitoVencido && !autorizacaoGerencia) {
+          alert(`⛔ BLOQUEIO DE CRÉDITO:\n\nO cliente #${clienteAtivo.cod} possui R$ ${analiseDebitos.totalVencido.toFixed(2)} em parcelas vencidas (${analiseDebitos.titulosVencidos} título(s) em atraso há ${analiseDebitos.maxDiasAtraso} dias).\n\nPara prosseguir, marque a opção de autorização gerencial excepcional no formulário.`);
+          return;
+        }
+
         const valorNum = parseFloat(valorVenda.replace(',', '.'));
         if (!valorNum || valorNum <= 0) {
           alert("Informe um valor válido de venda.");
@@ -354,6 +411,11 @@
           prazo: condicaoPrazo,
           installments: parcelasCalculadas,
           isPaid: false,
+          liberacaoExcepcional: analiseDebitos.temDebitoVencido ? {
+            autorizadoPorGerencia: true,
+            justificativa: justificativaLiberacao || 'Aprovado pelo operador comercial',
+            debitoExistenteNaData: analiseDebitos.totalVencido
+          } : null,
           criadoEm: new Date().toISOString()
         };
 
@@ -361,13 +423,14 @@
           if (window.db && window.fb) {
             await window.fb.addDoc(window.fb.collection(window.db, "vendas"), novaVendaDoc);
           } else {
-            // Fallback Local
             setSales(prev => [novaVendaDoc, ...prev]);
           }
 
           setStatusMsg(`✅ Venda DAV #${novaVendaDoc.dav} gravada com sucesso!`);
           setDavNumber(String(Math.floor(48900 + Math.random() * 100)));
           setValorVenda('');
+          setAutorizacaoGerencia(false);
+          setJustificativaLiberacao('');
           setTimeout(() => setStatusMsg(''), 5000);
         } catch (err) {
           console.error("Erro ao salvar:", err);
@@ -650,7 +713,7 @@
                     </div>
 
                     {/* ======================================================== */}
-                    {/* NOVO CARD DETALHADO DOS CAMPOS CADASTRAIS DO CLIENTE      */}
+                    {/* CARD DETALHADO DOS CAMPOS CADASTRAIS DO CLIENTE          */}
                     {/* ======================================================== */}
                     {clienteAtivo && (
                       <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-2 text-[11px] shadow-2xs">
@@ -687,6 +750,75 @@
                           </span>
                         </div>
                       </div>
+                    )}
+
+                    {/* ======================================================== */}
+                    {/* ALERTA DE DÉBITOS VENCIDOS / TRAVA DE INADIMPLÊNCIA      */}
+                    {/* ======================================================== */}
+                    {clienteAtivo && (
+                      analiseDebitos.temDebitoVencido ? (
+                        <div className="p-3.5 bg-rose-50 border-2 border-rose-300 rounded-2xl space-y-2.5">
+                          <div className="flex items-start gap-2 text-rose-800">
+                            <div className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0 font-bold text-xs">
+                              ⚠
+                            </div>
+                            <div>
+                              <p className="font-extrabold text-xs text-rose-900 leading-tight">
+                                BLOQUEIO COMERCIAL: Possui Débitos Vencidos!
+                              </p>
+                              <p className="text-[11px] text-rose-700 mt-0.5">
+                                Total em atraso: <b className="text-rose-900 font-black">R$ {analiseDebitos.totalVencido.toFixed(2)}</b> ({analiseDebitos.titulosVencidos} título(s) vencido(s) há até {analiseDebitos.maxDiasAtraso} dias).
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Link para a página de vendas e cobrança */}
+                          <div className="flex justify-between items-center text-[10px] border-t border-rose-200/80 pt-1.5">
+                            <span className="text-rose-600 font-semibold">Regularize via Amortização FIFO</span>
+                            <a 
+                              href="vendas.html" 
+                              className="font-bold text-rose-700 underline hover:text-rose-900 flex items-center gap-0.5"
+                            >
+                              <span>Ver Extrato do Cliente &gt;</span>
+                            </a>
+                          </div>
+
+                          {/* Checkbox de Liberação Excepcional */}
+                          <div className="bg-white p-2.5 rounded-xl border border-rose-200 space-y-1.5">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={autorizacaoGerencia} 
+                                onChange={e => setAutorizacaoGerencia(e.target.checked)} 
+                                className="w-4 h-4 text-rose-600 rounded" 
+                              />
+                              <span className="font-extrabold text-rose-900 text-[11px]">
+                                Liberar venda excepcional com autorização gerencial
+                              </span>
+                            </label>
+
+                            {autorizacaoGerencia && (
+                              <input 
+                                type="text" 
+                                placeholder="Informe o motivo / nome de quem autorizou..." 
+                                value={justificativaLiberacao} 
+                                onChange={e => setJustificativaLiberacao(e.target.value)} 
+                                className="w-full p-2 border rounded-lg bg-rose-50 text-[11px] outline-none font-medium" 
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px] text-emerald-800">
+                          <span className="font-bold flex items-center gap-1.5">
+                            <i data-lucide="check-circle" className="w-4 h-4 text-emerald-600"></i>
+                            Crédito Liberado • Sem débitos vencidos
+                          </span>
+                          <span className="text-[10px] font-bold bg-emerald-100 px-2 py-0.5 rounded-md text-emerald-900">
+                            Aprovado
+                          </span>
+                        </div>
+                      )
                     )}
 
                     {/* Vendedor Responsável */}
@@ -773,13 +905,20 @@
                       </div>
                     )}
 
+                    {/* Botão de Registro com Bloqueio de Segurança */}
                     <button 
                       type="submit" 
-                      disabled={salvandoVenda}
-                      className="w-full bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2"
+                      disabled={salvandoVenda || (analiseDebitos.temDebitoVencido && !autorizacaoGerencia)}
+                      className={`w-full font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
+                        analiseDebitos.temDebitoVencido && !autorizacaoGerencia
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-not-allowed opacity-90'
+                          : 'bg-indigo-700 hover:bg-indigo-800 text-white'
+                      }`}
                     >
                       {salvandoVenda ? (
                         <span>Gravando Venda...</span>
+                      ) : analiseDebitos.temDebitoVencido && !autorizacaoGerencia ? (
+                        <span>⛔ Bloqueado: Exige Autorização</span>
                       ) : (
                         <span>✓ Registrar Venda</span>
                       )}
