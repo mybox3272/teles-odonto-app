@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neves Pro CRM - Gestão Comercial & Comissões</title>
+  <title>Neves Pro CRM - Página Inicial</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,25 +12,11 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-          colors: {
-            brand: { 50: '#f2f3ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', dark: '#1a202c' }
-          }
-        }
-      }
-    }
-  </script>
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    @media print { aside, header, .no-print { display: none !important; } main { padding: 0 !important; } }
   </style>
 </head>
 <body class="min-h-screen bg-slate-50 antialiased text-slate-800">
@@ -49,7 +35,7 @@
       measurementId: "G-9CF84R9BWM"
     };
 
-    const ToothWatermark = ({ className = "w-48 h-48 opacity-[0.06]" }) => (
+    const ToothWatermark = ({ className = "w-64 h-64 opacity-[0.06]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
         <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
         <path d="M 8 52 C 32 78 68 78 92 38" fill="none" stroke="currentColor" strokeWidth="6"/>
@@ -58,67 +44,36 @@
     );
 
     const initialClients = [
-      { cod: "2", name: "JOÃO PESSOA MEDEIROS COSTA", nickname: "" },
-      { cod: "4", name: "LEONARDO AMORIM DE FRANCA E SOUSA", nickname: "ERDENIA" },
-      { cod: "5", name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA", nickname: "" },
-      { cod: "7", name: "DAVI DA CUNHA GONCALVES", nickname: "DR. DAVI CUNHA" },
-      { cod: "8", name: "LEONARDO DA SILVA SOUZA", nickname: "CHINA" },
-      { cod: "9", name: "JOAO FERNANDO BRITO SILVA", nickname: "MARAPONGA" },
-      { cod: "10", name: "JOSE BRENO MESQUITA FARIAS", nickname: "SMILE LAB" },
-      { cod: "88", name: "Laboratório Dental Sorriso", nickname: "HELENA" },
-      { cod: "93", name: "Implantes & Próteses Vitória", nickname: "CONCEPT" },
-      { cod: "104", name: "Clínica OdontoPrime", nickname: "DR. VALTER" }
+      { cod: "2", name: "JOÃO PESSOA MEDEIROS COSTA" },
+      { cod: "4", name: "LEONARDO AMORIM DE FRANCA E SOUSA" },
+      { cod: "5", name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA" },
+      { cod: "7", name: "DAVI DA CUNHA GONCALVES" },
+      { cod: "8", name: "LEONARDO DA SILVA SOUZA" },
+      { cod: "88", name: "Laboratório Dental Sorriso" },
+      { cod: "93", name: "Implantes & Próteses Vitória" },
+      { cod: "104", name: "Clínica OdontoPrime Dr. Valter" }
     ];
 
     const initialSellers = [
-      { cod: "1", codeVnd: "VND-01", name: "André Luiz Nóbrega Martins", reg: 3.0, bom: 3.5, otimo: 4.0, parc: 1.5, dent: 0, hasDent: false },
-      { cod: "2", codeVnd: "VND-02", name: "Luis Daniel da Silva", reg: 2.0, bom: 2.5, otimo: 3.0, parc: 1.5, dent: 4.0, hasDent: true }
+      { cod: "1", codeVnd: "VND-01", name: "André Luiz Nóbrega Martins" },
+      { cod: "2", codeVnd: "VND-02", name: "Luis Daniel da Silva" }
     ];
 
     function App() {
-      const [currentView, setCurrentView] = useState('home');
-      const [isLayoutEdit, setIsLayoutEdit] = useState(false);
       const [commissionMonth, setCommissionMonth] = useState('2026-11');
       const [currentTime, setCurrentTime] = useState(new Date());
       const [clients, setClients] = useState(initialClients);
       const [sellers] = useState(initialSellers);
       const [sales, setSales] = useState([
-        {
-          id: 'v1', dav: '48911', codCliente: '88', client: 'Laboratório Dental Sorriso', codVendedor: '1', salesperson: 'André Luiz Nóbrega Martins',
-          amount: 1600.0, date: '2026-11-04', tipoVenda: 'TOTAL', isPromissoria: false,
-          installments: [{ id: 'i1-1', number: 1, amount: 1600.0, dueDate: '2026-11-04', status: 'Pago', paymentDate: '2026-11-04' }]
-        },
-        {
-          id: 'v2', dav: '48919', codCliente: '93', client: 'Implantes & Próteses Vitória', codVendedor: '2', salesperson: 'Luis Daniel da Silva',
-          amount: 3200.0, date: '2026-11-09', tipoVenda: 'PARCIAL', isPromissoria: false,
-          installments: [
-            { id: 'i2-1', number: 1, amount: 1600.0, dueDate: '2026-11-09', status: 'Pago', paymentDate: '2026-11-09' },
-            { id: 'i2-2', number: 2, amount: 1600.0, dueDate: '2026-12-09', status: 'Em aberto', paymentDate: null }
-          ]
-        },
-        {
-          id: 'v3', dav: '48925', codCliente: '4', client: 'LEONARDO AMORIM DE FRANCA E SOUSA', codVendedor: '2', salesperson: 'Luis Daniel da Silva',
-          amount: 850.0, date: '2026-11-12', tipoVenda: 'DENTISTAS', isPromissoria: false,
-          installments: [{ id: 'i3-1', number: 1, amount: 850.0, dueDate: '2026-11-12', status: 'Em aberto', paymentDate: null }]
-        }
+        { id: 'v1', dav: '48911', codCliente: '88', client: 'Laboratório Dental Sorriso', salesperson: 'André Luiz Nóbrega Martins', amount: 1600.0, date: '2026-11-04', tipoVenda: 'TOTAL', isPaid: true },
+        { id: 'v2', dav: '48919', codCliente: '93', client: 'Implantes & Próteses Vitória', salesperson: 'Luis Daniel da Silva', amount: 3200.0, date: '2026-11-09', tipoVenda: 'PARCIAL', isPaid: false },
+        { id: 'v3', dav: '48925', codCliente: '4', client: 'LEONARDO AMORIM DE FRANCA E SOUSA', salesperson: 'Luis Daniel da Silva', amount: 850.0, date: '2026-11-12', tipoVenda: 'DENTISTAS', isPaid: false }
       ]);
 
-      // Form State
       const [form, setForm] = useState({
         codCliente: '', client: '', codVendedor: '1', dav: '48930', amount: '', date: '2026-11-12', tipoVenda: 'TOTAL', prazo: '0', parcelas: '1'
       });
       const [clientWarning, setClientWarning] = useState(false);
-
-      // Carteira State
-      const [selectedClient, setSelectedClient] = useState(initialClients[1]);
-      const [clientFilter, setClientFilter] = useState('all'); // all, compras, inadimplentes, areceber, today, month
-      const [clientSearch, setClientSearch] = useState('');
-      const [fifoAmount, setFifoAmount] = useState('');
-      const [fifoMsg, setFifoMsg] = useState('');
-
-      // Comissões State
-      const [compareMoM, setCompareMoM] = useState(true);
-      const [selectedAuditSeller, setSelectedAuditSeller] = useState('1');
 
       useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -129,13 +84,6 @@
         if (window.lucide) window.lucide.createIcons();
       });
 
-      const todayStr = useMemo(() => {
-        const y = currentTime.getFullYear();
-        const m = String(currentTime.getMonth() + 1).padStart(2, '0');
-        const d = String(currentTime.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      }, [currentTime]);
-
       const daysLeftInMonth = useMemo(() => {
         const y = currentTime.getFullYear();
         const m = currentTime.getMonth();
@@ -143,28 +91,21 @@
         return Math.max(0, lastDay - currentTime.getDate());
       }, [currentTime]);
 
-      const currentMonthSales = useMemo(() => {
-        return sales.filter(s => s.date && s.date.startsWith(commissionMonth));
-      }, [sales, commissionMonth]);
+      const monthSales = useMemo(() => sales.filter(s => s.date.startsWith(commissionMonth)), [sales, commissionMonth]);
 
       const kpis = useMemo(() => {
-        let revenue = 0, paid = 0, receivable = 0, openInstCount = 0;
+        let revenue = 0, paid = 0, receivable = 0;
         const uniqueClients = new Set();
-
-        currentMonthSales.forEach(s => {
+        monthSales.forEach(s => {
           revenue += s.amount;
           uniqueClients.add(s.codCliente);
-          (s.installments || []).forEach(i => {
-            if (i.status === 'Pago') paid += i.amount;
-            else { receivable += i.amount; openInstCount++; }
-          });
+          if (s.isPaid) paid += s.amount;
+          else receivable += s.amount;
         });
-        const paidPct = revenue > 0 ? Math.round((paid / revenue) * 100) : 0;
-        return { revenue, paid, receivable, openInstCount, ordersCount: currentMonthSales.length, clientsCount: uniqueClients.size, paidPct };
-      }, [currentMonthSales]);
+        return { revenue, paid, receivable, orders: monthSales.length, clients: uniqueClients.size };
+      }, [monthSales]);
 
-      // Handle Client Code in Form
-      const handleClientCodeChange = (code) => {
+      const handleClientCode = (code) => {
         const found = clients.find(c => c.cod === code);
         if (found) {
           setForm(prev => ({ ...prev, codCliente: code, client: found.name }));
@@ -176,11 +117,10 @@
       };
 
       const handleQuickAddClient = () => {
-        const newClientName = prompt("Digite o nome/razão social para o código #" + form.codCliente);
-        if (newClientName) {
-          const newC = { cod: form.codCliente, name: newClientName, nickname: '' };
-          setClients(prev => [...prev, newC]);
-          setForm(prev => ({ ...prev, client: newClientName }));
+        const name = prompt("Nome do cliente para o código #" + form.codCliente);
+        if (name) {
+          setClients(prev => [...prev, { cod: form.codCliente, name }]);
+          setForm(prev => ({ ...prev, client: name }));
           setClientWarning(false);
         }
       };
@@ -189,44 +129,19 @@
         e.preventDefault();
         const val = parseFloat(form.amount.replace(',', '.'));
         if (!val || !form.dav) return;
-
         const seller = sellers.find(s => s.cod === form.codVendedor) || sellers[0];
-        let instList = [];
-
-        if (form.prazo === '0') {
-          instList.push({ id: `i-${Date.now()}-1`, number: 1, amount: val, dueDate: form.date, status: 'Pago', paymentDate: form.date });
-        } else if (form.prazo === 'PROMISSORIA') {
-          instList.push({ id: `i-${Date.now()}-1`, number: 1, amount: val, dueDate: '2026-12-31', status: 'Em aberto', paymentDate: null });
-        } else {
-          const pDays = parseInt(form.prazo, 10);
-          const numP = Math.max(1, parseInt(form.parcelas, 10));
-          const pVal = val / numP;
-          for (let i = 1; i <= numP; i++) {
-            const d = new Date(form.date);
-            d.setDate(d.getDate() + (pDays * i));
-            instList.push({
-              id: `i-${Date.now()}-${i}`,
-              number: i,
-              amount: pVal,
-              dueDate: d.toISOString().split('T')[0],
-              status: 'Em aberto',
-              paymentDate: null
-            });
-          }
-        }
+        const isPaid = form.prazo === '0';
 
         const newSale = {
           id: `s-${Date.now()}`,
           dav: form.dav,
           codCliente: form.codCliente || '4',
           client: form.client || 'Cliente Avulso',
-          codVendedor: form.codVendedor,
           salesperson: seller.name,
           amount: val,
           date: form.date,
           tipoVenda: form.tipoVenda,
-          isPromissoria: form.prazo === 'PROMISSORIA',
-          installments: instList
+          isPaid: isPaid
         };
 
         setSales(prev => [newSale, ...prev]);
@@ -234,37 +149,9 @@
         alert("✅ Venda registrada com sucesso no Neves Pro CRM!");
       };
 
-      // FIFO Cascata
-      const handleFifoAbatimento = (e) => {
-        e.preventDefault();
-        const abateVal = parseFloat(fifoAmount);
-        if (!abateVal || !selectedClient) return;
-
-        let rem = abateVal;
-        setSales(prevSales => prevSales.map(s => {
-          if (s.codCliente !== selectedClient.cod) return s;
-          const updatedInst = s.installments.map(inst => {
-            if (inst.status === 'Pago' || rem <= 0) return inst;
-            if (rem >= inst.amount) {
-              rem -= inst.amount;
-              return { ...inst, status: 'Pago', paymentDate: todayStr };
-            } else {
-              const paidPart = rem;
-              rem = 0;
-              return { ...inst, amount: inst.amount - paidPart };
-            }
-          });
-          return { ...s, installments: updatedInst };
-        }));
-
-        setFifoMsg(`✅ Amortização de R$ ${abateVal.toFixed(2)} liquidada via FIFO com sucesso!`);
-        setFifoAmount('');
-        setTimeout(() => setFifoMsg(''), 4000);
-      };
-
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
-          {/* SIDEBAR #1a202c */}
+          {/* SIDEBAR COM LINKS EXTERNOS */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-slate-300 flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden">
             <div className="absolute -bottom-12 -right-12 pointer-events-none text-white/5 w-64 h-64">
               <ToothWatermark className="w-full h-full" />
@@ -284,22 +171,18 @@
               <div className="px-4 py-5">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
                 <nav className="space-y-1">
-                  <button onClick={() => setCurrentView('home')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${currentView === 'home' ? 'bg-indigo-700 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  <a href="index.html" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-indigo-700 text-white shadow-md">
                     <i data-lucide="layout-grid" className="w-4 h-4"></i>
                     <span>Página Inicial</span>
-                  </button>
-                  <button onClick={() => setCurrentView('sales_page')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${currentView === 'sales_page' ? 'bg-indigo-700 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  </a>
+                  <a href="vendas.html" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition">
                     <i data-lucide="shopping-cart" className="w-4 h-4"></i>
                     <span>Página de Vendas</span>
-                  </button>
-                  <button onClick={() => setCurrentView('commissions')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${currentView === 'commissions' ? 'bg-indigo-700 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'}`}>
+                  </a>
+                  <a href="comissoes.html" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition">
                     <i data-lucide="briefcase" className="w-4 h-4"></i>
                     <span>Comissões</span>
-                  </button>
-                  <button onClick={() => setIsLayoutEdit(!isLayoutEdit)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left mt-4 ${isLayoutEdit ? 'bg-amber-600 text-white' : 'text-slate-400 hover:bg-slate-800 border border-slate-700'}`}>
-                    <i data-lucide="settings" className="w-4 h-4"></i>
-                    <span>{isLayoutEdit ? 'Concluir Edição' : 'Editar Layout do Site'}</span>
-                  </button>
+                  </a>
                 </nav>
               </div>
             </div>
@@ -319,597 +202,185 @@
             </div>
           </aside>
 
-          {/* MAIN AREA */}
+          {/* ÁREA PRINCIPAL */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
-            {/* TOPBAR */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
                 <span className="font-bold text-slate-800">Neves Pro CRM</span>
                 <span>&gt;</span>
-                <span className="text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full capitalize">
-                  {currentView === 'home' ? 'Página Inicial' : currentView === 'sales_page' ? 'Página de Vendas' : 'Comissões'}
-                </span>
+                <span className="text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full">Página Inicial</span>
               </div>
               <div className="flex items-center gap-4">
                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   ● SISTEMA ONLINE
                 </span>
-                <div className="flex items-center gap-3 text-slate-400">
-                  <button title="Notificações"><i data-lucide="bell" className="w-4 h-4"></i></button>
-                  <button title="Ajuda"><i data-lucide="help-circle" className="w-4 h-4"></i></button>
-                  <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs">D</div>
-                </div>
+                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs">D</div>
               </div>
             </header>
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
-
-              {/* VIEW 1: HOME */}
-              {currentView === 'home' && (
-                <div className="space-y-6">
-                  {/* Bloco 1: Relógio e Fim de Mês */}
-                  <div className="bg-slate-900 rounded-2xl p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-600/30 flex items-center justify-center text-indigo-400">
-                        <i data-lucide="clock" className="w-5 h-5"></i>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Horário de Brasília</span>
-                        <p className="text-lg font-bold font-mono">
-                          {currentTime.toLocaleTimeString('pt-BR')} <span className="text-xs text-slate-400 font-normal">| {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <span className="text-[10px] text-indigo-300 block font-semibold">PLANEJAMENTO</span>
-                        <span className="text-xs text-white font-bold">Faltam {daysLeftInMonth} dias para o mês acabar</span>
-                      </div>
-                      <input 
-                        type="month" 
-                        value={commissionMonth} 
-                        onChange={e => setCommissionMonth(e.target.value)} 
-                        className="bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl border-none outline-none cursor-pointer"
-                      />
-                    </div>
+              {/* Relógio e Prazo */}
+              <div className="bg-slate-900 rounded-2xl p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm relative overflow-hidden">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600/30 flex items-center justify-center text-indigo-400">
+                    <i data-lucide="clock" className="w-5 h-5"></i>
                   </div>
-
-                  {/* Bloco 2: 4 KPIs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Receita (Mês)</span>
-                      <p className="text-2xl font-black text-slate-900 mt-1">R$ {kpis.revenue.toFixed(2)}</p>
-                      <p className="text-xs text-emerald-600 font-semibold mt-2">Baixado: R$ {kpis.paid.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">À Receber (Mês)</span>
-                      <p className="text-2xl font-black text-amber-600 mt-1">R$ {kpis.receivable.toFixed(2)}</p>
-                      <p className="text-xs text-slate-400 mt-2">{kpis.openInstCount} parcelas pendentes</p>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Total de Vendas (Mês)</span>
-                      <p className="text-2xl font-black text-slate-900 mt-1">{kpis.ordersCount} DAVs</p>
-                      <p className="text-xs text-indigo-600 mt-2">Emissão contínua</p>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Clientes com Compras</span>
-                      <p className="text-2xl font-black text-slate-900 mt-1">{kpis.clientsCount} ativos</p>
-                      <p className="text-xs text-purple-600 mt-2">Base única no mês</p>
-                    </div>
-                  </div>
-
-                  {/* Bloco 3: Formulário + Tabela */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-                      <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                        <i data-lucide="plus-circle" className="w-4 h-4 text-indigo-700"></i>
-                        Lançamento de Nova Venda
-                      </h2>
-                      <form onSubmit={handleAddSale} className="space-y-3.5">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Cód. Cliente</label>
-                            <input 
-                              type="text" 
-                              value={form.codCliente} 
-                              onChange={e => handleClientCodeChange(e.target.value)} 
-                              placeholder="Ex: 4" 
-                              className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none" 
-                              required 
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nome do Cliente</label>
-                            <input 
-                              type="text" 
-                              value={form.client} 
-                              readOnly 
-                              placeholder="Auto-preenchido" 
-                              className="w-full text-xs p-2.5 border rounded-xl bg-slate-100 text-slate-600 outline-none" 
-                            />
-                          </div>
-                        </div>
-
-                        {clientWarning && (
-                          <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-800">
-                            <span>Código Inédito!</span>
-                            <button type="button" onClick={handleQuickAddClient} className="bg-amber-600 text-white px-2.5 py-1 rounded-lg font-bold text-[11px]">
-                              Cadastrar Cliente
-                            </button>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Vendedor</label>
-                            <select 
-                              value={form.codVendedor} 
-                              onChange={e => setForm({...form, codVendedor: e.target.value})} 
-                              className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none"
-                            >
-                              {sellers.map(s => <option key={s.cod} value={s.cod}>{s.codeVnd} - {s.name}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nº DAV</label>
-                            <input 
-                              type="text" 
-                              value={form.dav} 
-                              onChange={e => setForm({...form, dav: e.target.value})} 
-                              className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
-                              required 
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Tipo de Venda</label>
-                            <select 
-                              value={form.tipoVenda} 
-                              onChange={e => setForm({...form, tipoVenda: e.target.value})} 
-                              className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none"
-                            >
-                              <option value="TOTAL">TOTAL</option>
-                              <option value="PARCIAL">PARCIAL</option>
-                              <option value="DENTISTAS">DENTISTAS</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Valor Venda (R$)</label>
-                            <input 
-                              type="text" 
-                              placeholder="1500.00" 
-                              value={form.amount} 
-                              onChange={e => setForm({...form, amount: e.target.value})} 
-                              className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-extrabold outline-none" 
-                              required 
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[11px] font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
-                            <select 
-                              value={form.prazo} 
-                              onChange={e => setForm({...form, prazo: e.target.value})} 
-                              className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none"
-                            >
-                              <option value="0">0 → À Vista (Pago)</option>
-                              <option value="PROMISSORIA">PROMISSORIA → Promissória</option>
-                              <option value="1">1 dia</option>
-                              <option value="7">7 dias</option>
-                              <option value="10">10 dias</option>
-                              <option value="15">15 dias</option>
-                              <option value="20">20 dias</option>
-                              <option value="30">30 dias</option>
-                            </select>
-                          </div>
-                          {form.prazo !== '0' && form.prazo !== 'PROMISSORIA' && (
-                            <div>
-                              <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nº Parcelas</label>
-                              <input 
-                                type="number" 
-                                min="1" 
-                                max="12" 
-                                value={form.parcelas} 
-                                onChange={e => setForm({...form, parcelas: e.target.value})} 
-                                className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none" 
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        <button type="submit" className="w-full bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">
-                          Salvar e Contabilizar Venda
-                        </button>
-                      </form>
-                    </div>
-
-                    <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                      <h2 className="text-sm font-bold text-slate-900">Vendas do Mês ({commissionMonth})</h2>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
-                            <tr>
-                              <th className="py-2.5 px-3">DAV</th>
-                              <th className="py-2.5 px-3">Cliente</th>
-                              <th className="py-2.5 px-3">Vendedor</th>
-                              <th className="py-2.5 px-3">Valor</th>
-                              <th className="py-2.5 px-3 text-center">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {currentMonthSales.map(s => (
-                              <tr key={s.id} className="hover:bg-slate-50">
-                                <td className="py-2.5 px-3 font-bold text-indigo-700">#{s.dav}</td>
-                                <td className="py-2.5 px-3 font-semibold text-slate-800">{s.client}</td>
-                                <td className="py-2.5 px-3 text-slate-600">{s.salesperson}</td>
-                                <td className="py-2.5 px-3 font-extrabold text-slate-900">R$ {s.amount.toFixed(2)}</td>
-                                <td className="py-2.5 px-3 text-center">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${s.installments.every(i => i.status === 'Pago') ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                    {s.installments.every(i => i.status === 'Pago') ? 'Pago' : 'Pendente'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Horário de Brasília</span>
+                    <p className="text-lg font-bold font-mono">
+                      {currentTime.toLocaleTimeString('pt-BR')} <span className="text-xs text-slate-400 font-normal">| {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    </p>
                   </div>
                 </div>
-              )}
-
-              {/* VIEW 2: SALES PAGE (CARTEIRA MASTER-DETAIL) */}
-              {currentView === 'sales_page' && (
-                <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full">
-                        MÓDULO FINANCEIRO • CARTEIRA ATIVA • Exercício 2026
-                      </span>
-                      <h2 className="text-xl font-bold text-slate-900 mt-1">Carteira de Clientes e Vendas</h2>
-                      <p className="text-xs text-slate-400">Total de {clients.length} clientes na base operacional</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => window.print()} className="bg-white border text-slate-700 font-bold text-xs px-3 py-2 rounded-xl shadow-sm">
-                        ↓ Relatório Sintético
-                      </button>
-                      <button onClick={() => setCurrentView('home')} className="bg-indigo-700 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-sm">
-                        ⊕ Novo Pedido / DAV
-                      </button>
-                    </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <span className="text-[10px] text-indigo-300 block font-semibold">PLANEJAMENTO</span>
+                    <span className="text-xs text-white font-bold">Faltam {daysLeftInMonth} dias para o mês acabar</span>
                   </div>
+                  <input type="month" value={commissionMonth} onChange={e => setCommissionMonth(e.target.value)} className="bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl border-none outline-none cursor-pointer" />
+                </div>
+              </div>
 
-                  {/* Resumo de Parcelas: 2 Cards Superiores */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div onClick={() => setClientFilter('today')} className="bg-white p-5 rounded-2xl border-l-4 border-blue-600 border border-slate-200/80 shadow-sm cursor-pointer hover:bg-blue-50/20 transition">
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs font-bold text-blue-700 uppercase">Vencendo Hoje ({todayStr})</span>
-                        <span className="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">Urgente</span>
-                      </div>
-                      <p className="text-2xl font-black text-slate-900 mt-2">R$ 850,00</p>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
-                        <div className="bg-blue-600 h-full" style={{ width: '40%' }}></div>
-                      </div>
-                    </div>
+              {/* 4 KPIs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Receita (Mês)</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">R$ {kpis.revenue.toFixed(2)}</p>
+                  <p className="text-xs text-emerald-600 font-semibold mt-2">Baixado: R$ {kpis.paid.toFixed(2)}</p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">À Receber (Mês)</span>
+                  <p className="text-2xl font-black text-amber-600 mt-1">R$ {kpis.receivable.toFixed(2)}</p>
+                  <p className="text-xs text-slate-400 mt-2">Carteira em aberto</p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Total de Vendas (Mês)</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">{kpis.orders} DAVs</p>
+                  <p className="text-xs text-indigo-600 mt-2">Emissão do ciclo</p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Clientes com Compras</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">{kpis.clients} ativos</p>
+                  <p className="text-xs text-purple-600 mt-2">Base única no mês</p>
+                </div>
+              </div>
 
-                    <div onClick={() => setClientFilter('month')} className="bg-white p-5 rounded-2xl border-l-4 border-indigo-600 border border-slate-200/80 shadow-sm cursor-pointer hover:bg-indigo-50/20 transition">
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs font-bold text-indigo-700 uppercase">Vencendo no Mês Atual ({commissionMonth})</span>
-                        <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">Fluxo Geral</span>
+              {/* Formulário + Tabela */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="plus-circle" className="w-4 h-4 text-indigo-700"></i>
+                    Lançamento de Nova Venda
+                  </h2>
+                  <form onSubmit={handleAddSale} className="space-y-3.5">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Cód. Cliente</label>
+                        <input type="text" value={form.codCliente} onChange={e => handleClientCode(e.target.value)} placeholder="Ex: 4" className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none" required />
                       </div>
-                      <p className="text-2xl font-black text-slate-900 mt-2">R$ 2.450,00</p>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
-                        <div className="bg-indigo-600 h-full" style={{ width: '65%' }}></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Barra de Filtros + Busca */}
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                      <button onClick={() => setClientFilter('all')} className={`px-3 py-1.5 rounded-full transition ${clientFilter === 'all' ? 'bg-[#1a202c] text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        Todos ({clients.length})
-                      </button>
-                      <button onClick={() => setClientFilter('compras')} className={`px-3 py-1.5 rounded-full transition ${clientFilter === 'compras' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                        ● Com compras (3)
-                      </button>
-                      <button onClick={() => setClientFilter('inadimplentes')} className={`px-3 py-1.5 rounded-full transition ${clientFilter === 'inadimplentes' ? 'bg-rose-600 text-white' : 'bg-red-50 text-red-700'}`}>
-                        ● Inadimplentes (1)
-                      </button>
-                      <button onClick={() => setClientFilter('areceber')} className={`px-3 py-1.5 rounded-full transition ${clientFilter === 'areceber' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700'}`}>
-                        ● À receber (2)
-                      </button>
-                    </div>
-                    <input 
-                      type="text" 
-                      placeholder="Buscar por código ou nome..." 
-                      value={clientSearch} 
-                      onChange={e => setClientSearch(e.target.value)} 
-                      className="text-xs border rounded-full px-4 py-2 bg-slate-50 w-full sm:w-64 outline-none" 
-                    />
-                  </div>
-
-                  {/* Grid Master-Detail */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    {/* Master: Lista */}
-                    <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
-                            <tr>
-                              <th className="py-2.5 px-3">CÓD</th>
-                              <th className="py-2.5 px-3">RAZÃO / NOME FANTASIA</th>
-                              <th className="py-2.5 px-3">SITUAÇÃO</th>
-                              <th className="py-2.5 px-3 text-center">AÇÃO</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {clients
-                              .filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.cod.includes(clientSearch))
-                              .map(c => {
-                                const isSelected = selectedClient?.cod === c.cod;
-                                return (
-                                  <tr key={c.cod} className={`hover:bg-slate-50 ${isSelected ? 'bg-indigo-50/50' : ''}`}>
-                                    <td className="py-3 px-3 font-bold text-slate-700">#{c.cod}</td>
-                                    <td className="py-3 px-3">
-                                      <p className="font-bold text-slate-900">{c.name}</p>
-                                      {c.nickname && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold mr-1">{c.nickname}</span>}
-                                      {c.cod === '4' && <p className="text-[10px] text-red-600 font-semibold mt-0.5">⚠ Possui parcela em atraso</p>}
-                                    </td>
-                                    <td className="py-3 px-3">
-                                      {c.cod === '4' ? <span className="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-full text-[10px]">● Vencido</span> :
-                                       c.cod === '93' ? <span className="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full text-[10px]">À vencer</span> :
-                                       <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">Sem débitos</span>}
-                                    </td>
-                                    <td className="py-3 px-3 text-center">
-                                      <button 
-                                        onClick={() => setSelectedClient(c)} 
-                                        className={`px-3 py-1 rounded-xl font-bold text-xs transition ${isSelected ? 'bg-[#1a202c] text-white' : 'text-indigo-700 hover:bg-indigo-50'}`}
-                                      >
-                                        {isSelected ? 'Ficha Ativa 👁' : 'Abrir Ficha >'}
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                            })}
-                          </tbody>
-                        </table>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nome do Cliente</label>
+                        <input type="text" value={form.client} readOnly placeholder="Auto-preenchido" className="w-full text-xs p-2.5 border rounded-xl bg-slate-100 text-slate-600 outline-none" />
                       </div>
                     </div>
 
-                    {/* Detail: Painel Fixo */}
-                    {selectedClient && (
-                      <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
-                        <div className="flex justify-between items-start border-b pb-4">
-                          <div className="flex items-center gap-3">
-                            <span className="w-10 h-10 rounded-xl bg-[#1a202c] text-white flex items-center justify-center font-bold text-sm">#{selectedClient.cod}</span>
-                            <div>
-                              <h3 className="font-extrabold text-slate-900 text-base leading-tight">{selectedClient.name}</h3>
-                              <p className="text-[11px] text-slate-400">Responsável: {selectedClient.nickname || 'Geral'}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 3 Mini-Cards */}
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <span className="text-[10px] text-slate-400 block font-bold">TOTAL</span>
-                            <b className="text-slate-900">R$ 3.200</b>
-                          </div>
-                          <div className="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100">
-                            <span className="text-[10px] text-emerald-700 block font-bold">PAGO</span>
-                            <b className="text-emerald-700">R$ 1.600</b>
-                          </div>
-                          <div className="bg-rose-50/70 p-2.5 rounded-xl border border-rose-100">
-                            <span className="text-[10px] text-rose-700 block font-bold">EM ABERTO</span>
-                            <b className="text-rose-700">R$ 1.600</b>
-                          </div>
-                        </div>
-
-                        {/* Card Gradiente FIFO */}
-                        <div className="bg-gradient-to-br from-indigo-700 to-purple-800 p-5 rounded-2xl text-white space-y-3 shadow-md">
-                          <h4 className="font-bold text-sm flex items-center gap-1.5">
-                            <i data-lucide="zap" className="w-4 h-4 text-amber-300"></i>
-                            Promissória & Amortização FIFO
-                          </h4>
-                          <p className="text-[11px] text-indigo-100">Digite o valor arrecadado para amortizar automaticamente nas parcelas mais antigas em atraso.</p>
-                          <form onSubmit={handleFifoAbatimento} className="space-y-2">
-                            <div className="flex gap-2">
-                              <input 
-                                type="number" 
-                                step="0.01" 
-                                placeholder="Valor Recebido (R$)" 
-                                value={fifoAmount} 
-                                onChange={e => setFifoAmount(e.target.value)} 
-                                className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 font-bold placeholder-white/50" 
-                                required 
-                              />
-                              <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow">
-                                ⚡ Abater no Saldo
-                              </button>
-                            </div>
-                          </form>
-                          {fifoMsg && <p className="text-xs bg-emerald-500/30 p-2 rounded-lg font-bold text-white">{fifoMsg}</p>}
-                        </div>
-
-                        {/* Histórico do Cliente */}
-                        <div className="space-y-3">
-                          <h4 className="text-xs font-bold text-slate-800 uppercase">Títulos deste Cliente</h4>
-                          {sales.filter(s => s.codCliente === selectedClient.cod).map(sale => (
-                            <div key={sale.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
-                              <div className="flex justify-between font-bold">
-                                <span>DAV #{sale.dav}</span>
-                                <span className="text-slate-900">R$ {sale.amount.toFixed(2)}</span>
-                              </div>
-                              <div className="space-y-1">
-                                {sale.installments.map(inst => (
-                                  <div key={inst.id} className={`p-2 rounded-lg flex justify-between items-center ${inst.status === 'Pago' ? 'bg-emerald-50 text-emerald-800' : 'bg-white border'}`}>
-                                    <span>Parc. {inst.number} - R$ {inst.amount.toFixed(2)}</span>
-                                    <span className="font-bold text-[10px]">{inst.status}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                    {clientWarning && (
+                      <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-800">
+                        <span>Código Inédito!</span>
+                        <button type="button" onClick={handleQuickAddClient} className="bg-amber-600 text-white px-2.5 py-1 rounded-lg font-bold text-[11px]">Cadastrar Cliente</button>
                       </div>
                     )}
-                  </div>
-                </div>
-              )}
 
-              {/* VIEW 3: COMMISSIONS (MoM) */}
-              {currentView === 'commissions' && (
-                <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full">
-                        MÓDULO FINANCEIRO • Ciclo Mensal
-                      </span>
-                      <h2 className="text-xl font-bold text-slate-900 mt-1">Comissões e Metas de Vendedores</h2>
-                      <p className="text-xs text-slate-400">Apuração das baixas efetivas e escalonamento por metas</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold cursor-pointer">
-                        <input type="checkbox" checked={compareMoM} onChange={e => setCompareMoM(e.target.checked)} className="rounded" />
-                        Comparar com Mês Anterior
-                      </label>
-                      <button onClick={() => window.print()} className="bg-[#1a202c] text-white font-bold text-xs px-4 py-2 rounded-xl">
-                        🖨 Relatório Geral
-                      </button>
-                    </div>
-                  </div>
-
-                  {compareMoM && (
-                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2 rounded-xl font-bold flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      Modo Comparativo Ativo • Mês Atual vs Mês Anterior (MoM)
-                    </div>
-                  )}
-
-                  {/* 4 Cards Macro */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Total Bruto Faturado</span>
-                      <p className="text-2xl font-black text-slate-900 mt-1">R$ 5.650,00</p>
-                      <span className="text-xs text-emerald-600 font-bold">+12% vs. mês anterior</span>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Vendedores Ativos</span>
-                      <p className="text-2xl font-black text-slate-900 mt-1">2 Vendedores</p>
-                      <span className="text-xs text-indigo-600 font-semibold">100% com emissão</span>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Ticket Médio / Vendedor</span>
-                      <p className="text-2xl font-black text-slate-900 mt-1">R$ 2.825,00</p>
-                      <span className="text-xs text-slate-500">Média por operador</span>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Liquidado vs Carteira</span>
-                      <p className="text-2xl font-black text-emerald-600 mt-1">R$ 3.200 (56%)</p>
-                      <span className="text-xs text-slate-400">R$ 2.450 em aberto</span>
-                    </div>
-                  </div>
-
-                  {/* Cards Individuais dos Vendedores */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {sellers.map(s => (
-                      <div key={s.cod} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">{s.codeVnd}</span>
-                            <h3 className="font-extrabold text-slate-900 text-base mt-1">{s.name}</h3>
-                          </div>
-                          <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Ativo</span>
-                        </div>
-
-                        {/* Réguas de Comissionamento */}
-                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                          <div className="bg-slate-50 p-2 rounded-xl">
-                            <span className="text-[10px] text-slate-400 block font-bold">Regular</span>
-                            <b className="text-slate-800">{s.reg}%</b>
-                          </div>
-                          <div className="bg-indigo-50 p-2 rounded-xl">
-                            <span className="text-[10px] text-indigo-700 block font-bold">Bom</span>
-                            <b className="text-indigo-800">{s.bom}%</b>
-                          </div>
-                          <div className="bg-purple-50 p-2 rounded-xl">
-                            <span className="text-[10px] text-purple-700 block font-bold">Ótimo</span>
-                            <b className="text-purple-800">{s.otimo}%</b>
-                          </div>
-                        </div>
-
-                        {/* Meta R$ 32.000 */}
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between font-semibold">
-                            <span className="text-slate-500">Atingimento da Meta (R$ 32.000)</span>
-                            <span className="text-indigo-700 font-bold">15%</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div className="bg-indigo-700 h-full" style={{ width: '15%' }}></div>
-                          </div>
-                        </div>
-
-                        <button onClick={() => setSelectedAuditSeller(s.cod)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-2.5 rounded-xl transition">
-                          Ver Extrato Auditável do Vendedor →
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Tabela de Auditoria */}
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                    <div className="flex justify-between items-center border-b pb-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <h3 className="font-bold text-sm text-slate-900">Extrato de Comissões por Período • Auditabilidade</h3>
-                        <p className="text-xs text-slate-400">Detalhamento linha a linha das parcelas baixadas no mês</p>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Vendedor</label>
+                        <select value={form.codVendedor} onChange={e => setForm({...form, codVendedor: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none">
+                          {sellers.map(s => <option key={s.cod} value={s.cod}>{s.codeVnd} - {s.name}</option>)}
+                        </select>
                       </div>
-                      <button onClick={() => window.print()} className="bg-slate-900 text-white font-bold text-xs px-3 py-1.5 rounded-xl">
-                        🖨 Imprimir / PDF
-                      </button>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nº DAV</label>
+                        <input type="text" value={form.dav} onChange={e => setForm({...form, dav: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" required />
+                      </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
-                          <tr>
-                            <th className="py-2.5 px-3">DAV</th>
-                            <th className="py-2.5 px-3">CLIENTE</th>
-                            <th className="py-2.5 px-3">DATA BAIXA</th>
-                            <th className="py-2.5 px-3">VALOR BAIXADO</th>
-                            <th className="py-2.5 px-3">REGRA APLICADA</th>
-                            <th className="py-2.5 px-3 text-right">COMISSÃO GERADA</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          <tr className="hover:bg-slate-50">
-                            <td className="py-2.5 px-3 font-bold text-indigo-700">#48911</td>
-                            <td className="py-2.5 px-3 font-medium text-slate-800">Laboratório Dental Sorriso</td>
-                            <td className="py-2.5 px-3 text-slate-500">04/11/2026</td>
-                            <td className="py-2.5 px-3 font-bold text-slate-900">R$ 1.600,00</td>
-                            <td className="py-2.5 px-3"><span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full text-[10px]">Regular (3.0%)</span></td>
-                            <td className="py-2.5 px-3 text-right font-black text-emerald-600">R$ 48,00</td>
-                          </tr>
-                          <tr className="hover:bg-slate-50">
-                            <td className="py-2.5 px-3 font-bold text-indigo-700">#48919</td>
-                            <td className="py-2.5 px-3 font-medium text-slate-800">Implantes & Próteses Vitória</td>
-                            <td className="py-2.5 px-3 text-slate-500">09/11/2026</td>
-                            <td className="py-2.5 px-3 font-bold text-slate-900">R$ 1.600,00</td>
-                            <td className="py-2.5 px-3"><span className="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded-full text-[10px]">Parcial (1.5%)</span></td>
-                            <td className="py-2.5 px-3 text-right font-black text-emerald-600">R$ 24,00</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Tipo de Venda</label>
+                        <select value={form.tipoVenda} onChange={e => setForm({...form, tipoVenda: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none">
+                          <option value="TOTAL">TOTAL</option>
+                          <option value="PARCIAL">PARCIAL</option>
+                          <option value="DENTISTAS">DENTISTAS</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Valor Venda (R$)</label>
+                        <input type="text" placeholder="1500.00" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-extrabold outline-none" required />
+                      </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
+                        <select value={form.prazo} onChange={e => setForm({...form, prazo: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none">
+                          <option value="0">0 → À Vista (Pago)</option>
+                          <option value="PROMISSORIA">PROMISSORIA → Promissória</option>
+                          <option value="1">1 dia</option>
+                          <option value="7">7 dias</option>
+                          <option value="15">15 dias</option>
+                          <option value="30">30 dias</option>
+                        </select>
+                      </div>
+                      {form.prazo !== '0' && form.prazo !== 'PROMISSORIA' && (
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nº Parcelas</label>
+                          <input type="number" min="1" max="12" value={form.parcelas} onChange={e => setForm({...form, parcelas: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none" />
+                        </div>
+                      )}
+                    </div>
+
+                    <button type="submit" className="w-full bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">
+                      Salvar e Contabilizar Venda
+                    </button>
+                  </form>
+                </div>
+
+                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center border-b pb-3">
+                    <h2 className="text-sm font-bold text-slate-900">Vendas de {commissionMonth}</h2>
+                    <a href="vendas.html" className="text-xs font-bold text-indigo-700 hover:underline">Ver Carteira Completa →</a>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2.5 px-3">DAV</th>
+                          <th className="py-2.5 px-3">Cliente</th>
+                          <th className="py-2.5 px-3">Vendedor</th>
+                          <th className="py-2.5 px-3">Valor</th>
+                          <th className="py-2.5 px-3 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {monthSales.map(s => (
+                          <tr key={s.id} className="hover:bg-slate-50">
+                            <td className="py-2.5 px-3 font-bold text-indigo-700">#{s.dav}</td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-800">{s.client}</td>
+                            <td className="py-2.5 px-3 text-slate-600">{s.salesperson}</td>
+                            <td className="py-2.5 px-3 font-extrabold text-slate-900">R$ {s.amount.toFixed(2)}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${s.isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                {s.isPaid ? 'Pago' : 'Pendente'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              )}
-
+              </div>
             </div>
           </main>
         </div>
