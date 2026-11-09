@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neves Pro CRM - Página de Vendas & Carteira</title>
+  <title>Neves Pro CRM - Página de Vendas & Carteira (Firebase Conectado)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,18 +12,55 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    @media print { aside, header, .no-print { display: none !important; } main { padding: 0 !important; } }
   </style>
+
+  <!-- Inicialização Modular do Firebase v10 via CDN -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      updateDoc, 
+      onSnapshot, 
+      query, 
+      orderBy 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyANX_NEnljW5ED0YqWc6pZ7ARPy1hNToXg",
+      authDomain: "neves-pro-crm-comissoes.firebaseapp.com",
+      projectId: "neves-pro-crm-comissoes",
+      storageBucket: "neves-pro-crm-comissoes.firebasestorage.app",
+      messagingSenderId: "747505960352",
+      appId: "1:747505960352:web:5e7d2d5168a14dbfe490c5",
+      measurementId: "G-9CF84R9BWM"
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      window.db = db;
+      window.fb = { collection, doc, updateDoc, onSnapshot, query, orderBy };
+      window.dispatchEvent(new Event("firebase-ready"));
+      console.log("🔥 Firebase conectado em vendas.html!");
+    } catch (err) {
+      console.error("Erro ao inicializar Firebase:", err);
+    }
+  </script>
 </head>
 <body class="min-h-screen bg-slate-50 antialiased text-slate-800">
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useMemo } = React;
 
     const ToothWatermark = ({ className = "w-64 h-64 opacity-[0.06]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
@@ -47,30 +84,216 @@
     ];
 
     function App() {
-      const [clients] = useState(initialClients);
-      const [selectedClient, setSelectedClient] = useState(initialClients[1]);
+      const [clients, setClients] = useState(initialClients);
+      const [selectedClient, setSelectedClient] = useState(initialClients[1]); // Cód 4 default
+      const [sales, setSales] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [firebaseStatus, setFirebaseStatus] = useState('Conectando...');
       const [filter, setFilter] = useState('all');
       const [search, setSearch] = useState('');
       const [fifoAmount, setFifoAmount] = useState('');
       const [fifoMsg, setFifoMsg] = useState('');
+      const [processingFifo, setProcessingFifo] = useState(false);
 
-      const [clientSales, setClientSales] = useState([
-        { id: 'cs-1', dav: '48925', amount: 850.0, date: '2026-11-12', installments: [
-          { id: 'i-1', number: 1, amount: 850.0, dueDate: '2026-11-12', status: 'Em aberto' }
-        ]}
-      ]);
-
+      // Ícones Lucide
       useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
       });
 
-      const handleFifo = (e) => {
+      const todayStr = useMemo(() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }, []);
+
+      const currentMonthPrefix = useMemo(() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        return `${y}-${m}`;
+      }, []);
+
+      // Escuta em tempo real do Firebase Firestore
+      useEffect(() => {
+        const startListener = () => {
+          if (!window.db || !window.fb) return;
+          setFirebaseStatus('Online');
+
+          try {
+            const vendasCol = window.fb.collection(window.db, "vendas");
+            const q = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
+
+            const unsubscribe = window.fb.onSnapshot(q, (snapshot) => {
+              const docsList = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+              setSales(docsList);
+              setLoading(false);
+
+              // Atualiza lista de clientes dinamicamente se houver novos códigos lançados
+              docsList.forEach(sale => {
+                if (sale.codCliente && !initialClients.some(c => c.cod === sale.codCliente)) {
+                  setClients(prev => {
+                    if (prev.some(c => c.cod === sale.codCliente)) return prev;
+                    return [...prev, { cod: sale.codCliente, name: sale.client || `Cliente #${sale.codCliente}`, nickname: '' }];
+                  });
+                }
+              });
+            }, (error) => {
+              console.error("Erro no listener:", error);
+              setFirebaseStatus('Erro de Regras');
+              setLoading(false);
+            });
+
+            return unsubscribe;
+          } catch (e) {
+            console.error("Falha ao configurar listener:", e);
+            setFirebaseStatus('Offline');
+            setLoading(false);
+          }
+        };
+
+        if (window.db && window.fb) {
+          startListener();
+        } else {
+          window.addEventListener("firebase-ready", startListener);
+          return () => window.removeEventListener("firebase-ready", startListener);
+        }
+      }, []);
+
+      // Resumo de Títulos para os Cards Superiores
+      const installmentSummary = useMemo(() => {
+        let vencendoHoje = 0;
+        let vencendoMes = 0;
+
+        sales.forEach(sale => {
+          (sale.installments || []).forEach(inst => {
+            if (inst.status !== 'Pago') {
+              const instAmt = Number(inst.amount) || 0;
+              if (inst.dueDate === todayStr) {
+                vencendoHoje += instAmt;
+              }
+              if (inst.dueDate && inst.dueDate.startsWith(currentMonthPrefix)) {
+                vencendoMes += instAmt;
+              }
+            }
+          });
+        });
+
+        return { vencendoHoje, vencendoMes };
+      }, [sales, todayStr, currentMonthPrefix]);
+
+      // Métricas e Vendas do Cliente Ativo
+      const clientActiveSales = useMemo(() => {
+        if (!selectedClient) return [];
+        return sales.filter(s => String(s.codCliente) === String(selectedClient.cod));
+      }, [sales, selectedClient]);
+
+      const clientKPIs = useMemo(() => {
+        let total = 0, pago = 0, emAberto = 0;
+        clientActiveSales.forEach(s => {
+          (s.installments || []).forEach(inst => {
+            const amt = Number(inst.amount) || 0;
+            total += amt;
+            if (inst.status === 'Pago') pago += amt;
+            else emAberto += amt;
+          });
+        });
+        return { total, pago, emAberto };
+      }, [clientActiveSales]);
+
+      // Amortização FIFO em Cascata com Gravação no Firebase
+      const handleFifoAbatimento = async (e) => {
         e.preventDefault();
-        const val = parseFloat(fifoAmount);
-        if (!val) return;
-        setFifoMsg(`✅ Amortização de R$ ${val.toFixed(2)} liquidada nas parcelas mais antigas via FIFO!`);
-        setFifoAmount('');
-        setTimeout(() => setFifoMsg(''), 4000);
+        const abateVal = parseFloat(fifoAmount.replace(',', '.'));
+        if (!abateVal || !selectedClient) return;
+
+        setProcessingFifo(true);
+        let rem = abateVal;
+        let titulosAlterados = 0;
+
+        try {
+          // Ordena as vendas do cliente por data (mais antigas primeiro para amortização justa)
+          const vendasOrdenadas = [...clientActiveSales].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+          for (const sale of vendasOrdenadas) {
+            if (rem <= 0) break;
+
+            let saleTeveAlteracao = false;
+            const updatedInstallments = (sale.installments || []).map(inst => {
+              if (inst.status === 'Pago' || rem <= 0) return inst;
+
+              const instAmt = Number(inst.amount) || 0;
+              if (rem >= instAmt) {
+                rem -= instAmt;
+                saleTeveAlteracao = true;
+                return { ...inst, status: 'Pago', paymentDate: todayStr };
+              } else {
+                const abatimentoParcial = rem;
+                rem = 0;
+                saleTeveAlteracao = true;
+                return { ...inst, amount: instAmt - abatimentoParcial };
+              }
+            });
+
+            if (saleTeveAlteracao) {
+              titulosAlterados++;
+              const todosPagos = updatedInstallments.every(i => i.status === 'Pago');
+
+              if (window.db && window.fb) {
+                const vendaRef = window.fb.doc(window.db, "vendas", sale.id);
+                await window.fb.updateDoc(vendaRef, {
+                  installments: updatedInstallments,
+                  isPaid: todosPagos
+                });
+              }
+            }
+          }
+
+          setFifoMsg(`✅ R$ ${abateVal.toFixed(2)} amortizado via FIFO em ${titulosAlterados} título(s) no Firebase!`);
+          setFifoAmount('');
+        } catch (err) {
+          console.error("Erro na amortização FIFO:", err);
+          setFifoMsg(`❌ Erro ao amortizar no Firebase: ${err.message}`);
+        } finally {
+          setProcessingFifo(false);
+          setTimeout(() => setFifoMsg(''), 5000);
+        }
+      };
+
+      // Baixa Manual Direta de uma Parcela Específica
+      const handleDirectPayInstallment = async (saleId, installmentNumber) => {
+        const confirmBaixa = confirm(`Deseja confirmar a baixa imediata da parcela #${installmentNumber}?`);
+        if (!confirmBaixa) return;
+
+        try {
+          const targetSale = sales.find(s => s.id === saleId);
+          if (!targetSale) return;
+
+          const updatedInstallments = (targetSale.installments || []).map(inst => {
+            if (inst.number === installmentNumber) {
+              return { ...inst, status: 'Pago', paymentDate: todayStr };
+            }
+            return inst;
+          });
+
+          const todosPagos = updatedInstallments.every(i => i.status === 'Pago');
+
+          if (window.db && window.fb) {
+            const vendaRef = window.fb.doc(window.db, "vendas", saleId);
+            await window.fb.updateDoc(vendaRef, {
+              installments: updatedInstallments,
+              isPaid: todosPagos
+            });
+            alert("✅ Baixa registrada com sucesso no Firebase!");
+          }
+        } catch (err) {
+          console.error("Erro ao baixar parcela:", err);
+          alert("❌ Erro ao baixar no banco: " + err.message);
+        }
       };
 
       return (
@@ -126,188 +349,286 @@
             </div>
           </aside>
 
-          {/* MAIN */}
+          {/* MAIN CONTAINER */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
+            {/* TOPBAR */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
                 <span className="font-bold text-slate-800">Neves Pro CRM</span>
                 <span>&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full">Página de Vendas & Carteira</span>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  ● SISTEMA ONLINE
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
+                  firebaseStatus === 'Online' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  firebaseStatus === 'Conectando...' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                  'bg-rose-50 text-rose-700 border-rose-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${
+                    firebaseStatus === 'Online' ? 'bg-emerald-500 animate-pulse' :
+                    firebaseStatus === 'Conectando...' ? 'bg-amber-500 animate-ping' :
+                    'bg-rose-500'
+                  }`}></span>
+                  ● FIREBASE: {firebaseStatus}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs">D</div>
               </div>
             </header>
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
+              {/* Cabeçalho do Módulo */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full">
-                    MÓDULO FINANCEIRO • CARTEIRA ATIVA • Exercício 2026
+                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full uppercase">
+                    MÓDULO FINANCEIRO • CARTEIRA EM TEMPO REAL
                   </span>
-                  <h2 className="text-xl font-bold text-slate-900 mt-1">Carteira de Clientes e Vendas</h2>
-                  <p className="text-xs text-slate-400">Total de {clients.length} clientes na base operacional</p>
+                  <h2 className="text-xl font-bold text-slate-900 mt-1">Carteira de Clientes & Baixa de Títulos</h2>
+                  <p className="text-xs text-slate-400">Total de {clients.length} clientes cadastrados na operação</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.print()} className="bg-white border text-slate-700 font-bold text-xs px-3 py-2 rounded-xl shadow-sm">
-                    ↓ Relatório Sintético
+                  <button onClick={() => window.print()} className="bg-white border text-slate-700 font-bold text-xs px-3 py-2 rounded-xl shadow-sm hover:bg-slate-50 transition">
+                    🖨 Imprimir Carteira
                   </button>
-                  <a href="index.html" className="bg-indigo-700 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-sm">
-                    ⊕ Novo Pedido / DAV
+                  <a href="index.html" className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-sm transition">
+                    ⊕ Novo Lançamento (DAV)
                   </a>
                 </div>
               </div>
 
-              {/* 2 Cards Superiores */}
+              {/* 2 Cards Superiores de Alerta (Dados Vivos do Banco) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white p-5 rounded-2xl border-l-4 border-blue-600 border border-slate-200/80 shadow-sm">
+                <div onClick={() => setFilter('today')} className="bg-white p-5 rounded-2xl border-l-4 border-blue-600 border border-slate-200/80 shadow-sm cursor-pointer hover:bg-blue-50/20 transition">
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-blue-700 uppercase">Vencendo Hoje (12/11/2026)</span>
+                    <span className="text-xs font-bold text-blue-700 uppercase">Vencendo Hoje ({todayStr})</span>
                     <span className="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">Urgente</span>
                   </div>
-                  <p className="text-2xl font-black text-slate-900 mt-2">R$ 850,00</p>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
-                    <div className="bg-blue-600 h-full" style={{ width: '40%' }}></div>
-                  </div>
+                  <p className="text-2xl font-black text-slate-900 mt-2">R$ {installmentSummary.vencendoHoje.toFixed(2)}</p>
+                  <p className="text-xs text-slate-400 mt-1">Parcelas pendentes com vencimento na data de hoje</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border-l-4 border-indigo-600 border border-slate-200/80 shadow-sm">
+                <div onClick={() => setFilter('month')} className="bg-white p-5 rounded-2xl border-l-4 border-indigo-600 border border-slate-200/80 shadow-sm cursor-pointer hover:bg-indigo-50/20 transition">
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-indigo-700 uppercase">Vencendo no Mês Atual (Novembro)</span>
+                    <span className="text-xs font-bold text-indigo-700 uppercase">Vencendo no Mês Vigente</span>
                     <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full">Fluxo Geral</span>
                   </div>
-                  <p className="text-2xl font-black text-slate-900 mt-2">R$ 2.450,00</p>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-3">
-                    <div className="bg-indigo-600 h-full" style={{ width: '65%' }}></div>
-                  </div>
+                  <p className="text-2xl font-black text-slate-900 mt-2">R$ {installmentSummary.vencendoMes.toFixed(2)}</p>
+                  <p className="text-xs text-slate-400 mt-1">Total de contas em aberto com vencimento neste mês</p>
                 </div>
               </div>
 
               {/* Filtros + Busca */}
               <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                  <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-full ${filter === 'all' ? 'bg-[#1a202c] text-white' : 'bg-slate-100 text-slate-600'}`}>Todos ({clients.length})</button>
-                  <button onClick={() => setFilter('compras')} className={`px-3 py-1.5 rounded-full ${filter === 'compras' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>● Com compras (3)</button>
-                  <button onClick={() => setFilter('inad')} className={`px-3 py-1.5 rounded-full ${filter === 'inad' ? 'bg-rose-600 text-white' : 'bg-red-50 text-red-700'}`}>● Inadimplentes (1)</button>
-                  <button onClick={() => setFilter('rec')} className={`px-3 py-1.5 rounded-full ${filter === 'rec' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700'}`}>● À receber (2)</button>
+                  <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-full transition ${filter === 'all' ? 'bg-[#1a202c] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    Todos ({clients.length})
+                  </button>
+                  <button onClick={() => setFilter('compras')} className={`px-3 py-1.5 rounded-full transition ${filter === 'compras' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                    ● Com compras no banco
+                  </button>
+                  <button onClick={() => setFilter('inad')} className={`px-3 py-1.5 rounded-full transition ${filter === 'inad' ? 'bg-rose-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}>
+                    ● Com débitos em aberto
+                  </button>
                 </div>
-                <input type="text" placeholder="Buscar por código ou nome..." value={search} onChange={e => setSearch(e.target.value)} className="text-xs border rounded-full px-4 py-2 bg-slate-50 w-full sm:w-64 outline-none" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar por código ou nome..." 
+                  value={search} 
+                  onChange={e => setSearch(e.target.value)} 
+                  className="text-xs border rounded-full px-4 py-2 bg-slate-50 w-full sm:w-64 outline-none focus:ring-2 focus:ring-indigo-600/30" 
+                />
               </div>
 
               {/* Master-Detail */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* LADO ESQUERDO: LISTA DE CLIENTES */}
                 <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
-                        <tr>
-                          <th className="py-2.5 px-3">CÓD</th>
-                          <th className="py-2.5 px-3">RAZÃO / NOME FANTASIA</th>
-                          <th className="py-2.5 px-3">SITUAÇÃO</th>
-                          <th className="py-2.5 px-3 text-center">AÇÃO</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {clients
-                          .filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.cod.includes(search))
-                          .map(c => {
-                            const isSelected = selectedClient?.cod === c.cod;
-                            return (
-                              <tr key={c.cod} className={`hover:bg-slate-50 ${isSelected ? 'bg-indigo-50/50' : ''}`}>
-                                <td className="py-3 px-3 font-bold text-slate-700">#{c.cod}</td>
-                                <td className="py-3 px-3">
-                                  <p className="font-bold text-slate-900">{c.name}</p>
-                                  {c.nickname && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold mr-1">{c.nickname}</span>}
-                                  {c.cod === '4' && <p className="text-[10px] text-red-600 font-semibold mt-0.5">⚠ Possui parcela em atraso</p>}
-                                </td>
-                                <td className="py-3 px-3">
-                                  {c.cod === '4' ? <span className="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded-full text-[10px]">● Vencido</span> :
-                                   c.cod === '93' ? <span className="bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full text-[10px]">À vencer</span> :
-                                   <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">Sem débitos</span>}
-                                </td>
-                                <td className="py-3 px-3 text-center">
-                                  <button onClick={() => setSelectedClient(c)} className={`px-3 py-1 rounded-xl font-bold text-xs transition ${isSelected ? 'bg-[#1a202c] text-white' : 'text-indigo-700 hover:bg-indigo-50'}`}>
-                                    {isSelected ? 'Ficha Ativa 👁' : 'Abrir Ficha >'}
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  {loading ? (
+                    <div className="py-12 text-center text-xs text-slate-400">
+                      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                      Carregando carteira de clientes...
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                          <tr>
+                            <th className="py-2.5 px-3">CÓD</th>
+                            <th className="py-2.5 px-3">RAZÃO / CLIENTE</th>
+                            <th className="py-2.5 px-3">SITUAÇÃO</th>
+                            <th className="py-2.5 px-3 text-center">AÇÃO</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {clients
+                            .filter(c => {
+                              const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || String(c.cod).includes(search);
+                              if (!matchSearch) return false;
+
+                              const clientSales = sales.filter(s => String(s.codCliente) === String(c.cod));
+                              const temDebito = clientSales.some(s => (s.installments || []).some(i => i.status !== 'Pago'));
+
+                              if (filter === 'compras') return clientSales.length > 0;
+                              if (filter === 'inad') return temDebito;
+                              return true;
+                            })
+                            .map(c => {
+                              const isSelected = selectedClient?.cod === c.cod;
+                              const cSales = sales.filter(s => String(s.codCliente) === String(c.cod));
+                              const hasDebt = cSales.some(s => (s.installments || []).some(i => i.status !== 'Pago'));
+
+                              return (
+                                <tr key={c.cod} className={`hover:bg-slate-50 transition ${isSelected ? 'bg-indigo-50/50' : ''}`}>
+                                  <td className="py-3 px-3 font-bold text-slate-700">#{c.cod}</td>
+                                  <td className="py-3 px-3">
+                                    <p className="font-bold text-slate-900">{c.name}</p>
+                                    {c.nickname && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold mr-1">{c.nickname}</span>}
+                                    {cSales.length > 0 && <span className="text-[10px] text-indigo-600 font-semibold">{cSales.length} DAV(s)</span>}
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    {hasDebt ? (
+                                      <span className="bg-amber-50 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px]">● Saldo em Aberto</span>
+                                    ) : cSales.length > 0 ? (
+                                      <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px]">● 100% Quitado</span>
+                                    ) : (
+                                      <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[10px]">Sem compras</span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-3 text-center">
+                                    <button 
+                                      onClick={() => setSelectedClient(c)} 
+                                      className={`px-3 py-1 rounded-xl font-bold text-xs transition ${isSelected ? 'bg-[#1a202c] text-white shadow' : 'text-indigo-700 hover:bg-indigo-50'}`}
+                                    >
+                                      {isSelected ? 'Ficha Ativa 👁' : 'Abrir Ficha >'}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
-                {/* Detail */}
-                {selectedClient && (
+                {/* LADO DIREITO: FICHA DETALHADA DO CLIENTE & FIFO */}
+                {selectedClient ? (
                   <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
                     <div className="flex justify-between items-start border-b pb-4">
                       <div className="flex items-center gap-3">
                         <span className="w-10 h-10 rounded-xl bg-[#1a202c] text-white flex items-center justify-center font-bold text-sm">#{selectedClient.cod}</span>
                         <div>
                           <h3 className="font-extrabold text-slate-900 text-base leading-tight">{selectedClient.name}</h3>
-                          <p className="text-[11px] text-slate-400">Responsável: {selectedClient.nickname || 'Geral'}</p>
+                          <p className="text-[11px] text-slate-400">Responsável: {selectedClient.nickname || 'Operador Comercial'}</p>
                         </div>
                       </div>
                     </div>
 
+                    {/* Mini-Cards dos Valores do Cliente */}
                     <div className="grid grid-cols-3 gap-2 text-center text-xs">
                       <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        <span className="text-[10px] text-slate-400 block font-bold">TOTAL</span>
-                        <b className="text-slate-900">R$ 3.200</b>
+                        <span className="text-[10px] text-slate-400 block font-bold">TOTAL FATURADO</span>
+                        <b className="text-slate-900">R$ {clientKPIs.total.toFixed(2)}</b>
                       </div>
                       <div className="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100">
-                        <span className="text-[10px] text-emerald-700 block font-bold">PAGO</span>
-                        <b className="text-emerald-700">R$ 1.600</b>
+                        <span className="text-[10px] text-emerald-700 block font-bold">QUITADO</span>
+                        <b className="text-emerald-700">R$ {clientKPIs.pago.toFixed(2)}</b>
                       </div>
                       <div className="bg-rose-50/70 p-2.5 rounded-xl border border-rose-100">
-                        <span className="text-[10px] text-rose-700 block font-bold">EM ABERTO</span>
-                        <b className="text-rose-700">R$ 1.600</b>
+                        <span className="text-[10px] text-rose-700 block font-bold">SALDO ABERTO</span>
+                        <b className="text-rose-700">R$ {clientKPIs.emAberto.toFixed(2)}</b>
                       </div>
                     </div>
 
-                    {/* Card FIFO */}
+                    {/* Card Gradiente Amortização FIFO */}
                     <div className="bg-gradient-to-br from-indigo-700 to-purple-800 p-5 rounded-2xl text-white space-y-3 shadow-md">
                       <h4 className="font-bold text-sm flex items-center gap-1.5">
                         <i data-lucide="zap" className="w-4 h-4 text-amber-300"></i>
-                        Promissória & Amortização FIFO
+                        Amortização FIFO em Cascata
                       </h4>
-                      <p className="text-[11px] text-indigo-100">Digite o valor arrecadado para amortizar automaticamente nas parcelas mais antigas em atraso.</p>
-                      <form onSubmit={handleFifo} className="space-y-2">
+                      <p className="text-[11px] text-indigo-100 leading-relaxed">
+                        Digite o valor pago pelo cliente. O sistema quita as parcelas mais antigas primeiro e abate a diferença no banco em tempo real.
+                      </p>
+                      <form onSubmit={handleFifoAbatimento} className="space-y-2">
                         <div className="flex gap-2">
-                          <input type="number" step="0.01" placeholder="Valor Recebido (R$)" value={fifoAmount} onChange={e => setFifoAmount(e.target.value)} className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 font-bold placeholder-white/50" required />
-                          <button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow">
-                            ⚡ Abater no Saldo
+                          <input 
+                            type="text" 
+                            placeholder="Valor Pago (R$)" 
+                            value={fifoAmount} 
+                            onChange={e => setFifoAmount(e.target.value)} 
+                            className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 font-bold placeholder-white/50 focus:bg-white/20" 
+                            required 
+                          />
+                          <button 
+                            type="submit" 
+                            disabled={processingFifo || clientKPIs.emAberto === 0}
+                            className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+                          >
+                            {processingFifo ? (
+                              <span>Abatendo...</span>
+                            ) : (
+                              <span>⚡ Abater no Saldo</span>
+                            )}
                           </button>
                         </div>
                       </form>
-                      {fifoMsg && <p className="text-xs bg-emerald-500/30 p-2 rounded-lg font-bold text-white">{fifoMsg}</p>}
+                      {fifoMsg && <p className="text-xs bg-black/20 p-2.5 rounded-xl font-bold text-white border border-white/10">{fifoMsg}</p>}
                     </div>
 
-                    {/* Títulos */}
+                    {/* Títulos e Parcelas Gravadas no Firebase */}
                     <div className="space-y-3">
-                      <h4 className="text-xs font-bold text-slate-800 uppercase">Títulos deste Cliente</h4>
-                      {clientSales.map(s => (
-                        <div key={s.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
-                          <div className="flex justify-between font-bold">
-                            <span>DAV #{s.dav}</span>
-                            <span className="text-slate-900">R$ {s.amount.toFixed(2)}</span>
-                          </div>
-                          <div className="space-y-1">
-                            {s.installments.map(inst => (
-                              <div key={inst.id} className="p-2 rounded-lg bg-white border flex justify-between items-center">
-                                <span>Parc. {inst.number} - R$ {inst.amount.toFixed(2)}</span>
-                                <span className="font-bold text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">{inst.status}</span>
+                      <h4 className="text-xs font-bold text-slate-800 uppercase flex items-center justify-between">
+                        <span>Títulos do Cliente ({clientActiveSales.length})</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Sincronizado Firestore</span>
+                      </h4>
+
+                      {clientActiveSales.length === 0 ? (
+                        <p className="text-xs text-slate-400 bg-slate-50 p-4 rounded-xl text-center border border-dashed">
+                          Este cliente não possui títulos lançados no banco.
+                        </p>
+                      ) : (
+                        clientActiveSales.map(sale => (
+                          <div key={sale.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2.5 text-xs">
+                            <div className="flex justify-between font-bold items-center">
+                              <div>
+                                <span className="text-indigo-700">DAV #{sale.dav}</span>
+                                <span className="text-slate-400 font-normal ml-2">({sale.tipoVenda} • {sale.date})</span>
                               </div>
-                            ))}
+                              <span className="text-slate-900 font-extrabold">R$ {Number(sale.amount).toFixed(2)}</span>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {(sale.installments || []).map(inst => (
+                                <div key={inst.number} className={`p-2 rounded-lg flex justify-between items-center border ${inst.status === 'Pago' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-white border-slate-200'}`}>
+                                  <div>
+                                    <span className="font-semibold">Parc. {inst.number}</span>
+                                    <span className="text-slate-500 text-[11px] ml-2">Venc: {inst.dueDate || 'À Vista'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <b className="text-slate-900">R$ {Number(inst.amount).toFixed(2)}</b>
+                                    {inst.status === 'Pago' ? (
+                                      <span className="font-bold text-[10px] bg-emerald-200/60 text-emerald-800 px-2 py-0.5 rounded-full">Pago</span>
+                                    ) : (
+                                      <button 
+                                        type="button" 
+                                        onClick={() => handleDirectPayInstallment(sale.id, inst.number)}
+                                        className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] px-2 py-0.5 rounded-lg shadow-sm"
+                                        title="Quitar parcela agora"
+                                      >
+                                        Baixar
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
+                  </div>
+                ) : (
+                  <div className="lg:col-span-5 bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm text-center text-xs text-slate-400">
+                    Selecione um cliente ao lado para visualizar os títulos e amortizações.
                   </div>
                 )}
               </div>
