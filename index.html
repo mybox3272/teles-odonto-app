@@ -3,12 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neves Pro CRM - Página Inicial (Firebase Conectado)</title>
+  <title>Neves Pro CRM - Dashboard & Nova Venda</title>
+  
+  <!-- Tipografia Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- React 18 & Babel -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -18,9 +24,13 @@
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    @media print { 
+      aside, header, .no-print { display: none !important; } 
+      main { padding: 0 !important; } 
+    }
   </style>
 
-  <!-- Inicialização Modular do Firebase v10 via CDN -->
+  <!-- Inicialização do Firebase Firestore v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -49,9 +59,9 @@
       window.db = db;
       window.fb = { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado com sucesso!");
+      console.log("🔥 Firebase conectado ao Neves Pro CRM!");
     } catch (err) {
-      console.error("Erro ao inicializar Firebase:", err);
+      console.error("Erro no Firebase:", err);
     }
   </script>
 </head>
@@ -61,7 +71,8 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    const ToothWatermark = ({ className = "w-64 h-64 opacity-[0.06]" }) => (
+    // Marca d'água vetorial oficial Teles Odonto
+    const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
         <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
         <path d="M 8 52 C 32 78 68 78 92 38" fill="none" stroke="currentColor" strokeWidth="6"/>
@@ -94,7 +105,9 @@
       const [loadingSales, setLoadingSales] = useState(true);
       const [firebaseStatus, setFirebaseStatus] = useState('Conectando...');
       const [isSubmitting, setIsSubmitting] = useState(false);
+      const [isEditMode, setIsEditMode] = useState(false);
 
+      // Estado do formulário
       const [form, setForm] = useState({
         codCliente: '',
         client: '',
@@ -108,7 +121,7 @@
       });
       const [clientWarning, setClientWarning] = useState(false);
 
-      // Relógio
+      // Relógio digital em tempo real
       useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
@@ -119,7 +132,7 @@
         if (window.lucide) window.lucide.createIcons();
       });
 
-      // Conexão em Tempo Real com o Firebase Firestore
+      // Conexão em Tempo Real com Firestore
       useEffect(() => {
         const startListener = () => {
           if (!window.db || !window.fb) return;
@@ -136,15 +149,25 @@
               }));
               setSales(docsList);
               setLoadingSales(false);
+
+              // Auto-atualização da lista de clientes caso existam novos no banco
+              docsList.forEach(sale => {
+                if (sale.codCliente && !initialClients.some(c => c.cod === sale.codCliente)) {
+                  setClients(prev => {
+                    if (prev.some(c => c.cod === sale.codCliente)) return prev;
+                    return [...prev, { cod: sale.codCliente, name: sale.client || `Cliente #${sale.codCliente}` }];
+                  });
+                }
+              });
             }, (error) => {
-              console.error("Erro no listener do Firebase:", error);
-              setFirebaseStatus('Erro de Regras');
+              console.error("Erro listener:", error);
+              setFirebaseStatus('Atenção (Regras)');
               setLoadingSales(false);
             });
 
             return unsubscribe;
           } catch (e) {
-            console.error("Falha ao configurar Firestore:", e);
+            console.error("Erro Firestore:", e);
             setFirebaseStatus('Offline');
             setLoadingSales(false);
           }
@@ -158,30 +181,87 @@
         }
       }, []);
 
-      const daysLeftInMonth = useMemo(() => {
+      // 1º Bloco: Cálculo de dias e barra de progresso do mês
+      const monthProgressData = useMemo(() => {
         const y = currentTime.getFullYear();
         const m = currentTime.getMonth();
-        const lastDay = new Date(y, m + 1, 0).getDate();
-        return Math.max(0, lastDay - currentTime.getDate());
+        const totalDays = new Date(y, m + 1, 0).getDate();
+        const passedDays = currentTime.getDate();
+        const daysLeft = Math.max(0, totalDays - passedDays);
+        const percentPassed = Math.min(100, Math.round((passedDays / totalDays) * 100));
+        return { totalDays, passedDays, daysLeft, percentPassed };
       }, [currentTime]);
 
+      // Vendas estritas do mês vigente
       const monthSales = useMemo(() => {
         return sales.filter(s => s.date && s.date.startsWith(commissionMonth));
       }, [sales, commissionMonth]);
 
+      // 2º Bloco: 4 Indicadores Exclusivos do Mês Vigente
       const kpis = useMemo(() => {
-        let revenue = 0, paid = 0, receivable = 0;
+        let revenue = 0;
+        let paid = 0;
+        let receivable = 0;
+        let pendingInstallmentsCount = 0;
         const uniqueClients = new Set();
+
         monthSales.forEach(s => {
           const val = Number(s.amount) || 0;
           revenue += val;
           if (s.codCliente) uniqueClients.add(s.codCliente);
-          if (s.isPaid) paid += val;
-          else receivable += val;
+
+          // Análise detalhada das parcelas
+          if (s.installments && s.installments.length > 0) {
+            s.installments.forEach(inst => {
+              const instAmt = Number(inst.amount) || 0;
+              if (inst.status === 'Pago') {
+                paid += instAmt;
+              } else {
+                receivable += instAmt;
+                pendingInstallmentsCount++;
+              }
+            });
+          } else {
+            if (s.isPaid) paid += val;
+            else {
+              receivable += val;
+              pendingInstallmentsCount++;
+            }
+          }
         });
-        return { revenue, paid, receivable, orders: monthSales.length, clients: uniqueClients.size };
+
+        return {
+          revenue,
+          paid,
+          receivable,
+          pendingInstallmentsCount,
+          orders: monthSales.length,
+          clients: uniqueClients.size
+        };
       }, [monthSales]);
 
+      // Cálculo em Tempo Real da Prévia de Vencimentos
+      const installmentsPreview = useMemo(() => {
+        if (form.prazo === '0' || form.prazo === 'PROMISSORIA') return [];
+        const val = parseFloat(form.amount.replace(',', '.')) || 0;
+        const numP = Math.max(1, parseInt(form.parcelas, 10) || 1);
+        const pDays = parseInt(form.prazo, 10);
+        const pVal = val / numP;
+
+        const list = [];
+        for (let i = 1; i <= numP; i++) {
+          const d = new Date(form.date);
+          d.setDate(d.getDate() + (pDays * i));
+          list.push({
+            number: i,
+            date: d.toISOString().split('T')[0],
+            amount: pVal
+          });
+        }
+        return list;
+      }, [form.date, form.prazo, form.parcelas, form.amount]);
+
+      // Auto-preenchimento ao digitar código do cliente
       const handleClientCode = (code) => {
         const found = clients.find(c => c.cod === code);
         if (found) {
@@ -194,7 +274,7 @@
       };
 
       const handleQuickAddClient = () => {
-        const name = prompt("Nome/Razão Social para o código #" + form.codCliente);
+        const name = prompt("Digite o Nome / Razão Social do cliente #" + form.codCliente);
         if (name) {
           setClients(prev => [...prev, { cod: form.codCliente, name }]);
           setForm(prev => ({ ...prev, client: name }));
@@ -202,39 +282,46 @@
         }
       };
 
-      // Gravação no Firebase Firestore
+      // Gravação da Nova Venda com Regras de Prazos
       const handleAddSale = async (e) => {
         e.preventDefault();
         const val = parseFloat(form.amount.replace(',', '.'));
         if (!val || !form.dav) {
-          alert("Por favor, preencha o valor e o DAV.");
+          alert("Por favor, preencha o valor e o número do DAV.");
           return;
         }
 
         const seller = sellers.find(s => s.cod === form.codVendedor) || sellers[0];
         const isPaid = form.prazo === '0';
+        const isPromissoria = form.prazo === 'PROMISSORIA';
 
-        // Geração das parcelas para sincronizar com o vendas.html
+        // Geração das parcelas com regras de vencimento
         let installments = [];
         if (isPaid) {
-          installments.push({ number: 1, amount: val, dueDate: form.date, status: 'Pago', paymentDate: form.date });
-        } else if (form.prazo === 'PROMISSORIA') {
-          installments.push({ number: 1, amount: val, dueDate: '2026-12-31', status: 'Em aberto', paymentDate: null });
+          installments.push({ 
+            number: 1, 
+            amount: val, 
+            dueDate: form.date, 
+            status: 'Pago', 
+            paymentDate: form.date 
+          });
+        } else if (isPromissoria) {
+          installments.push({ 
+            number: 1, 
+            amount: val, 
+            dueDate: '2026-12-31', 
+            status: 'Em aberto', 
+            paymentDate: null, 
+            isPromissoria: true 
+          });
         } else {
-          const pDays = parseInt(form.prazo, 10);
-          const numP = Math.max(1, parseInt(form.parcelas, 10));
-          const pVal = val / numP;
-          for (let i = 1; i <= numP; i++) {
-            const d = new Date(form.date);
-            d.setDate(d.getDate() + (pDays * i));
-            installments.push({
-              number: i,
-              amount: pVal,
-              dueDate: d.toISOString().split('T')[0],
-              status: 'Em aberto',
-              paymentDate: null
-            });
-          }
+          installments = installmentsPreview.map(p => ({
+            number: p.number,
+            amount: p.amount,
+            dueDate: p.date,
+            status: 'Em aberto',
+            paymentDate: null
+          }));
         }
 
         const newSale = {
@@ -248,6 +335,7 @@
           tipoVenda: form.tipoVenda,
           prazo: form.prazo,
           isPaid: isPaid,
+          isPromissoria: isPromissoria,
           installments: installments,
           criadoEm: window.fb?.serverTimestamp ? window.fb.serverTimestamp() : new Date().toISOString()
         };
@@ -255,16 +343,13 @@
         setIsSubmitting(true);
         try {
           if (window.db && window.fb) {
-            // Gravação no banco em nuvem
             await window.fb.addDoc(window.fb.collection(window.db, "vendas"), newSale);
             alert(`🎉 Venda DAV #${form.dav} gravada com sucesso no Firebase!`);
           } else {
-            // Fallback local se o banco não responder
             setSales(prev => [{ id: `s-${Date.now()}`, ...newSale }, ...prev]);
-            alert("⚠️ Venda gravada localmente (Firebase não detectado nesta tentativa).");
+            alert("⚠️ Venda gravada localmente.");
           }
 
-          // Avança número do DAV e limpa valor
           setForm(prev => ({
             ...prev,
             dav: String(parseInt(prev.dav || 48930) + 1),
@@ -272,58 +357,153 @@
           }));
         } catch (error) {
           console.error("Erro ao gravar venda:", error);
-          alert("❌ Erro ao salvar no Firebase: " + error.message);
+          alert("❌ Erro ao salvar: " + error.message);
         } finally {
           setIsSubmitting(false);
         }
       };
 
+      // 4º Bloco: Dados para o Gráfico de Rosca (Donut SVG) & Cobrança por Vendedor
+      const chartData = useMemo(() => {
+        const total = kpis.paid + kpis.receivable;
+        const paidPercent = total > 0 ? (kpis.paid / total) * 100 : 0;
+        const receivablePercent = total > 0 ? (kpis.receivable / total) * 100 : 0;
+
+        // Distribuição por vendedor
+        const sellerBreakdown = sellers.map(s => {
+          let vendedorPago = 0;
+          let vendedorPendente = 0;
+
+          monthSales.forEach(sale => {
+            if (sale.codVendedor === s.cod || sale.salesperson === s.name) {
+              (sale.installments || []).forEach(inst => {
+                const amt = Number(inst.amount) || 0;
+                if (inst.status === 'Pago') vendedorPago += amt;
+                else vendedorPendente += amt;
+              });
+            }
+          });
+
+          return { ...s, pago: vendedorPago, pendente: vendedorPendente };
+        });
+
+        // Clientes com parcelas pendentes para ação rápida de cobrança
+        const devedoresMap = {};
+        monthSales.forEach(sale => {
+          (sale.installments || []).forEach(inst => {
+            if (inst.status !== 'Pago') {
+              const cCod = sale.codCliente;
+              if (!devedoresMap[cCod]) {
+                devedoresMap[cCod] = {
+                  cod: cCod,
+                  client: sale.client,
+                  totalPendente: 0,
+                  parcelas: 0
+                };
+              }
+              devedoresMap[cCod].totalPendente += Number(inst.amount) || 0;
+              devedoresMap[cCod].parcelas++;
+            }
+          });
+        });
+
+        return {
+          paidPercent,
+          receivablePercent,
+          sellerBreakdown,
+          devedores: Object.values(devedoresMap)
+        };
+      }, [kpis, monthSales, sellers]);
+
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
-          {/* SIDEBAR COM LINKS EXTERNOS */}
+          
+          {/* MENU LATERAL ESCURO (SIDEBAR #1a202c / bg-slate-900) */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-slate-300 flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden">
-            <div className="absolute -bottom-12 -right-12 pointer-events-none text-white/5 w-64 h-64">
-              <ToothWatermark className="w-full h-full" />
+            
+            {/* MARCA D'ÁGUA INFERIOR NA SIDEBAR */}
+            <div className="absolute -bottom-12 -right-12 pointer-events-none text-white opacity-[0.06] w-72 h-72">
+              <ToothWatermark className="w-full h-full text-white" />
             </div>
 
-            <div>
+            <div className="relative z-10">
+              {/* TOPO: LOGO OFICIAL TELES ODONTO + NEVES PRO CRM */}
               <div className="p-5 border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">TO</div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-indigo-400/20">
+                    TO
+                  </div>
                   <div>
-                    <h1 className="text-white font-bold text-sm leading-tight">Teles Odonto</h1>
-                    <p className="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase">Neves Pro CRM</p>
+                    <h1 className="text-white font-extrabold text-sm tracking-tight leading-tight">Teles Odonto</h1>
+                    <p className="text-[10px] text-indigo-400 font-bold tracking-wider uppercase">Materiais Protéticos</p>
+                    <span className="inline-block mt-0.5 text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-semibold border border-slate-700">
+                      Neves Pro CRM
+                    </span>
                   </div>
                 </div>
               </div>
 
+              {/* SEÇÃO DE MENU: NAVEGAÇÃO COMERCIAL */}
               <div className="px-4 py-5">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
-                <nav className="space-y-1">
-                  <a href="index.html" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-indigo-700 text-white shadow-md">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2.5">
+                  NAVEGAÇÃO COMERCIAL
+                </p>
+                <nav className="space-y-1.5">
+                  <a 
+                    href="index.html" 
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-indigo-700 text-white shadow-md transition"
+                  >
                     <i data-lucide="layout-grid" className="w-4 h-4"></i>
                     <span>Página Inicial</span>
                   </a>
-                  <a href="vendas.html" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition">
+                  <a 
+                    href="vendas.html" 
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                  >
                     <i data-lucide="shopping-cart" className="w-4 h-4"></i>
                     <span>Página de Vendas</span>
                   </a>
-                  <a href="comissoes.html" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 transition">
+                  <a 
+                    href="comissoes.html" 
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                  >
                     <i data-lucide="briefcase" className="w-4 h-4"></i>
                     <span>Comissões</span>
                   </a>
+
+                  {/* BOTÃO GERAL DE CUSTOMIZAÇÃO */}
+                  <div className="pt-3">
+                    <button 
+                      onClick={() => setIsEditMode(!isEditMode)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition border ${
+                        isEditMode 
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                          : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <i data-lucide="settings" className={`w-4 h-4 ${isEditMode ? 'animate-spin' : ''}`}></i>
+                        <span>{isEditMode ? 'Concluir Edição de Layout' : 'Editar Layout do Site'}</span>
+                      </div>
+                      {isEditMode && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>}
+                    </button>
+                  </div>
                 </nav>
               </div>
             </div>
 
+            {/* CARD DE OPERADOR E RODAPÉ */}
             <div className="p-4 border-t border-slate-800 relative z-10 space-y-3">
-              <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center text-xs font-bold">OP</div>
+              <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex items-center gap-3 shadow-inner">
+                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                  <i data-lucide="user" className="w-4 h-4"></i>
+                </div>
                 <div className="truncate">
-                  <p className="text-xs font-bold text-slate-200">Operador Comercial</p>
-                  <p className="text-[10px] text-slate-400">operador@nevespro.com</p>
+                  <p className="text-xs font-bold text-slate-200 leading-tight">Operador Comercial</p>
+                  <p className="text-[10px] text-slate-400 truncate">operador@nevespro.com</p>
                 </div>
               </div>
+
               <div className="text-[9px] text-slate-500 text-center leading-tight">
                 <p>Neves Pro CRM, Todos os Direitos Reservado</p>
                 <p className="text-indigo-400 font-semibold mt-0.5">Por Daniel Silva</p>
@@ -331,122 +511,261 @@
             </div>
           </aside>
 
-          {/* ÁREA PRINCIPAL */}
+          {/* MAIN CONTAINER */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
+            
+            {/* TOPBAR SUPERIOR (HEADER GLOBAL) */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
+              
+              {/* Esquerda: Breadcrumb */}
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
                 <span className="font-bold text-slate-800">Neves Pro CRM</span>
-                <span>&gt;</span>
-                <span className="text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full">Página Inicial</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
-                  firebaseStatus === 'Online' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                  firebaseStatus === 'Conectando...' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                  'bg-rose-50 text-rose-700 border-rose-200'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${
-                    firebaseStatus === 'Online' ? 'bg-emerald-500 animate-pulse' :
-                    firebaseStatus === 'Conectando...' ? 'bg-amber-500 animate-ping' :
-                    'bg-rose-500'
-                  }`}></span>
-                  ● FIREBASE: {firebaseStatus}
+                <span className="text-slate-400">&gt;</span>
+                <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                  Página Inicial
                 </span>
-                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs">D</div>
+              </div>
+
+              {/* Direita: Status Online + Ações Rápidas + Avatar */}
+              <div className="flex items-center gap-3">
+                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  ● SISTEMA ONLINE
+                </span>
+
+                <button className="w-8 h-8 rounded-full border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition relative" title="Notificações">
+                  <i data-lucide="bell" className="w-4 h-4"></i>
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-600 rounded-full"></span>
+                </button>
+
+                <button className="w-8 h-8 rounded-full border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition" title="Central de Ajuda">
+                  <i data-lucide="help-circle" className="w-4 h-4"></i>
+                </button>
+
+                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-indigo-600/20" title="operador@nevespro.com">
+                  OP
+                </div>
               </div>
             </header>
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
-              {/* Relógio e Prazo */}
-              <div className="bg-slate-900 rounded-2xl p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm relative overflow-hidden">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600/30 flex items-center justify-center text-indigo-400">
-                    <i data-lucide="clock" className="w-5 h-5"></i>
+              
+              {/* MODO DE EDIÇÃO NOTIFICAÇÃO */}
+              {isEditMode && (
+                <div className="bg-amber-50 border border-amber-300 text-amber-800 p-3.5 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <i data-lucide="sliders" className="w-4 h-4 text-amber-600"></i>
+                    <span>Modo de Customização de Layout Ativo: personalize os blocos da página.</span>
+                  </div>
+                  <button onClick={() => setIsEditMode(false)} className="bg-amber-600 text-white px-3.5 py-1 rounded-xl text-[11px] font-bold">
+                    Concluir
+                  </button>
+                </div>
+              )}
+
+              {/* 1º BLOCO — BARRA SUPERIOR DE RELÓGIO, CONTADOR E PROGRESSO DO MÊS */}
+              <div className="bg-slate-900 rounded-2xl p-6 text-white flex flex-col lg:flex-row items-center justify-between gap-6 shadow-sm relative overflow-hidden">
+                <div className="absolute -bottom-8 -right-8 pointer-events-none text-white opacity-10 w-48 h-48">
+                  <ToothWatermark className="w-full h-full text-white" />
+                </div>
+
+                {/* Relógio Digital e Data Extensa */}
+                <div className="flex items-center gap-3.5 relative z-10 w-full lg:w-auto">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-600/30 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner shrink-0">
+                    <i data-lucide="clock" className="w-6 h-6"></i>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Horário de Brasília</span>
-                    <p className="text-lg font-bold font-mono">
-                      {currentTime.toLocaleTimeString('pt-BR')} <span className="text-xs text-slate-400 font-normal">| {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Horário Oficial de Brasília</span>
+                    <p className="text-xl font-bold font-mono tracking-tight leading-tight">
+                      {currentTime.toLocaleTimeString('pt-BR')} 
+                    </p>
+                    <p className="text-xs text-slate-300 capitalize mt-0.5">
+                      {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <span className="text-[10px] text-indigo-300 block font-semibold">PLANEJAMENTO</span>
-                    <span className="text-xs text-white font-bold">Faltam {daysLeftInMonth} dias para o mês acabar</span>
+
+                {/* Contador de Fim de Mês + Barra de Progresso do Mês Decorrido */}
+                <div className="relative z-10 w-full lg:w-96 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-indigo-300 font-bold uppercase text-[10px] tracking-wider">Planejamento da Equipe</span>
+                    <span className="text-white font-extrabold bg-indigo-800/60 px-2 py-0.5 rounded-lg border border-indigo-700/50">
+                      Faltam {monthProgressData.daysLeft} dias para o mês acabar
+                    </span>
                   </div>
-                  <input type="month" value={commissionMonth} onChange={e => setCommissionMonth(e.target.value)} className="bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl border-none outline-none cursor-pointer" />
+                  
+                  {/* Barra de Progresso */}
+                  <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700/80">
+                    <div 
+                      className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-500" 
+                      style={{ width: `${monthProgressData.percentPassed}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-400">
+                    <span>Dia {monthProgressData.passedDays} de {monthProgressData.totalDays}</span>
+                    <span>{monthProgressData.percentPassed}% do mês decorrido</span>
+                  </div>
+                </div>
+
+                {/* Seletor do Mês Vigente */}
+                <div className="relative z-10 shrink-0 w-full lg:w-auto text-right">
+                  <span className="text-[10px] text-slate-400 block mb-1 font-semibold uppercase tracking-wider">Ciclo Contábil</span>
+                  <input 
+                    type="month" 
+                    value={commissionMonth} 
+                    onChange={e => setCommissionMonth(e.target.value)} 
+                    className="bg-indigo-700 hover:bg-indigo-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl border-none outline-none cursor-pointer shadow transition" 
+                  />
                 </div>
               </div>
 
-              {/* 4 KPIs em Tempo Real */}
+              {/* 2º BLOCO — 4 CARTÕES DE INDICADORES EXCLUSIVOS DO MÊS VIGENTE */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Receita (Mês)</span>
+                
+                {/* 1. RECEITA (MÊS) */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Receita (Mês)</span>
                   <p className="text-2xl font-black text-slate-900 mt-1">R$ {kpis.revenue.toFixed(2)}</p>
-                  <p className="text-xs text-emerald-600 font-semibold mt-2">Baixado: R$ {kpis.paid.toFixed(2)}</p>
+                  <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Baixado: R$ {kpis.paid.toFixed(2)}
+                  </p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">À Receber (Mês)</span>
+
+                {/* 2. À RECEBER (MÊS) */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">À Receber (Mês)</span>
                   <p className="text-2xl font-black text-amber-600 mt-1">R$ {kpis.receivable.toFixed(2)}</p>
-                  <p className="text-xs text-slate-400 mt-2">Carteira em aberto</p>
+                  <p className="text-xs text-amber-700/80 font-semibold mt-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    {kpis.pendingInstallmentsCount} parcela(s) pendente(s)
+                  </p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Total de Vendas (Mês)</span>
+
+                {/* 3. TOTAL DE VENDAS (MÊS) */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total de Vendas (Mês)</span>
                   <p className="text-2xl font-black text-slate-900 mt-1">{kpis.orders} DAVs</p>
-                  <p className="text-xs text-indigo-600 mt-2">Sincronizado no banco</p>
+                  <p className="text-xs text-indigo-600 font-semibold mt-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    Pedidos emitidos no mês
+                  </p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Clientes com Compras</span>
-                  <p className="text-2xl font-black text-slate-900 mt-1">{kpis.clients} ativos</p>
-                  <p className="text-xs text-purple-600 mt-2">Base única no mês</p>
+
+                {/* 4. CLIENTES COM COMPRAS */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Clientes com Compras</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">{kpis.clients} compradores</p>
+                  <p className="text-xs text-purple-600 font-semibold mt-2 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    Base única no mês vigente
+                  </p>
                 </div>
               </div>
 
-              {/* Formulário + Tabela Firestore */}
+              {/* 3º BLOCO — GRID PRINCIPAL: FORMULÁRIO À ESQUERDA + TABELA À DIREITA */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* FORMULÁRIO */}
+                
+                {/* FORMULÁRIO DE NOVA VENDA */}
                 <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-10 -right-10 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+
                   <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <i data-lucide="plus-circle" className="w-4 h-4 text-indigo-700"></i>
-                    Lançamento de Nova Venda
+                    Lançamento de Nova Venda (DAV)
                   </h2>
-                  <form onSubmit={handleAddSale} className="space-y-3.5">
+
+                  <form onSubmit={handleAddSale} className="space-y-3.5 relative z-10">
+                    
+                    {/* Auto-preenchimento e Cadastro Rápido de Cliente */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[11px] font-semibold text-slate-600 block mb-1">Cód. Cliente</label>
-                        <input type="text" value={form.codCliente} onChange={e => handleClientCode(e.target.value)} placeholder="Ex: 4" className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none" required />
+                        <input 
+                          type="text" 
+                          value={form.codCliente} 
+                          onChange={e => handleClientCode(e.target.value)} 
+                          placeholder="Ex: 4" 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-600/30" 
+                          required 
+                        />
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nome do Cliente</label>
-                        <input type="text" value={form.client} readOnly placeholder="Auto-preenchido" className="w-full text-xs p-2.5 border rounded-xl bg-slate-100 text-slate-600 outline-none" />
+                        <input 
+                          type="text" 
+                          value={form.client} 
+                          readOnly 
+                          placeholder="Auto-preenchido" 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-100 text-slate-600 outline-none" 
+                        />
                       </div>
                     </div>
 
+                    {/* Alerta de Código Inédito */}
                     {clientWarning && (
                       <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between text-xs text-amber-800">
-                        <span>Código Inédito!</span>
-                        <button type="button" onClick={handleQuickAddClient} className="bg-amber-600 text-white px-2.5 py-1 rounded-lg font-bold text-[11px]">Cadastrar Cliente</button>
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <i data-lucide="alert-triangle" className="w-3.5 h-3.5 text-amber-600"></i>
+                          <span>Código Inédito!</span>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={handleQuickAddClient} 
+                          className="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg font-bold text-[11px] transition shadow-sm"
+                        >
+                          Cadastrar Cliente
+                        </button>
                       </div>
                     )}
 
+                    {/* Vendedor Sincronizado + DAV */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[11px] font-semibold text-slate-600 block mb-1">Vendedor</label>
-                        <select value={form.codVendedor} onChange={e => setForm({...form, codVendedor: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none">
+                        <select 
+                          value={form.codVendedor} 
+                          onChange={e => setForm({...form, codVendedor: e.target.value})} 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none font-semibold text-slate-700"
+                        >
                           {sellers.map(s => <option key={s.cod} value={s.cod}>{s.codeVnd} - {s.name}</option>)}
                         </select>
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nº DAV</label>
-                        <input type="text" value={form.dav} onChange={e => setForm({...form, dav: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" required />
+                        <input 
+                          type="text" 
+                          value={form.dav} 
+                          onChange={e => setForm({...form, dav: e.target.value})} 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
+                          required 
+                        />
                       </div>
                     </div>
 
+                    {/* Categoria (TOTAL, PARCIAL, DENTISTAS) + Valor */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-[11px] font-semibold text-slate-600 block mb-1">Tipo de Venda</label>
-                        <select value={form.tipoVenda} onChange={e => setForm({...form, tipoVenda: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none">
+                        <select 
+                          value={form.tipoVenda} 
+                          onChange={e => setForm({...form, tipoVenda: e.target.value})} 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none font-semibold text-slate-700"
+                        >
                           <option value="TOTAL">TOTAL</option>
                           <option value="PARCIAL">PARCIAL</option>
                           <option value="DENTISTAS">DENTISTAS</option>
@@ -454,29 +773,87 @@
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-slate-600 block mb-1">Valor Venda (R$)</label>
-                        <input type="text" placeholder="1500.00" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-extrabold outline-none" required />
+                        <input 
+                          type="text" 
+                          placeholder="1500.00" 
+                          value={form.amount} 
+                          onChange={e => setForm({...form, amount: e.target.value})} 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-extrabold outline-none text-slate-900" 
+                          required 
+                        />
                       </div>
                     </div>
 
+                    {/* Data da Venda + Opções de Condição/Prazo */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Data da Venda</label>
+                        <input 
+                          type="date" 
+                          value={form.date} 
+                          onChange={e => setForm({...form, date: e.target.value})} 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-semibold outline-none" 
+                          required 
+                        />
+                      </div>
+                      <div>
                         <label className="text-[11px] font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
-                        <select value={form.prazo} onChange={e => setForm({...form, prazo: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none">
+                        <select 
+                          value={form.prazo} 
+                          onChange={e => setForm({...form, prazo: e.target.value})} 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none font-semibold text-slate-700"
+                        >
                           <option value="0">0 → À Vista (Pago)</option>
                           <option value="PROMISSORIA">PROMISSORIA → Promissória</option>
-                          <option value="1">1 dia</option>
-                          <option value="7">7 dias</option>
-                          <option value="15">15 dias</option>
-                          <option value="30">30 dias</option>
+                          <option value="1">1 → 1 dia</option>
+                          <option value="7">7 → 7 dias</option>
+                          <option value="10">10 → 10 dias</option>
+                          <option value="15">15 → 15 dias</option>
+                          <option value="20">20 → 20 dias</option>
+                          <option value="30">30 → 30 dias</option>
                         </select>
                       </div>
-                      {form.prazo !== '0' && form.prazo !== 'PROMISSORIA' && (
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nº Parcelas</label>
-                          <input type="number" min="1" max="12" value={form.parcelas} onChange={e => setForm({...form, parcelas: e.target.value})} className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 outline-none" />
-                        </div>
-                      )}
                     </div>
+
+                    {/* Campo de Parcelas (Oculto se for À Vista ou Promissória) */}
+                    {form.prazo !== '0' && form.prazo !== 'PROMISSORIA' && (
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nº de Parcelas</label>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          max="12" 
+                          value={form.parcelas} 
+                          onChange={e => setForm({...form, parcelas: e.target.value})} 
+                          className="w-full text-xs p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
+                        />
+                      </div>
+                    )}
+
+                    {/* PRÉVIA EDITÁVEL DOS VENCIMENTOS (Quando a Prazo) */}
+                    {installmentsPreview.length > 0 && (
+                      <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 space-y-2">
+                        <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">
+                          📅 Prévia dos Vencimentos ({installmentsPreview.length}x de R$ {(installmentsPreview[0]?.amount || 0).toFixed(2)})
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {installmentsPreview.map(p => (
+                            <div key={p.number} className="bg-white p-2 rounded-lg border border-indigo-100/80 flex justify-between items-center shadow-2xs">
+                              <span className="font-semibold text-slate-700">Parc. {p.number}:</span>
+                              <span className="font-bold text-indigo-700">{p.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Informação sobre Promissória */}
+                    {form.prazo === 'PROMISSORIA' && (
+                      <div className="bg-purple-50 border border-purple-200 text-purple-800 p-2.5 rounded-xl text-xs flex items-center gap-2">
+                        <i data-lucide="info" className="w-4 h-4 text-purple-600 shrink-0"></i>
+                        <span>O valor será adicionado ao saldo devedor do cliente na promissória, permitindo amortização FIFO posterior.</span>
+                      </div>
+                    )}
 
                     <button 
                       type="submit" 
@@ -486,63 +863,197 @@
                       {isSubmitting ? (
                         <span>Gravando no Firebase...</span>
                       ) : (
-                        <span>Salvar e Gravar no Firebase</span>
+                        <span>Salvar e Contabilizar Venda</span>
                       )}
                     </button>
                   </form>
                 </div>
 
-                {/* TABELA DE VENDAS SINCRONIZADAS */}
-                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center border-b pb-3">
-                    <div>
-                      <h2 className="text-sm font-bold text-slate-900">Vendas Gravadas ({commissionMonth})</h2>
-                      <p className="text-[11px] text-slate-400">Dados diretos da coleção <code className="text-indigo-600">vendas</code></p>
-                    </div>
-                    <a href="vendas.html" className="text-xs font-bold text-indigo-700 hover:underline">Ver Carteira Completa →</a>
+                {/* TABELA DE VENDAS DO MÊS */}
+                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="absolute -bottom-10 -right-10 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
                   </div>
 
-                  {loadingSales ? (
-                    <div className="py-12 text-center text-xs text-slate-400">
-                      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                      Carregando vendas do Firebase...
+                  <div className="flex justify-between items-center border-b pb-3 relative z-10">
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-900">Vendas Gravadas ({commissionMonth})</h2>
+                      <p className="text-[11px] text-slate-400">Exclusivo do ciclo mensal ativo</p>
                     </div>
-                  ) : monthSales.length === 0 ? (
-                    <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">
-                      Nenhuma venda encontrada para o mês selecionado. Lance a primeira no formulário ao lado!
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
-                          <tr>
-                            <th className="py-2.5 px-3">DAV</th>
-                            <th className="py-2.5 px-3">Cliente</th>
-                            <th className="py-2.5 px-3">Vendedor</th>
-                            <th className="py-2.5 px-3">Valor</th>
-                            <th className="py-2.5 px-3 text-center">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {monthSales.map(s => (
-                            <tr key={s.id} className="hover:bg-slate-50">
-                              <td className="py-2.5 px-3 font-bold text-indigo-700">#{s.dav}</td>
-                              <td className="py-2.5 px-3 font-semibold text-slate-800">{s.client}</td>
-                              <td className="py-2.5 px-3 text-slate-600">{s.salesperson}</td>
-                              <td className="py-2.5 px-3 font-extrabold text-slate-900">R$ {Number(s.amount).toFixed(2)}</td>
-                              <td className="py-2.5 px-3 text-center">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${s.isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                  {s.isPaid ? 'Pago' : 'Pendente'}
-                                </span>
-                              </td>
+                    <a href="vendas.html" className="text-xs font-bold text-indigo-700 hover:underline">
+                      Ver Carteira Completa →
+                    </a>
+                  </div>
+
+                  <div className="relative z-10">
+                    {loadingSales ? (
+                      <div className="py-12 text-center text-xs text-slate-400">
+                        <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        Carregando vendas do Firebase...
+                      </div>
+                    ) : monthSales.length === 0 ? (
+                      <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">
+                        Nenhuma venda encontrada para o mês de {commissionMonth}. Lance a primeira no formulário ao lado!
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                            <tr>
+                              <th className="py-2.5 px-3">DAV</th>
+                              <th className="py-2.5 px-3">Cliente</th>
+                              <th className="py-2.5 px-3">Vendedor</th>
+                              <th className="py-2.5 px-3">Valor</th>
+                              <th className="py-2.5 px-3 text-center">Status</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {monthSales.map(s => (
+                              <tr key={s.id} className="hover:bg-slate-50 transition">
+                                <td className="py-2.5 px-3 font-bold text-indigo-700">#{s.dav}</td>
+                                <td className="py-2.5 px-3 font-semibold text-slate-800">{s.client}</td>
+                                <td className="py-2.5 px-3 text-slate-600">{s.salesperson}</td>
+                                <td className="py-2.5 px-3 font-extrabold text-slate-900">R$ {Number(s.amount).toFixed(2)}</td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    s.isPaid ? 'bg-emerald-100 text-emerald-800' :
+                                    s.isPromissoria ? 'bg-purple-100 text-purple-800' :
+                                    'bg-amber-100 text-amber-800'
+                                  }`}>
+                                    {s.isPaid ? 'Pago' : s.isPromissoria ? 'Promissória' : 'Pendente'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* 4º BLOCO (FINAL DA PÁGINA) — GRÁFICO À RECEBER & ESTATÍSTICAS DE COBRANÇA */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-6 relative overflow-hidden">
+                <div className="absolute -bottom-10 -right-10 pointer-events-none text-slate-900 opacity-[0.035] w-64 h-64">
+                  <ToothWatermark className="w-full h-full text-slate-900" />
+                </div>
+
+                <div className="border-b pb-4 relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div>
+                    <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full uppercase">
+                      INTELIGÊNCIA DE CRÉDITO & FLUXO
+                    </span>
+                    <h3 className="text-base font-bold text-slate-900 mt-1">Gráfico À Receber & Estatísticas de Cobrança</h3>
+                    <p className="text-xs text-slate-400">Comparativo entre valores quitados e títulos com cobrança em aberto no mês</p>
+                  </div>
+                  <a href="vendas.html" className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 hover:bg-indigo-100 transition">
+                    Ir para Central de Cobranças →
+                  </a>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center relative z-10">
+                  
+                  {/* Gráfico Donut SVG */}
+                  <div className="flex flex-col items-center justify-center p-4 bg-slate-50/70 rounded-2xl border border-slate-100">
+                    <span className="text-xs font-bold text-slate-700 mb-3">Distribuição: Baixado vs. À Receber</span>
+                    
+                    <div className="relative w-40 h-40 flex items-center justify-center">
+                      <svg viewBox="0 0 36 36" className="w-36 h-36 -rotate-90">
+                        {/* Fundo do Donut */}
+                        <path
+                          className="text-slate-200"
+                          strokeWidth="3.8"
+                          stroke="currentColor"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        {/* Segmento Baixado (Emerald) */}
+                        <path
+                          className="text-emerald-500"
+                          strokeDasharray={`${chartData.paidPercent}, 100`}
+                          strokeWidth="3.8"
+                          strokeLinecap="round"
+                          stroke="currentColor"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute text-center">
+                        <span className="text-xs text-slate-400 block font-semibold">Baixado</span>
+                        <b className="text-lg font-black text-slate-800">{chartData.paidPercent.toFixed(0)}%</b>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 mt-3 text-xs font-semibold">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span className="text-slate-600">Baixado ({chartData.paidPercent.toFixed(0)}%)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span className="text-slate-600">Pendente ({chartData.receivablePercent.toFixed(0)}%)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barras Empilhadas por Vendedor */}
+                  <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-3.5">
+                    <span className="text-xs font-bold text-slate-700 block">Carteira por Vendedor</span>
+                    {chartData.sellerBreakdown.map(s => {
+                      const totalVendedor = s.pago + s.pendente;
+                      const pagoPct = totalVendedor > 0 ? (s.pago / totalVendedor) * 100 : 0;
+                      return (
+                        <div key={s.cod} className="space-y-1.5 text-xs">
+                          <div className="flex justify-between font-bold">
+                            <span className="text-slate-800">{s.name}</span>
+                            <span className="text-slate-500">R$ {totalVendedor.toFixed(2)}</span>
+                          </div>
+                          <div className="w-full bg-amber-200 h-2.5 rounded-full overflow-hidden flex">
+                            <div className="bg-emerald-500 h-full" style={{ width: `${pagoPct}%` }} title={`Pago: R$ ${s.pago.toFixed(2)}`}></div>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-500">
+                            <span className="text-emerald-700 font-semibold">Pago: R$ {s.pago.toFixed(2)}</span>
+                            <span className="text-amber-700 font-semibold">Aberto: R$ {s.pendente.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Atalhos Rápidos para Cobrança */}
+                  <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-100 space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-700">Clientes com Pendências</span>
+                      <span className="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full">
+                        {chartData.devedores.length} clientes
+                      </span>
+                    </div>
+
+                    {chartData.devedores.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-4 text-center">Nenhum cliente com pendências neste mês!</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+                        {chartData.devedores.slice(0, 4).map(d => (
+                          <div key={d.cod} className="p-2 bg-white rounded-xl border border-slate-200/70 flex justify-between items-center text-xs">
+                            <div className="truncate mr-2">
+                              <p className="font-bold text-slate-800 truncate">#{d.cod} {d.client}</p>
+                              <span className="text-[10px] text-slate-400">{d.parcelas} parcela(s)</span>
+                            </div>
+                            <a 
+                              href="vendas.html" 
+                              className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] px-2.5 py-1 rounded-lg shrink-0 transition"
+                            >
+                              Cobrar R$ {d.totalPendente.toFixed(0)}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
             </div>
           </main>
         </div>
