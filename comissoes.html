@@ -1,56 +1,38 @@
 <!DOCTYPE html>
-
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-    }
-  </style>
-</head>
-<body>
-<!-- STITCH_THREEJS_START:ANIMATION_52 class="fixed inset-0 w-full h-full bg-transparent" -->
-<div class="fixed inset-0 w-full h-full bg-transparent" style="display:block;">
-<script src="https://ajax.googleapis.com/ajax/libs/threejs/r125/three.min.js"></script>
-<div id="threejs-container-ANIMATION_52" style="width:100%;height:100%"></div>
-<script>
-(function() {
-  const container = document.getElementById('threejs-container-ANIMATION_52');
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neves Pro CRM - Comissões e Metas</title>
+  <title>Neves Pro CRM - Comissões & Metas de Vendedores</title>
   
   <!-- Tipografia Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- CDN Tailwind CSS & Lucide Icons -->
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<!-- React 18 & Babel para execução autônoma no navegador -->
-<script crossorigin="" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- React 18 & Babel para execução autônoma no navegador -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    @media print { 
+      aside, header, .no-print { display: none !important; } 
+      main { padding: 0 !important; } 
+      .custom-scrollbar { overflow: visible !important; height: auto !important; }
+    }
   </style>
-<!-- Inicialização Modular do Firebase Firestore v10 -->
-<script type="module">
+
+  <!-- Inicialização Modular do Firebase Firestore v10 -->
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
       getFirestore, 
@@ -76,24 +58,19 @@
       window.db = db;
       window.fb = { collection, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em comissoes.html com correções de auditoria ativas!");
+      console.log("🔥 Firebase Firestore conectado em comissoes.html!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em comissoes.html:", err);
     }
   </script>
-
+</head>
 <body class="min-h-screen bg-slate-50 antialiased text-slate-800">
-<div id="root"></div>
-<script type="text/babel">
+  <div id="root"></div>
+
+  <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // Utilitário de formatação de moeda brasileira
-    const formatBRL = (val) => {
-      const n = Number(val) || 0;
-      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
-
-    // Componente Marca D'água do Ícone Teles Odonto
+    // Marca d'água vetorial oficial Teles Odonto
     const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
         <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
@@ -102,257 +79,588 @@
       </svg>
     );
 
-    const initialSellers = [
+    const defaultSellersConfig = [
       {
-        id: "vnd-01",
+        cod: "1",
         codeVnd: "VND-01",
+        initials: "AL",
         name: "André Luiz Nóbrega Martins",
-        role: "Representante Comercial Sênior",
-        metaMes: 25000.00,
-        metaAnterior: 22000.00,
-        taxaPadrao: 4.5,
-        taxasPorTipo: { TOTAL: 4.5, PARCIAL: 3.0, DENTISTAS: 5.0 }
+        role: "Representante Comercial",
+        statusBadge: "Líder em Emissão",
+        meta: 32000,
+        rates: {
+          regular: 3.0,
+          bom: 3.5,
+          otimo: 4.0,
+          parcial: 1.5,
+          dentistas: null
+        }
       },
       {
-        id: "vnd-02",
+        cod: "2",
         codeVnd: "VND-02",
+        initials: "LD",
         name: "Luis Daniel da Silva",
-        role: "Consultor de Vendas Campo",
-        metaMes: 20000.00,
-        metaAnterior: 18000.00,
-        taxaPadrao: 4.5,
-        taxasPorTipo: { TOTAL: 4.5, PARCIAL: 3.0, DENTISTAS: 5.0 }
+        role: "Consultor Técnico Especialista",
+        statusBadge: "Ativo",
+        meta: 32000,
+        rates: {
+          regular: 2.0,
+          bom: 2.5,
+          otimo: 3.0,
+          parcial: 1.5,
+          dentistas: 4.0
+        }
       }
     ];
 
     function App() {
-      const [sellers] = useState(initialSellers);
+      const [commissionMonth, setCommissionMonth] = useState('2026-11');
+      const [compareMoM, setCompareMoM] = useState(true);
       const [sales, setSales] = useState([]);
       const [loading, setLoading] = useState(true);
-      const [periodoComparativo, setPeriodoComparativo] = useState('ATUAL_VS_ANTERIOR');
-      const [filtroVendedor, setFiltroVendedor] = useState('TODOS');
+      const [firebaseStatus, setFirebaseStatus] = useState('Conectando...');
+      const [selectedAuditSeller, setSelectedAuditSeller] = useState('1'); // André default
+
+      // Configuração de Vendedores com persistência em localStorage
+      const [sellers, setSellers] = useState(() => {
+        try {
+          const saved = localStorage.getItem('neves_crm_sellers');
+          return saved ? JSON.parse(saved) : defaultSellersConfig;
+        } catch {
+          return defaultSellersConfig;
+        }
+      });
+
+      // Modo de Edição Visual de Layout (isLayoutEditMode)
+      const [isLayoutEditMode, setIsLayoutEditMode] = useState(() => {
+        return localStorage.getItem('neves_crm_layout_edit') === 'true';
+      });
+
+      const [layoutConfig, setLayoutConfig] = useState(() => {
+        try {
+          const saved = localStorage.getItem('neves_crm_layout_config');
+          return saved ? JSON.parse(saved) : {
+            sidebarSide: 'left',
+            logoUrl: '',
+            watermarkOpacity: 0.035,
+            moduleTitle: 'Comissões e Metas de Vendedores',
+            moduleSubtitle: 'Base calculada exclusivamente sobre valores efetivamente liquidados'
+          };
+        } catch {
+          return {
+            sidebarSide: 'left',
+            logoUrl: '',
+            watermarkOpacity: 0.035,
+            moduleTitle: 'Comissões e Metas de Vendedores',
+            moduleSubtitle: 'Base calculada exclusivamente sobre valores efetivamente liquidados'
+          };
+        }
+      });
+
+      // Modal de Edição de Regras do Vendedor
+      const [editingSeller, setEditingSeller] = useState(null);
+
+      // Formulário Lateral: Novo Vendedor
+      const [newSellerForm, setNewSellerForm] = useState({
+        cod: '',
+        name: '',
+        profile: 'padrao', // padrao, especial, personalizado
+        regular: '2.0',
+        bom: '2.5',
+        otimo: '3.0',
+        hasParcial: true,
+        hasDentistas: false
+      });
+
+      useEffect(() => {
+        localStorage.setItem('neves_crm_sellers', JSON.stringify(sellers));
+      }, [sellers]);
+
+      useEffect(() => {
+        localStorage.setItem('neves_crm_layout_config', JSON.stringify(layoutConfig));
+      }, [layoutConfig]);
+
+      useEffect(() => {
+        localStorage.setItem('neves_crm_layout_edit', isLayoutEditMode);
+      }, [isLayoutEditMode]);
 
       useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
       });
 
-      // Sincronização em tempo real com Firebase Firestore
+      // Listener em Tempo Real do Firebase
       useEffect(() => {
-        const startListeners = () => {
+        const startListener = () => {
           if (!window.db || !window.fb) return;
+          setFirebaseStatus('Online');
 
           try {
             const vendasCol = window.fb.collection(window.db, "vendas");
-            const qVendas = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
-            const unsub = window.fb.onSnapshot(qVendas, (snapshot) => {
-              const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-              setSales(list);
-              setLoading(false);
-            }, () => setLoading(false));
+            const q = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
 
-            return () => unsub();
+            const unsubscribe = window.fb.onSnapshot(q, (snapshot) => {
+              const docsList = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+              }));
+              setSales(docsList);
+              setLoading(false);
+            }, (error) => {
+              console.error("Erro no listener de comissões:", error);
+              setFirebaseStatus('Atenção');
+              setLoading(false);
+            });
+
+            return unsubscribe;
           } catch (e) {
-            console.error("Erro listeners comissoes.html:", e);
+            console.error("Erro no listener:", e);
+            setFirebaseStatus('Offline');
             setLoading(false);
           }
         };
 
         if (window.db && window.fb) {
-          startListeners();
+          startListener();
         } else {
-          window.addEventListener("firebase-ready", startListeners);
-          return () => window.removeEventListener("firebase-ready", startListeners);
+          window.addEventListener("firebase-ready", startListener);
+          return () => window.removeEventListener("firebase-ready", startListener);
         }
       }, []);
 
-      // =========================================================================
-      // CÁLCULO PRECISO DE COMISSÕES POR VENDEDOR (BAIXADAS VS PENDENTES)
-      // =========================================================================
-      const relatorioVendedores = useMemo(() => {
-        return sellers.map(seller => {
-          const vendasDoVendedor = sales.filter(s => {
-            const matchNome = s.salesperson && s.salesperson.toLowerCase().includes(seller.name.toLowerCase().split(' ')[0]);
-            const matchCod = s.salespersonCode && s.salespersonCode === seller.codeVnd;
-            return matchNome || matchCod;
-          });
+      // Mês Anterior para Comparativo MoM
+      const previousMonth = useMemo(() => {
+        const [y, m] = commissionMonth.split('-').map(Number);
+        const prevDate = new Date(y, m - 2, 1);
+        const prevY = prevDate.getFullYear();
+        const prevM = String(prevDate.getMonth() + 1).padStart(2, '0');
+        return `${prevY}-${prevM}`;
+      }, [commissionMonth]);
 
-          let totalBruto = 0;
-          let totalBaixado = 0;
-          let comissaoLiberada = 0;
-          let comissaoProjetada = 0;
+      // Alternar Mês com Botões < e >
+      const handleShiftMonth = (offset) => {
+        const [y, m] = commissionMonth.split('-').map(Number);
+        const newDate = new Date(y, m - 1 + offset, 1);
+        const nextY = newDate.getFullYear();
+        const nextM = String(newDate.getMonth() + 1).padStart(2, '0');
+        setCommissionMonth(`${nextY}-${nextM}`);
+      };
 
-          vendasDoVendedor.forEach(venda => {
-            const tipo = venda.tipoVenda || 'TOTAL';
-            const taxa = (seller.taxasPorTipo && seller.taxasPorTipo[tipo]) ? seller.taxasPorTipo[tipo] : seller.taxaPadrao;
-            const valorVenda = Number(venda.amount) || 0;
-            totalBruto += valorVenda;
+      // Cálculo de alíquota do vendedor
+      const getAppliedRate = (seller, tipoVenda, volumeBruto) => {
+        if (!seller) return 3.0;
+        if (tipoVenda === 'PARCIAL') return seller.rates.parcial || 1.5;
+        if (tipoVenda === 'DENTISTAS' && seller.rates.dentistas) return seller.rates.dentistas;
 
-            let baixadoVenda = 0;
-            (venda.installments || []).forEach(inst => {
-              const amt = Number(inst.amount) || 0;
-              if (inst.status === 'Pago') {
-                baixadoVenda += amt;
-              }
-            });
+        // Escalonamento por Meta Bruta
+        if (volumeBruto >= 32000) return seller.rates.otimo;
+        if (volumeBruto >= 21000) return seller.rates.bom;
+        return seller.rates.regular;
+      };
 
-            totalBaixado += baixadoVenda;
-            comissaoLiberada += (baixadoVenda * (taxa / 100));
-            comissaoProjetada += (valorVenda * (taxa / 100));
-          });
+      // Vendas do Mês Atual vs Mês Anterior
+      const currentSales = useMemo(() => {
+        return sales.filter(s => s.date && s.date.startsWith(commissionMonth));
+      }, [sales, commissionMonth]);
 
-          // Se não houver vendas no Firestore ainda, insere dados realistas de demonstração
-          if (vendasDoVendedor.length === 0) {
-            if (seller.codeVnd === "VND-01") {
-              totalBruto = 24350.00;
-              totalBaixado = 18200.00;
-              comissaoLiberada = 819.00;
-              comissaoProjetada = 1095.75;
-            } else {
-              totalBruto = 18500.00;
-              totalBaixado = 12400.00;
-              comissaoLiberada = 558.00;
-              comissaoProjetada = 832.50;
+      const prevSales = useMemo(() => {
+        return sales.filter(s => s.date && s.date.startsWith(previousMonth));
+      }, [sales, previousMonth]);
+
+      // APURAÇÃO DETALHADA DAS BAIXAS DO MÊS
+      const auditDetails = useMemo(() => {
+        const baixas = [];
+        let totalLiquidadoMes = 0;
+
+        sales.forEach(sale => {
+          (sale.installments || []).forEach(inst => {
+            const payDate = inst.paymentDate || (inst.status === 'Pago' ? sale.date : null);
+            if (inst.status === 'Pago' && payDate && payDate.startsWith(commissionMonth)) {
+              const instAmt = Number(inst.amount) || 0;
+              totalLiquidadoMes += instAmt;
+
+              // Identifica vendedor
+              const sellerObj = sellers.find(s => s.cod === sale.codVendedor || s.name === sale.salesperson);
+
+              // Identifica tipo da parcela
+              let tipoParcelaStr = `${inst.number}/${(sale.installments || []).length} (Integral)`;
+              if (sale.prazo === '0') tipoParcelaStr = 'À Vista (Integral)';
+              else if (sale.tipoVenda === 'PARCIAL') tipoParcelaStr = 'Parcial (Entrada)';
+              else if (inst.observacao && inst.observacao.includes('FIFO')) tipoParcelaStr = 'Abat. Parcial (FIFO)';
+
+              // Cálculo da taxa
+              const sellerGross = currentSales
+                .filter(s => s.codVendedor === sellerObj?.cod || s.salesperson === sellerObj?.name)
+                .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
+              const appliedRate = getAppliedRate(sellerObj, sale.tipoVenda, sellerGross);
+              const comissaoGerada = instAmt * (appliedRate / 100);
+
+              baixas.push({
+                saleId: sale.id,
+                dav: sale.dav,
+                client: sale.client,
+                salesperson: sale.salesperson || sellerObj?.name || 'Vendedor',
+                codVendedor: sale.codVendedor || sellerObj?.cod || '1',
+                tipoVenda: sale.tipoVenda,
+                tipoParcela: tipoParcelaStr,
+                instNumber: inst.number,
+                instAmount: instAmt,
+                payDate: payDate,
+                rate: appliedRate,
+                comissao: comissaoGerada
+              });
             }
+          });
+        });
+
+        return { baixas, totalLiquidadoMes };
+      }, [sales, currentSales, commissionMonth, sellers]);
+
+      // INDICADORES MACRO DO PAINEL EXECUTIVO
+      const macroKPIs = useMemo(() => {
+        // Bruto Atual vs Anterior
+        const currentGross = currentSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+        const prevGross = prevSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+        const grossDiffPct = prevGross > 0 ? ((currentGross - prevGross) / prevGross) * 100 : (currentGross > 0 ? 100 : 0);
+
+        // Vendedores Ativos
+        const activeSellersWithSales = new Set(currentSales.map(s => s.codVendedor || s.salesperson)).size;
+        const totalSellers = sellers.length;
+        const activePct = totalSellers > 0 ? Math.round((activeSellersWithSales / totalSellers) * 100) : 0;
+
+        // Ticket Médio
+        const ticketMedioVendedor = activeSellersWithSales > 0 ? currentGross / activeSellersWithSales : 0;
+        const ticketMedioDAV = currentSales.length > 0 ? currentGross / currentSales.length : 0;
+        const prevTicketMedioDAV = prevSales.length > 0 ? prevGross / prevSales.length : 0;
+        const ticketDiffPct = prevTicketMedioDAV > 0 ? ((ticketMedioDAV - prevTicketMedioDAV) / prevTicketMedioDAV) * 100 : 0;
+
+        // Liquidado vs Carteira Aberta
+        const liquidado = auditDetails.totalLiquidadoMes;
+        let aberto = 0;
+        currentSales.forEach(s => {
+          (s.installments || []).forEach(inst => {
+            if (inst.status !== 'Pago') aberto += Number(inst.amount) || 0;
+          });
+        });
+        const totalCarteira = liquidado + aberto;
+        const liquidadoPct = totalCarteira > 0 ? Math.round((liquidado / totalCarteira) * 100) : 0;
+
+        return {
+          currentGross,
+          prevGross,
+          grossDiffPct,
+          currentOrders: currentSales.length,
+          activeSellersWithSales,
+          totalSellers,
+          activePct,
+          ticketMedioVendedor,
+          ticketMedioDAV,
+          ticketDiffPct,
+          liquidado,
+          aberto,
+          liquidadoPct
+        };
+      }, [currentSales, prevSales, sellers, auditDetails.totalLiquidadoMes]);
+
+      // MÉTRICAS INDIVIDUAIS POR VENDEDOR
+      const sellerAnalytics = useMemo(() => {
+        return sellers.map(seller => {
+          // Vendas brutas no mês
+          const vendedorSales = currentSales.filter(s => s.codVendedor === seller.cod || s.salesperson === seller.name);
+          const vendedorGross = vendedorSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+
+          // Vendas brutas no mês anterior
+          const vendedorPrevSales = prevSales.filter(s => s.codVendedor === seller.cod || s.salesperson === seller.name);
+          const vendedorPrevGross = vendedorPrevSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+          const grossMoMPct = vendedorPrevGross > 0 ? ((vendedorGross - vendedorPrevGross) / vendedorPrevGross) * 100 : 0;
+
+          // Baixas liquidadas
+          const vendedorBaixas = auditDetails.baixas.filter(b => b.codVendedor === seller.cod || b.salesperson === seller.name);
+          const totalLiquidado = vendedorBaixas.reduce((acc, b) => acc + b.instAmount, 0);
+          const totalComissao = vendedorBaixas.reduce((acc, b) => acc + b.comissao, 0);
+
+          // Separação de comissões por modalidade
+          let comParcial = 0;
+          let comTotal = 0;
+          let comDentistas = 0;
+
+          vendedorBaixas.forEach(b => {
+            if (b.tipoVenda === 'PARCIAL') comParcial += b.comissao;
+            else if (b.tipoVenda === 'DENTISTAS') comDentistas += b.comissao;
+            else comTotal += b.comissao;
+          });
+
+          // Carteira aberta (a liquidar)
+          let aLiquidar = 0;
+          vendedorSales.forEach(s => {
+            (s.installments || []).forEach(inst => {
+              if (inst.status !== 'Pago') aLiquidar += Number(inst.amount) || 0;
+            });
+          });
+
+          // Projeção Potencial (se liquidar 100%)
+          const rateProj = getAppliedRate(seller, 'TOTAL', vendedorGross);
+          const comissaoPotencial = (vendedorGross * (rateProj / 100));
+
+          // Faixa de Meta
+          let faixaAtual = 'Faixa Regular';
+          let proximoDegrauMsg = `Próximo degrau: Bom (> R$ 21.000) • Restam R$ ${Math.max(0, 21000 - vendedorGross).toFixed(2)}`;
+          if (vendedorGross >= 32000) {
+            faixaAtual = 'Faixa Ótimo (Meta Superada)';
+            proximoDegrauMsg = '🎉 Bônus Máximo Atingido (+1.0%)!';
+          } else if (vendedorGross >= 21000) {
+            faixaAtual = 'Faixa Bom';
+            proximoDegrauMsg = `Próximo degrau: Ótimo (≥ R$ 32.000) • Restam R$ ${(32000 - vendedorGross).toFixed(2)}`;
           }
 
-          const percentualMeta = seller.metaMes > 0 ? (totalBruto / seller.metaMes) * 100 : 0;
-          const vendasMesAnterior = seller.metaAnterior * 0.92;
-          const crescimentoMoM = vendasMesAnterior > 0 ? ((totalBruto - vendasMesAnterior) / vendasMesAnterior) * 100 : 0;
+          const pctMeta = Math.min(100, (vendedorGross / seller.meta) * 100);
 
           return {
             ...seller,
-            totalBruto,
-            totalBaixado,
-            comissaoLiberada,
-            comissaoProjetada,
-            pedidosCount: vendasDoVendedor.length || (seller.codeVnd === "VND-01" ? 14 : 9),
-            percentualMeta,
-            vendasMesAnterior,
-            crescimentoMoM
+            bruto: vendedorGross,
+            prevBruto: vendedorPrevGross,
+            grossMoMPct,
+            davsCount: vendedorSales.length,
+            liquidado: totalLiquidado,
+            baixasCount: vendedorBaixas.length,
+            aLiquidar,
+            comissao: totalComissao,
+            comParcial,
+            comTotal,
+            comDentistas,
+            comissaoPotencial,
+            pctMeta,
+            faixaAtual,
+            proximoDegrauMsg
           };
         });
-      }, [sellers, sales]);
+      }, [sellers, currentSales, prevSales, auditDetails.baixas]);
 
-      // Totais da Empresa
-      const totaisConsolidados = useMemo(() => {
-        let brutoGeral = 0;
-        let baixadoGeral = 0;
-        let comissaoLiberadaGeral = 0;
-        let comissaoProjetadaGeral = 0;
-        let metaGeral = 0;
+      // RANKING DE VENDAS (Ordenado pelo volume liquidado)
+      const salesRanking = useMemo(() => {
+        return [...sellerAnalytics].sort((a, b) => b.liquidado - a.liquidado);
+      }, [sellerAnalytics]);
 
-        relatorioVendedores.forEach(r => {
-          brutoGeral += r.totalBruto;
-          baixadoGeral += r.totalBaixado;
-          comissaoLiberadaGeral += r.comissaoLiberada;
-          comissaoProjetadaGeral += r.comissaoProjetada;
-          metaGeral += r.metaMes;
-        });
+      // Meta Coletiva
+      const collectiveMetaPct = useMemo(() => {
+        const totalMeta = sellers.reduce((acc, s) => acc + s.meta, 0);
+        const totalRealizado = macroKPIs.currentGross;
+        return totalMeta > 0 ? Math.min(100, Math.round((totalRealizado / totalMeta) * 100)) : 0;
+      }, [sellers, macroKPIs.currentGross]);
 
-        const atingimentoGeral = metaGeral > 0 ? (brutoGeral / metaGeral) * 100 : 0;
+      // Extrato filtrado para o vendedor selecionado na auditoria
+      const activeSellerAudit = useMemo(() => {
+        return auditDetails.baixas.filter(b => b.codVendedor === selectedAuditSeller);
+      }, [auditDetails.baixas, selectedAuditSeller]);
 
-        return {
-          brutoGeral,
-          baixadoGeral,
-          comissaoLiberadaGeral,
-          comissaoProjetadaGeral,
-          metaGeral,
-          atingimentoGeral
+      const activeSellerName = useMemo(() => {
+        return sellers.find(s => s.cod === selectedAuditSeller)?.name || 'Vendedor';
+      }, [sellers, selectedAuditSeller]);
+
+      // Salvar Edição de Regras do Vendedor
+      const handleSaveSellerRules = (e) => {
+        e.preventDefault();
+        if (!editingSeller) return;
+
+        setSellers(prev => prev.map(s => {
+          if (s.cod === editingSeller.cod) {
+            return {
+              ...s,
+              name: editingSeller.name,
+              rates: {
+                ...s.rates,
+                regular: parseFloat(editingSeller.rates.regular) || s.rates.regular,
+                bom: parseFloat(editingSeller.rates.bom) || s.rates.bom,
+                otimo: parseFloat(editingSeller.rates.otimo) || s.rates.otimo,
+                parcial: parseFloat(editingSeller.rates.parcial) || s.rates.parcial,
+                dentistas: editingSeller.rates.dentistas !== null ? (parseFloat(editingSeller.rates.dentistas) || 4.0) : null
+              }
+            };
+          }
+          return s;
+        }));
+
+        alert("✅ Regras do vendedor atualizadas com sucesso!");
+        setEditingSeller(null);
+      };
+
+      // Adicionar Novo Vendedor pelo Formulário Lateral
+      const handleAddNewSeller = (e) => {
+        e.preventDefault();
+        if (!newSellerForm.name) {
+          alert("Por favor, preencha o nome do vendedor.");
+          return;
+        }
+
+        const newCod = newSellerForm.cod || String(sellers.length + 1);
+        const initials = newSellerForm.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+
+        let regVal = parseFloat(newSellerForm.regular);
+        let bomVal = parseFloat(newSellerForm.bom);
+        let otimoVal = parseFloat(newSellerForm.otimo);
+
+        if (newSellerForm.profile === 'especial') {
+          regVal = 3.0; bomVal = 3.5; otimoVal = 4.0;
+        } else if (newSellerForm.profile === 'padrao') {
+          regVal = 2.0; bomVal = 2.5; otimoVal = 3.0;
+        }
+
+        const newEntry = {
+          cod: newCod,
+          codeVnd: `VND-0${newCod}`,
+          initials: initials || 'VND',
+          name: newSellerForm.name,
+          role: "Representante Comercial",
+          statusBadge: "Ativo",
+          meta: 32000,
+          rates: {
+            regular: regVal,
+            bom: bomVal,
+            otimo: otimoVal,
+            parcial: newSellerForm.hasParcial ? 1.5 : 0,
+            dentistas: newSellerForm.hasDentistas ? 4.0 : null
+          }
         };
-      }, [relatorioVendedores]);
 
-      // Exportação em Excel / CSV
-      const handleExportarRelatorio = (tipo) => {
+        setSellers(prev => [...prev, newEntry]);
+        alert(`🎉 Vendedor ${newSellerForm.name} cadastrado com sucesso!`);
+        setNewSellerForm({
+          cod: '',
+          name: '',
+          profile: 'padrao',
+          regular: '2.0',
+          bom: '2.5',
+          otimo: '3.0',
+          hasParcial: true,
+          hasDentistas: false
+        });
+      };
+
+      // Exportação em CSV da Tabela de Apuração
+      const handleExportCSV = () => {
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Codigo;Vendedor;Meta Mes;Vendas Brutas;Total Baixado;Comissao Liberada;Comissao Projetada;Atingimento (%)\n";
+        csvContent += "CÓD;NOME;VENDAS BRUTAS;VENDAS BAIXADAS;TOTAL LIQUIDADO;COM. PARCIAL;COM. TOTAL;COM. DENTISTAS;TOTAL COMISSAO\n";
 
-        relatorioVendedores.forEach(r => {
-          csvContent += `${r.codeVnd};${r.name};${r.metaMes.toFixed(2)};${r.totalBruto.toFixed(2)};${r.totalBaixado.toFixed(2)};${r.comissaoLiberada.toFixed(2)};${r.comissaoProjetada.toFixed(2)};${r.percentualMeta.toFixed(1)}%\n`;
+        sellerAnalytics.forEach(s => {
+          csvContent += `${s.codeVnd};${s.name};${s.bruto.toFixed(2)};${s.baixasCount};${s.liquidado.toFixed(2)};${s.comParcial.toFixed(2)};${s.comTotal.toFixed(2)};${s.comDentistas.toFixed(2)};${s.comissao.toFixed(2)}\n`;
         });
 
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `comissoes_neves_crm_${periodoComparativo}.csv`);
+        link.setAttribute("download", `comissoes_${commissionMonth}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       };
 
       return (
-        <div className="flex flex-col md:flex-row min-h-screen">
+        <div className={`flex flex-col ${layoutConfig.sidebarSide === 'right' ? 'md:flex-row-reverse' : 'md:flex-row'} min-h-screen`}>
           
-          {/* BARRA LATERAL UNIFICADA */}
-          <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
+          {/* MENU LATERAL ESCURO (SIDEBAR #1a202c / bg-slate-900) */}
+          <aside className="w-full md:w-64 bg-[#1a202c] text-slate-300 flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden">
+            
+            {/* MARCA D'ÁGUA INFERIOR NA SIDEBAR */}
+            <div className="absolute -bottom-12 -right-12 pointer-events-none text-white opacity-[0.06] w-72 h-72">
               <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
-              <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
+              {/* TOPO: LOGO OFICIAL TELES ODONTO + NEVES PRO CRM */}
+              <div className="p-5 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <path d="M12 2C7 2 4 5 4 9c0 5 2 9 3 13 1 1 2 1 3 0 1-2 2-2 2-2s1 0 2 2c1 1 2 1 3 0 1-4 3-8 3-13 0-4-3-7-8-7z"></path>
-                      <path d="M9 8c.5-1 1.5-1.5 3-1.5s2.5.5 3 1.5"></path>
-                    </svg>
+                  <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-indigo-400/20">
+                    TO
                   </div>
                   <div>
-                    <h1 className="text-base font-bold text-white tracking-tight leading-tight">Teles Odonto</h1>
-                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Materiais Protéticos</p>
+                    <h1 className="text-white font-extrabold text-sm tracking-tight leading-tight">Teles Odonto</h1>
+                    <p className="text-[10px] text-indigo-400 font-bold tracking-wider uppercase">Materiais Protéticos</p>
+                    <span className="inline-block mt-0.5 text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-semibold border border-slate-700">
+                      Neves Pro CRM
+                    </span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
-                  <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6 Audited</span>
                 </div>
               </div>
 
-              <div className="px-4 py-6 space-y-1.5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
+              {/* SEÇÃO DE MENU: NAVEGAÇÃO COMERCIAL */}
+              <div className="px-4 py-5">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2.5">
+                  NAVEGAÇÃO COMERCIAL
+                </p>
+                <nav className="space-y-1.5">
+                  <a 
+                    href="index.html" 
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                  >
+                    <i data-lucide="layout-grid" className="w-4 h-4"></i>
+                    <span>Página Inicial</span>
+                  </a>
+                  <a 
+                    href="vendas.html" 
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                  >
+                    <i data-lucide="shopping-cart" className="w-4 h-4"></i>
+                    <span>Página de Vendas</span>
+                  </a>
+                  <a 
+                    href="comissoes.html" 
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-indigo-700 text-white shadow-md transition"
+                  >
+                    <i data-lucide="briefcase" className="w-4 h-4"></i>
+                    <span>Comissões</span>
+                  </a>
 
-                <a href="index.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
-                  <i data-lucide="layout-grid" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
-                  <span>Página Inicial</span>
-                </a>
-
-                <a href="vendas.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
-                  <i data-lucide="shopping-cart" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
-                  <span>Página de Vendas</span>
-                </a>
-
-                <a href="comissoes.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
-                  <i data-lucide="briefcase" className="w-4 h-4 text-white"></i>
-                  <span>Comissões</span>
-                </a>
+                  {/* BOTÃO GERAL DE EDIÇÃO DE LAYOUT */}
+                  <div className="pt-3">
+                    <button 
+                      onClick={() => setIsLayoutEditMode(!isLayoutEditMode)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition border ${
+                        isLayoutEditMode 
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                          : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <i data-lucide="settings" className={`w-4 h-4 ${isLayoutEditMode ? 'animate-spin' : ''}`}></i>
+                        <span>{isLayoutEditMode ? 'Concluir Edição de Layout' : 'Editar Layout do Site'}</span>
+                      </div>
+                      {isLayoutEditMode && <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>}
+                    </button>
+                  </div>
+                </nav>
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
-              <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
-                <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
-                  OP
+            {/* CARD DE OPERADOR E RODAPÉ */}
+            <div className="p-4 border-t border-slate-800 relative z-10 space-y-3">
+              <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex items-center gap-3 shadow-inner">
+                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                  <i data-lucide="user" className="w-4 h-4"></i>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-white truncate">Operador Comercial</p>
-                  <p className="text-[10px] text-slate-400 truncate">operador@salespro.com</p>
+                <div className="truncate">
+                  <p className="text-xs font-bold text-slate-200 leading-tight">Operador Comercial</p>
+                  <p className="text-[10px] text-slate-400 truncate">operador@nevespro.com</p>
                 </div>
-                <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20"></div>
               </div>
-              <p className="text-[10px] text-slate-400 text-center mt-3">© 2026 Neves Pro CRM</p>
+
+              <div className="text-[9px] text-slate-500 text-center leading-tight">
+                <p>Neves Pro CRM, Todos os Direitos Reservado</p>
+                <p className="text-indigo-400 font-semibold mt-0.5">Por Daniel Silva</p>
+              </div>
             </div>
           </aside>
 
-          {/* CONTEÚDO PRINCIPAL */}
+          {/* MAIN CONTAINER */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
-            {/* TOPBAR */}
+            {/* TOPBAR GLOBAL */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span className="font-bold text-slate-800">SalesPro</span>
+                <span className="font-bold text-slate-800">Neves Pro CRM</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                  Comissões & Fechamento
+                  Comissões & Metas
                 </span>
               </div>
 
@@ -361,7 +669,12 @@
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   ● SISTEMA ONLINE
                 </span>
-                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+
+                <button onClick={() => window.print()} className="w-8 h-8 rounded-full border border-slate-200/80 bg-slate-50 hover:bg-slate-100 text-slate-600 flex items-center justify-center transition" title="Imprimir">
+                  <i data-lucide="printer" className="w-4 h-4"></i>
+                </button>
+
+                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-sm ring-2 ring-indigo-600/20">
                   OP
                 </div>
               </div>
@@ -369,172 +682,875 @@
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* CABEÇALHO */}
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              {/* PAINEL DE EDIÇÃO DE LAYOUT ATIVO */}
+              {isLayoutEditMode && (
+                <div className="bg-amber-50 border border-amber-300 text-amber-900 p-4 rounded-2xl text-xs space-y-3 shadow-sm no-print">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2 font-bold">
+                      <i data-lucide="sliders" className="w-4 h-4 text-amber-600"></i>
+                      <span>Painel de Customização de Layout (Persistência Local)</span>
+                    </div>
+                    <button onClick={() => setIsLayoutEditMode(false)} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-xl font-bold">
+                      Concluir Edição
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-amber-800 block mb-1">Posição da Barra Lateral</label>
+                      <button 
+                        onClick={() => setLayoutConfig(c => ({ ...c, sidebarSide: c.sidebarSide === 'left' ? 'right' : 'left' }))}
+                        className="bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-xl font-semibold w-full text-center hover:bg-amber-100/50"
+                      >
+                        ↔ Alternar para {layoutConfig.sidebarSide === 'left' ? 'Direita' : 'Esquerda'}
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-amber-800 block mb-1">Título do Módulo</label>
+                      <input 
+                        type="text" 
+                        value={layoutConfig.moduleTitle} 
+                        onChange={e => setLayoutConfig({ ...layoutConfig, moduleTitle: e.target.value })} 
+                        className="bg-white border border-amber-300 text-amber-900 px-3 py-1.5 rounded-xl font-semibold w-full outline-none"
+                      />
+                    </div>
+
+                    <div className="flex items-end">
+                      <button 
+                        onClick={() => {
+                          setLayoutConfig({
+                            sidebarSide: 'left',
+                            logoUrl: '',
+                            watermarkOpacity: 0.035,
+                            moduleTitle: 'Comissões e Metas de Vendedores',
+                            moduleSubtitle: 'Base calculada exclusivamente sobre valores efetivamente liquidados'
+                          });
+                        }}
+                        className="bg-slate-800 text-white px-3 py-1.5 rounded-xl font-bold w-full hover:bg-black"
+                      >
+                        ↺ Restaurar Padrão
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CABEÇALHO E MODO COMPARATIVO MENSAL (MoM) */}
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                  <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">
-                    GESTÃO DE METAS E REMUNERAÇÃO VARIÁVEL
+                  <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full uppercase">
+                    MÓDULO FINANCEIRO • CICLO MENSAL
                   </span>
-                  <h2 className="text-2xl font-black text-slate-900 mt-1">Comissões e Metas de Vendedores</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Resumo geral de vendas brutas, comparativos temporais e liquidação proporcional de comissões.
+                  <h2 className="text-xl font-bold text-slate-900 mt-1">{layoutConfig.moduleTitle}</h2>
+                  <p className="text-xs text-slate-400">{layoutConfig.moduleSubtitle}</p>
+                </div>
+
+                {/* CONTROLES À DIREITA */}
+                <div className="flex flex-wrap items-center gap-2.5 no-print">
+                  {/* Seletor Mês de Referência com Botões < e > */}
+                  <div className="flex items-center bg-indigo-700 text-white rounded-xl shadow-sm overflow-hidden p-1">
+                    <button 
+                      onClick={() => handleShiftMonth(-1)} 
+                      className="px-2 py-1 hover:bg-indigo-800 rounded-lg text-xs font-bold transition"
+                      title="Mês anterior"
+                    >
+                      &lt;
+                    </button>
+                    <input 
+                      type="month" 
+                      value={commissionMonth} 
+                      onChange={e => setCommissionMonth(e.target.value)} 
+                      className="bg-transparent text-white text-xs font-bold px-2 py-1 border-none outline-none cursor-pointer" 
+                    />
+                    <button 
+                      onClick={() => handleShiftMonth(1)} 
+                      className="px-2 py-1 hover:bg-indigo-800 rounded-lg text-xs font-bold transition"
+                      title="Próximo mês"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+
+                  {/* Checkbox Comparar com Mês Anterior */}
+                  <label className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold cursor-pointer bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-2xs hover:bg-slate-50">
+                    <input 
+                      type="checkbox" 
+                      checked={compareMoM} 
+                      onChange={e => setCompareMoM(e.target.checked)} 
+                      className="rounded text-indigo-600" 
+                    />
+                    <span>Comparar com Mês Anterior</span>
+                  </label>
+
+                  {/* Botão Azul Escuro Relatório Geral */}
+                  <button 
+                    onClick={() => window.print()}
+                    className="bg-[#1a202c] hover:bg-black text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5"
+                  >
+                    <span>🖨 Relatório Geral</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* BADGE VERDE DE CONFIRMAÇÃO MOM */}
+              {compareMoM && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-2xl font-bold flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>● ✓ Modo Comparativo Ativo • Mês Atual ({commissionMonth}) vs Mês Anterior ({previousMonth}) (MoM)</span>
+                  </div>
+                  <span className="text-emerald-700 font-black">
+                    Variação Geral: {macroKPIs.grossDiffPct >= 0 ? '+' : ''}{macroKPIs.grossDiffPct.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+
+              {/* PAINEL EXECUTIVO: CONSOLIDADO GERAL DE VENDAS BRUTAS DO MÊS (4 CARTÕES) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                {/* 1. TOTAL BRUTO FATURADO */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TOTAL BRUTO FATURADO</span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${macroKPIs.grossDiffPct >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                      {macroKPIs.grossDiffPct >= 0 ? '+' : ''}{macroKPIs.grossDiffPct.toFixed(1)}% MoM
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-slate-900 mt-2">R$ {macroKPIs.currentGross.toFixed(2)}</p>
+                  <div className="flex justify-between text-[11px] text-slate-400 mt-2">
+                    <span>{macroKPIs.currentOrders} pedidos emitidos</span>
+                    <span>Ant: R$ {macroKPIs.prevGross.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* 2. VENDEDORES ATIVOS */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">VENDEDORES ATIVOS</span>
+                    <span className="text-[10px] bg-indigo-50 text-indigo-700 font-extrabold px-2 py-0.5 rounded-full border border-indigo-100">
+                      {macroKPIs.activePct}% no ciclo
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-slate-900 mt-2">{macroKPIs.activeSellersWithSales} / {macroKPIs.totalSellers} Operadores</p>
+                  <p className="text-[11px] text-emerald-600 font-semibold mt-2">Equipe com vendas ativas</p>
+                </div>
+
+                {/* 3. TICKET MÉDIO / VENDEDOR */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TICKET MÉDIO / VENDEDOR</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full">
+                      {macroKPIs.ticketDiffPct >= 0 ? '+' : ''}{macroKPIs.ticketDiffPct.toFixed(1)}% DAV
+                    </span>
+                  </div>
+                  <p className="text-2xl font-black text-slate-900 mt-2">R$ {macroKPIs.ticketMedioVendedor.toFixed(2)}</p>
+                  <p className="text-[11px] text-slate-400 mt-2">R$ {macroKPIs.ticketMedioDAV.toFixed(2)} por DAV emitido</p>
+                </div>
+
+                {/* 4. LIQUIDADO VS. CARTEIRA ABERTA */}
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute -bottom-6 -right-6 pointer-events-none text-slate-900 opacity-[0.035] w-28 h-28">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">LIQUIDADO VS. CARTEIRA</span>
+                  <div className="flex justify-between items-baseline mt-1">
+                    <span className="text-lg font-black text-emerald-600">R$ {macroKPIs.liquidado.toFixed(2)}</span>
+                    <span className="text-xs text-slate-400">({macroKPIs.liquidadoPct}%)</span>
+                  </div>
+                  {/* Barra de Progresso */}
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mt-1.5">
+                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${macroKPIs.liquidadoPct}%` }}></div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1.5 truncate">
+                    Carteira aberta: R$ {macroKPIs.aberto.toFixed(2)}
                   </p>
                 </div>
 
-                <div className="flex items-center flex-wrap gap-2">
-                  <button 
-                    onClick={() => handleExportarRelatorio('csv')}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-xs"
-                  >
-                    <i data-lucide="file-spreadsheet" className="w-4 h-4 text-emerald-600"></i>
-                    <span>Exportar Excel / CSV</span>
-                  </button>
-
-                  <button 
-                    onClick={() => window.print()}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-xs"
-                  >
-                    <i data-lucide="printer" className="w-4 h-4 text-slate-500"></i>
-                    <span>Imprimir Relatório</span>
-                  </button>
-                </div>
               </div>
 
-              {/* CARDS EXECUTIVOS NO TOPO */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">VENDAS BRUTAS GERAIS</span>
-                  <p className="text-2xl font-black text-slate-900 mt-1">{formatBRL(totaisConsolidados.brutoGeral)}</p>
-                  <p className="text-[11px] text-indigo-600 font-semibold mt-1">Meta: {formatBRL(totaisConsolidados.metaGeral)} ({totaisConsolidados.atingimentoGeral.toFixed(1)}%)</p>
-                </div>
+              {/* CARTÕES ANALÍTICOS INDIVIDUAIS POR VENDEDOR (LADO A LADO) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {sellerAnalytics.map(s => (
+                  <div key={s.cod} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5 relative overflow-hidden">
+                    <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
+                      <ToothWatermark className="w-full h-full text-slate-900" />
+                    </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">TOTAL BAIXADO / RECEBIDO</span>
-                  <p className="text-2xl font-black text-emerald-600 mt-1">{formatBRL(totaisConsolidados.baixadoGeral)}</p>
-                  <p className="text-[11px] text-slate-400 mt-1">Valores com baixa efetiva</p>
-                </div>
+                    {/* Cabeçalho do Vendedor */}
+                    <div className="flex justify-between items-start relative z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-2xl bg-[#1a202c] text-white flex items-center justify-center font-black text-sm shadow-md">
+                          {s.initials}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full">
+                              {s.codeVnd}
+                            </span>
+                            <span className="text-xs text-slate-400 font-semibold">{s.role}</span>
+                          </div>
+                          <h3 className="font-extrabold text-slate-900 text-base leading-tight mt-0.5">{s.name}</h3>
+                        </div>
+                      </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">COMISSÃO LIBERADA (PAGA)</span>
-                  <p className="text-2xl font-black text-slate-900 mt-1">{formatBRL(totaisConsolidados.comissaoLiberadaGeral)}</p>
-                  <p className="text-[11px] text-emerald-600 font-semibold mt-1">Disponível para saque/pagamento</p>
-                </div>
+                      <div className="text-right">
+                        <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full inline-block">
+                          {s.statusBadge}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-1 font-semibold">
+                          {s.grossMoMPct >= 0 ? '+' : ''}{s.grossMoMPct.toFixed(1)}% MoM
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">COMISSÃO PROJETADA</span>
-                  <p className="text-2xl font-black text-indigo-700 mt-1">{formatBRL(totaisConsolidados.comissaoProjetadaGeral)}</p>
-                  <p className="text-[11px] text-slate-400 mt-1">Com base no faturamento total</p>
-                </div>
-              </div>
+                    {/* 3 Colunas Financeiras Internas */}
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs relative z-10">
+                      {/* Vendas Brutas */}
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 shadow-2xs">
+                        <span className="text-[10px] text-slate-400 block font-bold uppercase">VENDAS BRUTAS</span>
+                        <b className="text-slate-900 text-sm">R$ {s.bruto.toFixed(2)}</b>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">{s.davsCount} DAVs</span>
+                      </div>
 
-              {/* FILTROS DE PERÍODO */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">Período de Análise:</span>
-                  <select 
-                    value={periodoComparativo} 
-                    onChange={e => setPeriodoComparativo(e.target.value)}
-                    className="p-2 border rounded-xl bg-slate-50 font-bold text-xs outline-none"
-                  >
-                    <option value="ATUAL_VS_ANTERIOR">Mês Atual (Novembro) vs. Mês Anterior (Outubro)</option>
-                    <option value="ANO_2026">Acumulado do Ano 2026</option>
-                  </select>
-                </div>
+                      {/* Títulos Liquidados */}
+                      <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-100 text-emerald-800 shadow-2xs">
+                        <span className="text-[10px] text-emerald-700 block font-bold uppercase">LIQUIDADOS</span>
+                        <b className="text-emerald-700 text-sm">R$ {s.liquidado.toFixed(2)}</b>
+                        <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">{s.baixasCount} baixa(s)</span>
+                      </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">Vendedor:</span>
-                  <select 
-                    value={filtroVendedor} 
-                    onChange={e => setFiltroVendedor(e.target.value)}
-                    className="p-2 border rounded-xl bg-slate-50 font-semibold text-xs outline-none"
-                  >
-                    <option value="TODOS">Todos os Vendedores</option>
-                    {sellers.map(s => <option key={s.id} value={s.codeVnd}>{s.name}</option>)}
-                  </select>
-                </div>
-              </div>
+                      {/* A Liquidar (Aberto) */}
+                      <div className="bg-blue-50/70 p-3 rounded-xl border border-blue-100 text-blue-800 shadow-2xs">
+                        <span className="text-[10px] text-blue-700 block font-bold uppercase">A LIQUIDAR</span>
+                        <b className="text-blue-700 text-sm">R$ {s.aLiquidar.toFixed(2)}</b>
+                        <span className="text-[10px] text-blue-600 block mt-0.5">Em carteira</span>
+                      </div>
+                    </div>
 
-              {/* TABELA DE EXTRATO E PERFORMANCE POR VENDEDOR */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                  <div>
-                    <h3 className="font-extrabold text-sm text-slate-900">Acompanhamento Individual de Vendas & Comissões</h3>
-                    <p className="text-[11px] text-slate-400">Dados integrados em tempo real com o banco de dados Firebase</p>
+                    {/* Gráfico Comparativo Mensal de Vendas */}
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2 relative z-10">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-slate-700">Comparativo Mensal de Vendas</span>
+                        <span className="text-[10px] text-emerald-600 font-extrabold">
+                          +R$ {Math.max(0, s.bruto - s.prevBruto).toFixed(2)} de expansão
+                        </span>
+                      </div>
+
+                      {/* Barras Horizontais */}
+                      <div className="space-y-1.5 text-[10px]">
+                        <div className="flex items-center gap-2">
+                          <span className="w-14 text-slate-500 font-semibold">Atual:</span>
+                          <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
+                            <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${Math.min(100, (s.bruto / 32000) * 100)}%` }}></div>
+                          </div>
+                          <span className="w-16 text-right font-bold text-slate-800">R$ {s.bruto.toFixed(0)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="w-14 text-slate-500 font-semibold">Anterior:</span>
+                          <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
+                            <div className="bg-slate-400 h-full rounded-full" style={{ width: `${Math.min(100, (s.prevBruto / 32000) * 100)}%` }}></div>
+                          </div>
+                          <span className="w-16 text-right font-bold text-slate-600">R$ {s.prevBruto.toFixed(0)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Barra de Atingimento da Meta Bruta (R$ 32.000) */}
+                    <div className="space-y-2 relative z-10">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-600 font-semibold">
+                          Meta Bruta (R$ {s.meta.toLocaleString('pt-BR')})
+                        </span>
+                        <span className="text-indigo-700 font-bold">{s.pctMeta.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden border border-slate-200/50">
+                        <div 
+                          className="bg-indigo-700 h-full rounded-full transition-all duration-500" 
+                          style={{ width: `${s.pctMeta}%` }}
+                        ></div>
+                      </div>
+                      
+                      {/* Rodapé Duplo */}
+                      <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-100">
+                        <div className="text-left">
+                          <span className="text-[10px] text-slate-400 block font-semibold">COMISSÃO ATUAL (BAIXADA)</span>
+                          <b className="text-emerald-600 font-extrabold text-sm">R$ {s.comissao.toFixed(2)}</b>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 block font-semibold">PROJEÇÃO POTENCIAL (100%)</span>
+                          <b className="text-indigo-700 font-extrabold text-sm">R$ {s.comissaoPotencial.toFixed(2)}</b>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mini-Caixas de Escala de Comissionamento */}
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2 relative z-10">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Tabela de Percentuais & Escala</span>
+                        <button 
+                          onClick={() => setEditingSeller(s)}
+                          className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1"
+                        >
+                          <span>✎ Editar Regras</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px]">
+                        <div className="bg-white p-2 rounded-lg border border-slate-200/80 shadow-2xs">
+                          <span className="text-[9px] text-slate-400 block font-bold">REGULAR</span>
+                          <b className="text-slate-800 font-bold">{s.rates.regular}%</b>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-slate-200/80 shadow-2xs">
+                          <span className="text-[9px] text-slate-400 block font-bold">BOM</span>
+                          <b className="text-slate-800 font-bold">{s.rates.bom}%</b>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-slate-200/80 shadow-2xs">
+                          <span className="text-[9px] text-slate-400 block font-bold">ÓTIMO</span>
+                          <b className="text-slate-800 font-bold">{s.rates.otimo}%</b>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-slate-200/80 shadow-2xs">
+                          <span className="text-[9px] text-slate-400 block font-bold">PARCIAL</span>
+                          <b className="text-slate-800 font-bold">{s.rates.parcial}%</b>
+                        </div>
+                      </div>
+
+                      {/* Modalidade Dentistas */}
+                      {s.rates.dentistas ? (
+                        <div className="bg-emerald-50 border border-emerald-200 p-2 rounded-lg flex justify-between items-center text-xs">
+                          <span className="text-emerald-800 font-bold">Modalidade Dentistas (Especial):</span>
+                          <span className="bg-emerald-600 text-white font-black text-xs px-2 py-0.5 rounded-full">{s.rates.dentistas}%</span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-400 italic text-center">
+                          Modalidade Dentistas não se aplica a este operador (desabilitada).
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-                    Novembro / 2026
-                  </span>
+                ))}
+              </div>
+
+              {/* BLOCO DUPLO: RANKING DE VENDAS E SALDO DE METAS (META R$ 32.000,00) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                
+                {/* 1. RANKING DE VENDAS */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-40 h-40">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+
+                  <div className="flex justify-between items-center border-b pb-3 relative z-10">
+                    <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                      <i data-lucide="award" className="w-4 h-4 text-amber-500"></i>
+                      Ranking de Vendas • Baixas do Ciclo
+                    </h3>
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold">Volume Liquidado</span>
+                  </div>
+
+                  <div className="space-y-3 relative z-10">
+                    {salesRanking.map((s, idx) => (
+                      <div key={s.cod} className="p-3.5 bg-slate-50/70 border border-slate-100 rounded-xl flex items-center justify-between shadow-2xs">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
+                            idx === 0 ? 'bg-amber-400 text-amber-950 shadow-sm' : 'bg-slate-200 text-slate-700'
+                          }`}>
+                            {idx + 1}º
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-900 text-xs">{s.name}</p>
+                            <span className="text-[10px] text-slate-400">{s.codeVnd} • {s.baixasCount} liquidações</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <b className="text-slate-900 font-extrabold text-sm block">R$ {s.liquidado.toFixed(2)}</b>
+                          <span className="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">
+                            {s.pctMeta.toFixed(1)}% da Meta
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-xs text-slate-400 text-right pt-2 border-t border-slate-100 relative z-10">
+                    Volume consolidado apurado: <b className="text-slate-700">R$ {macroKPIs.liquidado.toFixed(2)}</b>
+                  </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
-                      <tr>
-                        <th className="py-3 px-4">Vendedor</th>
-                        <th className="py-3 px-4">Meta Mês</th>
-                        <th className="py-3 px-4">Vendas Brutas</th>
-                        <th className="py-3 px-4">Mês Anterior</th>
-                        <th className="py-3 px-4">Evolução MoM</th>
-                        <th className="py-3 px-4">Total Baixado</th>
-                        <th className="py-3 px-4">Comissão Liberada</th>
-                        <th className="py-3 px-4">Comissão Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {relatorioVendedores
-                        .filter(r => filtroVendedor === 'TODOS' || r.codeVnd === filtroVendedor)
-                        .map(r => (
-                          <tr key={r.id} className="hover:bg-slate-50 transition">
-                            <td className="py-4 px-4">
-                              <span className="font-bold text-slate-900 block">{r.name}</span>
-                              <span className="text-[10px] text-indigo-700 font-mono font-bold">{r.codeVnd} • {r.role}</span>
+                {/* 2. SALDO DE METAS (META R$ 32.000,00) */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-40 h-40">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+
+                  <div className="flex justify-between items-center border-b pb-3 relative z-10">
+                    <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                      <i data-lucide="target" className="w-4 h-4 text-indigo-700"></i>
+                      Saldo de Metas (Meta R$ 32.000,00)
+                    </h3>
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold">Escala Progressiva</span>
+                  </div>
+
+                  <div className="space-y-4 relative z-10">
+                    {sellerAnalytics.map(s => (
+                      <div key={s.cod} className="space-y-1.5 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-bold text-slate-800">{s.name}</span>
+                          <span className="text-[10px] font-extrabold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100">
+                            {s.faixaAtual}
+                          </span>
+                        </div>
+
+                        <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                          <div 
+                            className="bg-indigo-700 h-full rounded-full transition-all duration-500" 
+                            style={{ width: `${s.pctMeta}%` }}
+                          ></div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          {s.proximoDegrauMsg}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 flex justify-between items-center text-xs text-indigo-900 relative z-10">
+                    <span className="font-semibold">Meta Coletiva Atingida:</span>
+                    <b className="font-black text-sm text-indigo-700">{collectiveMetaPct}% do Objetivo Geral</b>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* TABELA APURAÇÃO INDIVIDUAL DE COMISSÕES + FORMULÁRIO LATERAL NOVO VENDEDOR */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* TABELA DE APURAÇÃO (COLUNA 8) */}
+                <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+
+                  <div className="flex justify-between items-center border-b pb-3 relative z-10">
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900">Tabela de Apuração Individual de Comissões</h3>
+                      <p className="text-[11px] text-slate-400">Totalização consolidada das alíquotas e faturamento</p>
+                    </div>
+                    <button 
+                      onClick={handleExportCSV}
+                      className="bg-white border text-slate-700 font-bold text-xs px-3 py-1.5 rounded-xl shadow-2xs hover:bg-slate-50 transition no-print"
+                    >
+                      Exportar CSV
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto relative z-10">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2.5 px-3">CÓD / NOME</th>
+                          <th className="py-2.5 px-3">BRUTO (MÊS)</th>
+                          <th className="py-2.5 px-3 text-center">BAIXAS</th>
+                          <th className="py-2.5 px-3">TOTAL LIQUIDADO</th>
+                          <th className="py-2.5 px-3">COM. PARCIAL</th>
+                          <th className="py-2.5 px-3">COM. TOTAL</th>
+                          <th className="py-2.5 px-3">COM. DENTISTAS</th>
+                          <th className="py-2.5 px-3 text-right">TOTAL COMISSÃO</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {sellerAnalytics.map(s => (
+                          <tr key={s.cod} className="hover:bg-slate-50 transition">
+                            <td className="py-3 px-3">
+                              <span className="font-bold text-slate-900 block">{s.name}</span>
+                              <span className="text-[10px] text-indigo-700 font-semibold">{s.codeVnd}</span>
                             </td>
-                            <td className="py-4 px-4 font-bold text-slate-600">
-                              {formatBRL(r.metaMes)}
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="font-black text-slate-900 block">{formatBRL(r.totalBruto)}</span>
-                              <div className="w-24 bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                                <div 
-                                  className="bg-indigo-600 h-full rounded-full" 
-                                  style={{ width: `${Math.min(100, r.percentualMeta)}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-[10px] text-slate-400 mt-0.5 block">{r.percentualMeta.toFixed(1)}% atingido</span>
-                            </td>
-                            <td className="py-4 px-4 font-semibold text-slate-500">
-                              {formatBRL(r.vendasMesAnterior)}
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                r.crescimentoMoM >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                              }`}>
-                                {r.crescimentoMoM >= 0 ? `+${r.crescimentoMoM.toFixed(1)}%` : `${r.crescimentoMoM.toFixed(1)}%`}
+                            <td className="py-3 px-3 font-semibold text-slate-800">
+                              R$ {s.bruto.toFixed(2)}
+                              <span className="text-[9px] text-slate-400 block font-normal">
+                                ({s.grossMoMPct >= 0 ? '+' : ''}{s.grossMoMPct.toFixed(0)}% MoM)
                               </span>
                             </td>
-                            <td className="py-4 px-4 font-bold text-emerald-600">
-                              {formatBRL(r.totalBaixado)}
+                            <td className="py-3 px-3 text-center">
+                              <span className="bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                                {s.baixasCount} baixas
+                              </span>
                             </td>
-                            <td className="py-4 px-4 font-black text-slate-900">
-                              {formatBRL(r.comissaoLiberada)}
+                            <td className="py-3 px-3 font-bold text-emerald-700">
+                              R$ {s.liquidado.toFixed(2)}
                             </td>
-                            <td className="py-4 px-4 font-black text-indigo-700">
-                              {formatBRL(r.comissaoProjetada)}
+                            <td className="py-3 px-3 text-slate-600">R$ {s.comParcial.toFixed(2)}</td>
+                            <td className="py-3 px-3 text-slate-600">R$ {s.comTotal.toFixed(2)}</td>
+                            <td className="py-3 px-3 text-slate-600">R$ {s.comDentistas.toFixed(2)}</td>
+                            <td className="py-3 px-3 text-right font-black text-indigo-700 text-sm">
+                              R$ {s.comissao.toFixed(2)}
                             </td>
                           </tr>
                         ))}
-                    </tbody>
-                  </table>
+
+                        {/* LINHA DE TOTALIZAÇÃO CONSOLIDAÇÃO DO CICLO */}
+                        <tr className="bg-slate-900 text-white font-extrabold text-xs">
+                          <td className="py-3 px-3">Consolidação do Ciclo</td>
+                          <td className="py-3 px-3">R$ {macroKPIs.currentGross.toFixed(2)}</td>
+                          <td className="py-3 px-3 text-center">{auditDetails.baixas.length} baixas</td>
+                          <td className="py-3 px-3 text-emerald-400">R$ {macroKPIs.liquidado.toFixed(2)}</td>
+                          <td className="py-3 px-3">
+                            R$ {sellerAnalytics.reduce((acc, s) => acc + s.comParcial, 0).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-3">
+                            R$ {sellerAnalytics.reduce((acc, s) => acc + s.comTotal, 0).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-3">
+                            R$ {sellerAnalytics.reduce((acc, s) => acc + s.comDentistas, 0).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-3 text-right text-emerald-400 text-sm font-black">
+                            R$ {sellerAnalytics.reduce((acc, s) => acc + s.comissao, 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Rodapé da Seção */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t text-xs text-slate-500 relative z-10 no-print">
+                    <span className="flex items-center gap-1.5 text-slate-600 font-semibold">
+                      <i data-lucide="calendar" className="w-4 h-4 text-indigo-600"></i>
+                      Data programada para pagamento da folha: <b>10 do mês subsequente</b>
+                    </span>
+                    <button 
+                      onClick={() => alert("🎉 Folha de comissões homologada e pronta para repasse bancário!")}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition"
+                    >
+                      ✓ Homologar Folha
+                    </button>
+                  </div>
                 </div>
 
-                <div className="p-4 border-t bg-slate-50/50 flex justify-between items-center text-xs text-slate-500">
-                  <span>Regra contábil: Comissão liberada proporcionalmente à quitação de títulos.</span>
-                  <span className="font-bold text-slate-700">Auditado Neves Pro CRM</span>
+                {/* FORMULÁRIO LATERAL: NOVO VENDEDOR (COLUNA 4) */}
+                <div className="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-36 h-36">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2 relative z-10">
+                    <i data-lucide="user-plus" className="w-4 h-4 text-indigo-700"></i>
+                    Cadastrar Novo Vendedor
+                  </h3>
+
+                  <form onSubmit={handleAddNewSeller} className="space-y-3 relative z-10 text-xs">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Nome Completo</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: Carlos Eduardo de Melo" 
+                        value={newSellerForm.name} 
+                        onChange={e => setNewSellerForm({ ...newSellerForm, name: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none font-semibold text-slate-800" 
+                        required 
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">Código</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: 3" 
+                          value={newSellerForm.cod} 
+                          onChange={e => setNewSellerForm({ ...newSellerForm, cod: e.target.value })} 
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                        />
+                      </div>
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">Perfil de Regra</label>
+                        <select 
+                          value={newSellerForm.profile} 
+                          onChange={e => {
+                            const prof = e.target.value;
+                            if (prof === 'padrao') setNewSellerForm(f => ({ ...f, profile: prof, regular: '2.0', bom: '2.5', otimo: '3.0' }));
+                            else if (prof === 'especial') setNewSellerForm(f => ({ ...f, profile: prof, regular: '3.0', bom: '3.5', otimo: '4.0' }));
+                            else setNewSellerForm(f => ({ ...f, profile: prof }));
+                          }} 
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none font-semibold text-slate-700"
+                        >
+                          <option value="padrao">Padrão (2% / 2,5% / 3%)</option>
+                          <option value="especial">Especial (3% / 3,5% / 4%)</option>
+                          <option value="custom">Personalizado</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Inputs de Percentuais de Escala */}
+                    <div>
+                      <label className="font-bold text-slate-500 uppercase text-[10px] block mb-1">Percentuais de Escala (%)</label>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <span className="text-[9px] text-slate-400 block">Regular</span>
+                          <input 
+                            type="text" 
+                            value={newSellerForm.regular} 
+                            onChange={e => setNewSellerForm({ ...newSellerForm, regular: e.target.value })} 
+                            className="w-full p-2 border rounded-xl bg-slate-50 text-center font-bold text-slate-800" 
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-slate-400 block">Bom</span>
+                          <input 
+                            type="text" 
+                            value={newSellerForm.bom} 
+                            onChange={e => setNewSellerForm({ ...newSellerForm, bom: e.target.value })} 
+                            className="w-full p-2 border rounded-xl bg-slate-50 text-center font-bold text-slate-800" 
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-slate-400 block">Ótimo</span>
+                          <input 
+                            type="text" 
+                            value={newSellerForm.otimo} 
+                            onChange={e => setNewSellerForm({ ...newSellerForm, otimo: e.target.value })} 
+                            className="w-full p-2 border rounded-xl bg-slate-50 text-center font-bold text-slate-800" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Checkboxes para Habilitar Parcial e Dentistas */}
+                    <div className="space-y-1.5 pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
+                        <input 
+                          type="checkbox" 
+                          checked={newSellerForm.hasParcial} 
+                          onChange={e => setNewSellerForm({ ...newSellerForm, hasParcial: e.target.checked })} 
+                          className="rounded text-indigo-600" 
+                        />
+                        <span>Habilitar Comissão Parcial (1.5%)</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
+                        <input 
+                          type="checkbox" 
+                          checked={newSellerForm.hasDentistas} 
+                          onChange={e => setNewSellerForm({ ...newSellerForm, hasDentistas: e.target.checked })} 
+                          className="rounded text-emerald-600" 
+                        />
+                        <span>Habilitar Canal Dentistas (4.0%)</span>
+                      </label>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="w-full bg-[#1a202c] hover:bg-black text-white font-bold py-2.5 rounded-xl transition shadow flex items-center justify-center gap-1.5"
+                    >
+                      <span>+ Salvar e Aplicar Regra</span>
+                    </button>
+                  </form>
                 </div>
+
+              </div>
+
+              {/* TABELA INFERIOR DE AUDITORIA: EXTRATO DE COMISSÕES POR PERÍODO */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
+                  <ToothWatermark className="w-full h-full text-slate-900" />
+                </div>
+
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4 relative z-10">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900">
+                      Extrato de Comissões por Período • Auditabilidade Comercial
+                    </h3>
+                    <p className="text-xs text-slate-400">Detalhamento linha a linha de cada título baixado com alíquota e regra associadas</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 no-print">
+                    <span className="text-xs text-slate-500 font-semibold">Operador:</span>
+                    <select 
+                      value={selectedAuditSeller} 
+                      onChange={e => setSelectedAuditSeller(e.target.value)} 
+                      className="text-xs border rounded-xl px-3 py-1.5 bg-slate-50 outline-none font-bold text-slate-800"
+                    >
+                      {sellers.map(s => <option key={s.cod} value={s.cod}>{s.name}</option>)}
+                    </select>
+
+                    <button 
+                      onClick={() => window.print()}
+                      className="bg-indigo-50 text-indigo-700 font-bold text-xs px-3 py-1.5 rounded-xl border border-indigo-100 hover:bg-indigo-100"
+                    >
+                      🖨 Imprimir / PDF
+                    </button>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="py-12 text-center text-xs text-slate-400">
+                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    Carregando extrato de auditoria...
+                  </div>
+                ) : activeSellerAudit.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">
+                    Nenhuma parcela liquidada no período de {commissionMonth} para o vendedor selecionado.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto relative z-10">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2.5 px-3">DAV / TÍTULO</th>
+                          <th className="py-2.5 px-3">CLIENTE</th>
+                          <th className="py-2.5 px-3">DATA BAIXA</th>
+                          <th className="py-2.5 px-3">TIPO / PARCELA</th>
+                          <th className="py-2.5 px-3">VALOR BAIXADO (R$)</th>
+                          <th className="py-2.5 px-3">REGRA APLICADA</th>
+                          <th className="py-2.5 px-3 text-right">COMISSÃO GERADA</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {activeSellerAudit.map((b, idx) => (
+                          <tr key={`${b.saleId}-${b.instNumber}-${idx}`} className="hover:bg-slate-50 transition">
+                            <td className="py-3 px-3 font-bold text-indigo-700">#{b.dav}</td>
+                            <td className="py-3 px-3 font-semibold text-slate-800">{b.client}</td>
+                            <td className="py-3 px-3 text-slate-500">{b.payDate}</td>
+                            <td className="py-3 px-3 text-slate-700">{b.tipoParcela}</td>
+                            <td className="py-3 px-3 font-bold text-slate-900">R$ {b.instAmount.toFixed(2)}</td>
+                            <td className="py-3 px-3">
+                              <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full text-[10px] border border-indigo-100">
+                                {b.tipoVenda} ({b.rate.toFixed(1)}%)
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-right font-black text-emerald-600 text-sm">
+                              R$ {b.comissao.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Linha Final de Fechamento: Subtotal Apurado */}
+                        <tr className="bg-slate-100/90 font-extrabold text-xs text-slate-900 border-t-2 border-slate-300">
+                          <td colSpan="4" className="py-3 px-3">
+                            Subtotal Apurado - {activeSellerName} ({activeSellerAudit.length} liquidações)
+                          </td>
+                          <td className="py-3 px-3 font-black text-slate-900">
+                            R$ {activeSellerAudit.reduce((acc, b) => acc + b.instAmount, 0).toFixed(2)}
+                          </td>
+                          <td></td>
+                          <td className="py-3 px-3 text-right text-emerald-700 text-base font-black">
+                            R$ {activeSellerAudit.reduce((acc, b) => acc + b.comissao, 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
             </div>
           </main>
+
+          {/* MODAL DE EDIÇÃO DE REGRAS DO VENDEDOR */}
+          {editingSeller && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl border border-slate-200">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h4 className="font-bold text-sm text-slate-900">
+                    Editar Regras e Taxas • {editingSeller.name}
+                  </h4>
+                  <button onClick={() => setEditingSeller(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+                </div>
+
+                <form onSubmit={handleSaveSellerRules} className="space-y-3.5 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-600 block mb-1">Nome do Vendedor</label>
+                    <input 
+                      type="text" 
+                      value={editingSeller.name} 
+                      onChange={e => setEditingSeller({ ...editingSeller, name: e.target.value })} 
+                      className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Regular (%)</span>
+                      <input 
+                        type="text" 
+                        value={editingSeller.rates.regular} 
+                        onChange={e => setEditingSeller({ ...editingSeller, rates: { ...editingSeller.rates, regular: e.target.value } })} 
+                        className="w-full p-2 border rounded-xl bg-slate-50 text-center font-extrabold outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Bom (%)</span>
+                      <input 
+                        type="text" 
+                        value={editingSeller.rates.bom} 
+                        onChange={e => setEditingSeller({ ...editingSeller, rates: { ...editingSeller.rates, bom: e.target.value } })} 
+                        className="w-full p-2 border rounded-xl bg-slate-50 text-center font-extrabold outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Ótimo (%)</span>
+                      <input 
+                        type="text" 
+                        value={editingSeller.rates.otimo} 
+                        onChange={e => setEditingSeller({ ...editingSeller, rates: { ...editingSeller.rates, otimo: e.target.value } })} 
+                        className="w-full p-2 border rounded-xl bg-slate-50 text-center font-extrabold outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Parcial (%)</span>
+                      <input 
+                        type="text" 
+                        value={editingSeller.rates.parcial} 
+                        onChange={e => setEditingSeller({ ...editingSeller, rates: { ...editingSeller.rates, parcial: e.target.value } })} 
+                        className="w-full p-2 border rounded-xl bg-slate-50 text-center font-extrabold outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Dentistas (%)</span>
+                      <input 
+                        type="text" 
+                        placeholder="Desabilitado" 
+                        value={editingSeller.rates.dentistas || ''} 
+                        onChange={e => setEditingSeller({ ...editingSeller, rates: { ...editingSeller.rates, dentistas: e.target.value ? e.target.value : null } })} 
+                        className="w-full p-2 border rounded-xl bg-slate-50 text-center font-extrabold outline-none text-emerald-700" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingSeller(null)} 
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow"
+                    >
+                      Salvar Alterações
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
         </div>
       );
@@ -543,12 +1559,5 @@
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
-</body>
-
-
-})();
-
-</div>
-<!-- STITCH_THREEJS_END:ANIMATION_52 -->
 </body>
 </html>
