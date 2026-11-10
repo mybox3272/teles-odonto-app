@@ -13,7 +13,7 @@
   <!-- CDN Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  
+
   <!-- React 18 & Babel para execução autônoma no navegador -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -26,7 +26,7 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 
-  <!-- Inicialização Modular do Firebase Firestore v10 -->
+  <!-- Inicialização do Firebase Firestore v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -70,7 +70,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // Componente Marca D'água do Ícone Teles Odonto
+    // Componente Marca D'água Teles Odonto
     const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
         <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
@@ -96,13 +96,11 @@
 
       let dataVenc;
       if (typeof dueDateStr === 'string' && dueDateStr.includes('/')) {
-        // Formato brasileiro DD/MM/AAAA
         const parts = dueDateStr.split('/').map(Number);
         if (parts.length === 3) {
           dataVenc = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
         }
       } else if (typeof dueDateStr === 'string' && dueDateStr.includes('-')) {
-        // Formato ISO AAAA-MM-DD
         const parts = dueDateStr.split('-').map(Number);
         if (parts.length === 3) {
           dataVenc = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
@@ -118,7 +116,7 @@
         return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
       }
 
-      // Se a data de vencimento for hoje ou posterior, está À VENCER
+      // Se a data for hoje ou futura, está À VENCER
       if (dataVenc >= hoje) {
         const diffMs = dataVenc.getTime() - hoje.getTime();
         const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -253,7 +251,7 @@
       const [sales, setSales] = useState([]);
       const [loading, setLoading] = useState(true);
       const [filtroTexto, setFiltroTexto] = useState('');
-      const [abaFiltro, setAbaFiltro] = useState('TODOS'); // 'TODOS', 'COM_COMPRAS', 'INADIMPLENTES', 'A_RECEBER'
+      const [abaFiltro, setAbaFiltro] = useState('TODOS');
       const [selectedClientCod, setSelectedClientCod] = useState("4");
 
       // Estados para Amortização FIFO
@@ -270,6 +268,19 @@
       useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
       });
+
+      // Captura o parâmetro ?cliente= vindo do index.html
+      useEffect(() => {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const clienteParam = params.get('cliente');
+          if (clienteParam) {
+            setSelectedClientCod(String(clienteParam).trim());
+          }
+        } catch (e) {
+          console.error("Erro leitura query param:", e);
+        }
+      }, []);
 
       // Sincronização em tempo real com Firebase Firestore
       useEffect(() => {
@@ -315,7 +326,7 @@
         }
       }, []);
 
-      // Agrupamento financeiro de cada cliente na carteira
+      // Resumo financeiro consolidado de cada cliente
       const dadosFinanceirosPorCliente = useMemo(() => {
         const map = {};
 
@@ -357,7 +368,6 @@
           });
         });
 
-        // Caso de amostragem padrão para Leonardo Amorim (#4) se ainda não houver dados no Firestore
         if (map["4"] && map["4"].pedidosCount === 0) {
           map["4"] = {
             totalComprado: 3200.00,
@@ -379,12 +389,10 @@
           const cod = String(c.cod);
           const fin = dadosFinanceirosPorCliente[cod] || { pedidosCount: 0, temVencido: false, temAReceber: false };
 
-          // Filtro por abas
           if (abaFiltro === 'COM_COMPRAS' && fin.pedidosCount === 0) return false;
           if (abaFiltro === 'INADIMPLENTES' && !fin.temVencido) return false;
           if (abaFiltro === 'A_RECEBER' && !fin.temAReceber) return false;
 
-          // Filtro por texto
           if (filtroTexto.trim()) {
             const termo = filtroTexto.toLowerCase();
             const bateNome = c.name && c.name.toLowerCase().includes(termo);
@@ -397,17 +405,14 @@
         });
       }, [clients, dadosFinanceirosPorCliente, abaFiltro, filtroTexto]);
 
-      // Cliente selecionado atualmente para o Painel de Detalhes
       const clienteSelecionado = useMemo(() => {
         return clients.find(c => String(c.cod) === String(selectedClientCod)) || clients[0] || null;
       }, [clients, selectedClientCod]);
 
-      // Vendas do cliente selecionado
       const vendasDoCliente = useMemo(() => {
         if (!clienteSelecionado) return [];
         const lista = sales.filter(s => String(s.codCliente) === String(clienteSelecionado.cod));
 
-        // Se for o cliente #4 e não tiver vendas no Firestore, exibe DAV simulado
         if (lista.length === 0 && String(clienteSelecionado.cod) === "4") {
           return [{
             id: 'mock-dav-002',
@@ -427,7 +432,6 @@
         return lista;
       }, [sales, clienteSelecionado]);
 
-      // Totais calculados do cliente selecionado
       const resumoFinanceiroCliente = useMemo(() => {
         if (!clienteSelecionado) return { comprado: 0, pago: 0, emAberto: 0 };
         const fin = dadosFinanceirosPorCliente[String(clienteSelecionado.cod)];
@@ -451,7 +455,6 @@
         }
 
         let saldoRestante = valorNum;
-        let alteracoesFeitas = 0;
 
         for (const venda of vendasDoCliente) {
           if (saldoRestante <= 0) break;
@@ -465,7 +468,7 @@
                 mudou = true;
                 return { ...inst, status: 'Pago', paidAt: new Date().toISOString() };
               } else {
-                const novoValor = valorParc - saldoRestante;
+                const novoValor = parseFloat((valorParc - saldoRestante).toFixed(2));
                 saldoRestante = 0;
                 mudou = true;
                 return { ...inst, amount: novoValor, note: `Abatido parcialmente` };
@@ -475,17 +478,18 @@
           });
 
           if (mudou) {
-            alteracoesFeitas++;
-            if (window.db && window.fb && venda.id) {
+            const todasPagas = novosInst.every(i => i.status === 'Pago');
+            if (window.db && window.fb && venda.id && !venda.id.startsWith('mock')) {
               try {
                 await window.fb.updateDoc(window.fb.doc(window.db, "vendas", venda.id), {
-                  installments: novosInst
+                  installments: novosInst,
+                  isPaid: todasPagas
                 });
               } catch (e) {
                 console.error("Erro ao atualizar venda:", e);
               }
             } else {
-              setSales(prev => prev.map(s => s.id === venda.id ? { ...s, installments: novosInst } : s));
+              setSales(prev => prev.map(s => s.id === venda.id ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
             }
           }
         }
@@ -506,12 +510,15 @@
           return inst;
         });
 
+        const todasPagas = novosInst.every(i => i.status === 'Pago');
+
         if (window.db && window.fb && vendaAlvo.id && !vendaAlvo.id.startsWith('mock')) {
           await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
-            installments: novosInst
+            installments: novosInst,
+            isPaid: todasPagas
           });
         } else {
-          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst } : s));
+          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
         }
 
         alert(`✅ Parcela ${numeroParcela} baixada com sucesso!`);
@@ -536,18 +543,21 @@
             if (abater >= valAtual) {
               return { ...inst, status: 'Pago', paidAt: new Date().toISOString() };
             } else {
-              return { ...inst, amount: valAtual - abater };
+              return { ...inst, amount: parseFloat((valAtual - abater).toFixed(2)) };
             }
           }
           return inst;
         });
 
+        const todasPagas = novosInst.every(i => i.status === 'Pago');
+
         if (window.db && window.fb && vendaAlvo.id && !vendaAlvo.id.startsWith('mock')) {
           await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
-            installments: novosInst
+            installments: novosInst,
+            isPaid: todasPagas
           });
         } else {
-          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst } : s));
+          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
         }
 
         alert(`✅ Abatimento de R$ ${abater.toFixed(2)} registrado!`);
@@ -595,11 +605,8 @@
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* ========================================== */}
-          {/* BARRA LATERAL UNIFICADA - TELES ODONTO CRM */}
-          {/* ========================================== */}
+          {/* BARRA LATERAL UNIFICADA */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            
             <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
               <ToothWatermark className="w-full h-full text-white" />
             </div>
@@ -620,7 +627,7 @@
                 </div>
                 <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6 Audited</span>
                 </div>
               </div>
 
@@ -668,7 +675,7 @@
                 <span className="font-bold text-slate-800">SalesPro</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                  Módulo Ativo
+                  Carteira e Cobrança
                 </span>
               </div>
 
@@ -685,7 +692,7 @@
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* CABEÇALHO DA PÁGINA & AÇÕES PRINCIPAIS */}
+              {/* CABEÇALHO */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">
@@ -728,7 +735,7 @@
                 </div>
               </div>
 
-              {/* 2 CARDS SUPERIORES DE VENCIMENTOS */}
+              {/* 2 CARDS SUPERIORES */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white p-5 rounded-2xl border-l-4 border-l-indigo-600 border border-slate-200/80 shadow-sm">
                   <div className="flex justify-between items-start">
@@ -825,10 +832,10 @@
                 </div>
               </div>
 
-              {/* ESTRUTURA MASTER-DETAIL (LISTAGEM + FICHA DETALHADA) */}
+              {/* MASTER-DETAIL */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                {/* COLUNA ESQUERDA: LISTAGEM DA CARTEIRA (MASTER) */}
+                {/* LISTAGEM (MASTER) */}
                 <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>
@@ -901,12 +908,12 @@
                   </div>
                 </div>
 
-                {/* COLUNA DIREITA: FICHA DETALHADA DO CLIENTE & PARCELAS CORRIGIDAS (DETAIL) */}
+                {/* FICHA DETALHADA (DETAIL) */}
                 <div className="lg:col-span-5 space-y-4">
                   {clienteSelecionado ? (
                     <div className="space-y-4">
                       
-                      {/* CARD DO CLIENTE SELECIONADO */}
+                      {/* CARD DO CLIENTE */}
                       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-3">
@@ -942,7 +949,7 @@
                           </button>
                         </div>
 
-                        {/* 3 MINI CARDS DE SALDO */}
+                        {/* SALDOS */}
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t text-center">
                           <div className="bg-slate-50 p-2.5 rounded-xl">
                             <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL COMPRADO</span>
@@ -967,7 +974,7 @@
                         </div>
                       </div>
 
-                      {/* CAIXA DE AMORTIZAÇÃO DE DÉBITO (REGRA FIFO) */}
+                      {/* AMORTIZAÇÃO FIFO */}
                       <div className="bg-indigo-900 text-white p-5 rounded-2xl shadow-md space-y-3 relative overflow-hidden">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold flex items-center gap-2 text-indigo-200">
@@ -1017,7 +1024,7 @@
                         </button>
                       </div>
 
-                      {/* HISTÓRICO DE VENDAS & TÍTULOS (COM PARCELAS CORRIGIDAS) */}
+                      {/* HISTÓRICO DE TÍTULOS */}
                       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
                         <div className="flex justify-between items-center border-b pb-3">
                           <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
@@ -1059,7 +1066,6 @@
                                       </span>
                                     </div>
 
-                                    {/* Botão de Excluir DAV */}
                                     <button 
                                       onClick={() => handleExcluirDAV(venda.id, venda.dav)}
                                       title="Excluir DAV de teste"
@@ -1070,10 +1076,9 @@
                                   </div>
                                 </div>
 
-                                {/* LISTAGEM DE PARCELAS COM AVALIAÇÃO DE STATUS CORRIGIDA */}
+                                {/* LISTAGEM DE PARCELAS */}
                                 <div className="space-y-2 pt-2 border-t border-slate-200/60">
                                   {(venda.installments || []).map((inst, i) => {
-                                    // Utiliza a função segura de cálculo de vencimento
                                     const infoStatus = verificarStatusParcela(inst.dueDate, inst.status);
 
                                     return (
@@ -1088,7 +1093,6 @@
                                                 Parcela {inst.number || i + 1} • R$ {Number(inst.amount).toFixed(2)}
                                               </span>
                                               
-                                              {/* BADGES COM STATUS CORRIGIDO */}
                                               {infoStatus.status === 'Pago' ? (
                                                 <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
                                                   ✓ Quitado
@@ -1109,7 +1113,6 @@
                                           </div>
                                         </div>
 
-                                        {/* AÇÕES DA PARCELA */}
                                         {infoStatus.status !== 'Pago' && (
                                           <div className="flex items-center gap-1.5 shrink-0">
                                             <button 
@@ -1278,7 +1281,7 @@
             </div>
           )}
 
-          {/* MODAL: IMPORTAR CLIENTES EM LOTE */}
+          {/* MODAL: IMPORTAR CLIENTES */}
           {showModalImportar && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
@@ -1291,7 +1294,7 @@
                 </div>
 
                 <p className="text-xs text-slate-500">
-                  Cole as linhas da sua planilha (Código, Nome, Categoria, Cidade, Telefone) separadas por tabulação ou vírgula:
+                  Cole as linhas da sua planilha (Código, Nome, Categoria, Cidade, Telefone) separadas por ponto-e-vírgula ou tabulação:
                 </p>
 
                 <textarea 
