@@ -14,7 +14,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   
-  <!-- React 18 & Babel para execução no navegador -->
+  <!-- React 18 & Babel para execução autônoma no navegador -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -57,7 +57,7 @@
       window.db = db;
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em index.html com cálculo de prazos sequenciais!");
+      console.log("🔥 Firebase conectado em index.html com parcelamento até 12x!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em index.html:", err);
     }
@@ -182,7 +182,7 @@
       const [sales, setSales] = useState([]);
       const [loading, setLoading] = useState(true);
 
-      // ESTADOS DO FORMULÁRIO DE NOVA VENDA
+      // Estados do Formulário de Nova Venda
       const [dataVenda, setDataVenda] = useState('');
       const [davNumber, setDavNumber] = useState('');
       const [codClienteInput, setCodClienteInput] = useState('');
@@ -190,12 +190,9 @@
       const [vendedor, setVendedor] = useState('');
       const [valorVenda, setValorVenda] = useState('');
       const [tipoVenda, setTipoVenda] = useState('');
-      
-      // CONDIÇÕES DE PAGAMENTO SOLICITADAS
       const [condicaoPrazo, setCondicaoPrazo] = useState('');
-      const [numParcelas, setNumParcelas] = useState(1);
 
-      // Prévia editável das parcelas
+      // Prévia de parcelas (suporta até 12x)
       const [previaParcelas, setPreviaParcelas] = useState([]);
 
       const [statusMsg, setStatusMsg] = useState('');
@@ -209,7 +206,7 @@
         cod: '', name: '', categoria: '', logradouro: 'Av.', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: ''
       });
 
-      // Referências para avanço estrito com tecla Enter (↵)
+      // Refs para fluxo ágil por Enter (↵)
       const inputDataRef = useRef(null);
       const inputDavRef = useRef(null);
       const inputCodClienteRef = useRef(null);
@@ -217,7 +214,6 @@
       const inputValorRef = useRef(null);
       const selectTipoVendaRef = useRef(null);
       const selectCondicaoRef = useRef(null);
-      const selectParcelasRef = useRef(null);
       const btnRegistrarRef = useRef(null);
 
       useEffect(() => {
@@ -268,7 +264,7 @@
         }
       }, []);
 
-      // Cliente Ativo
+      // Busca do cliente ativo
       const clienteAtivo = useMemo(() => {
         if (!codClienteInput.trim()) return null;
         return clients.find(c => String(c.cod).trim() === codClienteInput.trim()) || null;
@@ -330,7 +326,7 @@
       }, [clienteAtivo, sales]);
 
       // =========================================================================
-      // GERADOR E RECÁLCULO CONFORME REGRAS EXATAS DE CONDIÇÃO / PRAZO
+      // GERADOR E RECÁLCULO AUTOMÁTICO DE PARCELAS (DE 1x ATÉ 12x)
       // =========================================================================
       useEffect(() => {
         const total = parseFloat(valorVenda.replace(',', '.')) || 0;
@@ -339,7 +335,6 @@
           return;
         }
 
-        // Converte DD/MM/AAAA para objeto Date
         let baseDate = new Date();
         if (dataVenda.includes('/')) {
           const parts = dataVenda.split('/');
@@ -361,57 +356,48 @@
           return formatarData(res);
         };
 
-        // REGRA 1: À Vista (0) -> Oculta parcelas; baixa automática como Pago na data da venda
         if (condicaoPrazo === '0') {
           setPreviaParcelas([
-            { 
-              number: 1, 
-              amount: total, 
-              dueDate: formatarData(baseDate), 
-              status: 'Pago', 
-              paymentMethod: 'À Vista (Conciliação Imediata)' 
-            }
+            { number: 1, amount: total, dueDate: formatarData(baseDate), status: 'Pago', paymentMethod: 'À Vista Imediato' }
           ]);
-        } 
-        // REGRA 2: Promissória (PROMISSORIA) -> Oculta parcelas; saldo devedor aberto em conta
-        else if (condicaoPrazo === 'PROMISSORIA') {
+        } else if (condicaoPrazo === 'PROMISSORIA') {
           setPreviaParcelas([
-            { 
-              number: 1, 
-              amount: total, 
-              dueDate: somarDias(baseDate, 30), 
-              status: 'Em aberto', 
-              paymentMethod: 'Nota Promissória / Conta Corrente' 
-            }
+            { number: 1, amount: total, dueDate: somarDias(baseDate, 30), status: 'Em aberto', paymentMethod: 'Nota Promissória' }
           ]);
-        } 
-        // REGRA 3: Prazos Específicos em Dias (1, 7, 10, 15, 20 ou 30 dias com parcelas N)
-        // Vencimento_i = Data da Venda + Prazo * i
-        else if (['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo)) {
-          const prazoDias = parseInt(condicaoPrazo, 10);
-          const qtd = Math.max(1, parseInt(numParcelas, 10) || 1);
-          const valorParcelaBase = parseFloat((total / qtd).toFixed(2));
-          const parcelasGeradas = [];
+        } else if (['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo)) {
+          const diasNum = parseInt(condicaoPrazo, 10);
+          setPreviaParcelas([
+            { number: 1, amount: total, dueDate: somarDias(baseDate, diasNum), status: 'Em aberto' }
+          ]);
+        } else {
+          // Detecta formatos "Nx" ou "PARCELADO_Nx" (2x até 12x)
+          const matchParc = condicaoPrazo.match(/(\d+)x/i) || condicaoPrazo.match(/PARCELADO_(\d+)X/i);
+          if (matchParc) {
+            const numParcelas = Math.min(12, Math.max(2, parseInt(matchParc[1], 10)));
+            const valorBase = parseFloat((total / numParcelas).toFixed(2));
+            const lista = [];
+            let acumulado = 0;
 
-          let somaAcumulada = 0;
-          for (let i = 1; i <= qtd; i++) {
-            const diasMultiplicados = prazoDias * i;
-            const dataVenc = somarDias(baseDate, diasMultiplicados);
-            const valorDesta = (i === qtd) ? parseFloat((total - somaAcumulada).toFixed(2)) : valorParcelaBase;
-            somaAcumulada += valorDesta;
+            for (let i = 1; i <= numParcelas; i++) {
+              let valAtual = valorBase;
+              if (i === numParcelas) {
+                valAtual = parseFloat((total - acumulado).toFixed(2));
+              } else {
+                acumulado += valAtual;
+              }
 
-            parcelasGeradas.push({
-              number: i,
-              amount: valorDesta,
-              dueDate: dataVenc,
-              status: 'Em aberto',
-              prazoOffset: diasMultiplicados
-            });
+              lista.push({
+                number: i,
+                amount: valAtual,
+                dueDate: somarDias(baseDate, 30 * i),
+                status: 'Em aberto',
+                paymentMethod: 'Boleto/Carteira'
+              });
+            }
+            setPreviaParcelas(lista);
           }
-
-          setPreviaParcelas(parcelasGeradas);
         }
-      }, [valorVenda, condicaoPrazo, numParcelas, dataVenda]);
+      }, [valorVenda, condicaoPrazo, dataVenda]);
 
       const handleAtualizarParcelaPrevia = (index, campo, valor) => {
         setPreviaParcelas(prev => {
@@ -430,7 +416,7 @@
         }
       };
 
-      // Submissão da Venda com Regras de Baixa e Saldo
+      // Gravação do DAV
       const handleRegistrarVenda = async (e) => {
         if (e) e.preventDefault();
 
@@ -447,7 +433,7 @@
         }
 
         if (!codClienteInput || !clienteAtivo) {
-          alert("Informe um Código de Cliente válido ou cadastre um código inédito.");
+          alert("Informe um Código de Cliente válido ou cadastre um novo.");
           inputCodClienteRef.current?.focus();
           return;
         }
@@ -478,7 +464,7 @@
         }
 
         if (analiseDebitos.temDebitoVencido && !autorizacaoGerencia) {
-          alert(`⛔ BLOQUEIO DE CRÉDITO:\n\nO cliente #${clienteAtivo.cod} possui débitos vencidos.\n\nPara prosseguir com a venda, marque a autorização gerencial excepcional.`);
+          alert(`⛔ BLOQUEIO DE CRÉDITO:\n\nO cliente #${clienteAtivo.cod} possui débitos vencidos.\n\nPara prosseguir com a venda, marque a caixa de autorização excepcional com aprovação gerencial.`);
           return;
         }
 
@@ -491,9 +477,6 @@
           if (p.length === 3) dataIso = `${p[2]}-${p[1]}-${p[0]}`;
         }
 
-        const isAVista = condicaoPrazo === '0';
-        const isPromissoria = condicaoPrazo === 'PROMISSORIA';
-
         const novaVendaDoc = {
           dav: davNumber,
           date: dataIso,
@@ -505,23 +488,14 @@
           amount: valorNum,
           tipoVenda: tipoVenda,
           prazo: condicaoPrazo,
-          numParcelas: (isAVista || isPromissoria) ? 1 : numParcelas,
-          
-          // REGRAS OPERACIONAIS NO DOCUMENTO:
-          isPaid: isAVista,
-          paidAt: isAVista ? dataIso : null,
-          comissaoApuradaNoMes: isAVista, // Contabiliza imediatamente no mês
-          isPromissoria: isPromissoria,   // Adiciona ao saldo devedor aberto para amortizações
-          
           installments: previaParcelas.map(p => ({
             number: p.number,
             amount: Number(p.amount) || (valorNum / previaParcelas.length),
             dueDate: p.dueDate,
-            status: isAVista ? 'Pago' : (p.status || 'Em aberto'),
-            paidDate: isAVista ? dataIso : null,
-            paymentMethod: isAVista ? 'À Vista Imediato' : isPromissoria ? 'Nota Promissória' : 'Boleto / Carteira'
+            status: p.status || (condicaoPrazo === '0' ? 'Pago' : 'Em aberto'),
+            paymentMethod: p.paymentMethod || (condicaoPrazo === '0' ? 'À Vista Imediato' : condicaoPrazo === 'PROMISSORIA' ? 'Nota Promissória' : 'Boleto/Carteira')
           })),
-          
+          isPaid: condicaoPrazo === '0',
           liberacaoExcepcional: analiseDebitos.temDebitoVencido ? {
             autorizadoPorGerencia: true,
             senhaTokenInformado: !!senhaGerencial,
@@ -539,7 +513,6 @@
 
           setStatusMsg(`✅ Venda DAV #${novaVendaDoc.dav} registrada com sucesso!`);
           
-          // Reseta formulário
           setDataVenda('');
           setDavNumber('');
           setCodClienteInput('');
@@ -548,7 +521,6 @@
           setValorVenda('');
           setTipoVenda('');
           setCondicaoPrazo('');
-          setNumParcelas(1);
           setPreviaParcelas([]);
           setAutorizacaoGerencia(false);
           setSenhaGerencial('');
@@ -563,7 +535,6 @@
         }
       };
 
-      // Cadastro de cliente com código inédito
       const handleSalvarClienteInedito = async (e) => {
         e.preventDefault();
         if (!novoClienteForm.cod || !novoClienteForm.name) {
@@ -593,7 +564,7 @@
         setTimeout(() => selectVendedorRef.current?.focus(), 150);
       };
 
-      // KPIs do Dashboard
+      // Indicadores do Topo
       const dashboardKPIs = useMemo(() => {
         let recMes = 0;
         let aReceberMes = 0;
@@ -616,83 +587,81 @@
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* MENU LATERAL ESCURO (SIDEBAR #1a202c) */}
-          <aside className="w-full md:w-64 bg-[#1a202c] text-slate-300 flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden">
-            <div className="absolute -bottom-12 -right-12 pointer-events-none text-white opacity-[0.06] w-72 h-72">
+          {/* ========================================== */}
+          {/* BARRA LATERAL UNIFICADA - TELES ODONTO CRM */}
+          {/* ========================================== */}
+          <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
+            
+            {/* Marca d'água institucional no fundo da barra lateral */}
+            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
               <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
-              <div className="p-5 border-b border-slate-800">
+              {/* Cabeçalho da Sidebar / Logomarca */}
+              <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-indigo-400/20">
-                    TO
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 2C7 2 4 5 4 9c0 5 2 9 3 13 1 1 2 1 3 0 1-2 2-2 2-2s1 0 2 2c1 1 2 1 3 0 1-4 3-8 3-13 0-4-3-7-8-7z"></path>
+                      <path d="M9 8c.5-1 1.5-1.5 3-1.5s2.5.5 3 1.5"></path>
+                    </svg>
                   </div>
                   <div>
-                    <h1 className="text-white font-extrabold text-sm tracking-tight leading-tight">Teles Odonto</h1>
-                    <p className="text-[10px] text-indigo-400 font-bold tracking-wider uppercase">Materiais Protéticos</p>
-                    <span className="inline-block mt-0.5 text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-semibold border border-slate-700">
-                      Neves Pro CRM
-                    </span>
+                    <h1 className="text-base font-bold text-white tracking-tight leading-tight">Teles Odonto</h1>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Materiais Protéticos</p>
                   </div>
+                </div>
+                <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
+                  <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6</span>
                 </div>
               </div>
 
-              <div className="px-4 py-5">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2.5">
-                  NAVEGAÇÃO COMERCIAL
-                </p>
-                <nav className="space-y-1.5">
-                  <a 
-                    href="index.html" 
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold bg-indigo-700 text-white shadow-md transition"
-                  >
-                    <i data-lucide="layout-grid" className="w-4 h-4"></i>
-                    <span>Página Inicial</span>
-                  </a>
-                  <a 
-                    href="vendas.html" 
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                  >
-                    <i data-lucide="shopping-cart" className="w-4 h-4"></i>
-                    <span>Página de Vendas</span>
-                  </a>
-                  <a 
-                    href="comissoes.html" 
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                  >
-                    <i data-lucide="briefcase" className="w-4 h-4"></i>
-                    <span>Comissões</span>
-                  </a>
-                </nav>
+              {/* Navegação Comercial */}
+              <div className="px-4 py-6 space-y-1.5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
+
+                <a href="index.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                  <i data-lucide="layout-grid" className="w-4 h-4 text-white"></i>
+                  <span>Página Inicial</span>
+                </a>
+
+                <a href="vendas.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
+                  <i data-lucide="shopping-cart" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
+                  <span>Página de Vendas</span>
+                </a>
+
+                <a href="comissoes.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
+                  <i data-lucide="briefcase" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
+                  <span>Comissões</span>
+                </a>
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-800 relative z-10 space-y-3">
-              <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex items-center gap-3 shadow-inner">
-                <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                  <i data-lucide="user" className="w-4 h-4"></i>
+            {/* Rodapé da Barra / Operador Conectado */}
+            <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
+              <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
+                <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
+                  OP
                 </div>
-                <div className="truncate">
-                  <p className="text-xs font-bold text-slate-200 leading-tight">Operador Comercial</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-white truncate">Operador Comercial</p>
                   <p className="text-[10px] text-slate-400 truncate">operador@salespro.com</p>
                 </div>
+                <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20" title="Online"></div>
               </div>
-
-              <div className="text-[9px] text-slate-500 text-center leading-tight">
-                <p>© 2026 SalesPro CRM</p>
-                <p className="text-indigo-400 font-semibold mt-0.5">Teles Odonto</p>
-              </div>
+              <p className="text-[10px] text-slate-400 text-center mt-3">© 2026 Neves Pro CRM</p>
             </div>
           </aside>
 
-          {/* MAIN CONTAINER */}
+          {/* ÁREA PRINCIPAL */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
             {/* TOPBAR */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span className="font-bold text-slate-800">SalesPro</span>
+                <span className="font-bold text-slate-800">Neves Pro CRM</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
                   Módulo Ativo
@@ -760,7 +729,7 @@
               {/* GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + LIVRO DE VENDAS RECENTES */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                {/* FORMULÁRIO DE NOVA VENDA COM FLUXO GUIADO POR ENTER (↵) */}
+                {/* FORMULÁRIO DE NOVA VENDA */}
                 <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
                   <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
                     <ToothWatermark className="w-full h-full text-slate-900" />
@@ -828,7 +797,7 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 2: Código do Cliente & Nome (Bloqueado/Travado) */}
+                    {/* ETAPA 2: Código do Cliente & Nome (Travado) */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="font-semibold text-slate-700">Cód. Cliente</label>
@@ -855,7 +824,7 @@
                         <input 
                           ref={inputCodClienteRef}
                           type="text" 
-                          placeholder="Digite o código (ex: CLI-104)..." 
+                          placeholder="Digite o código (ex: 2, 4, 104)..." 
                           value={codClienteInput} 
                           onChange={e => setCodClienteInput(e.target.value)} 
                           onKeyDown={e => {
@@ -876,7 +845,7 @@
                       </div>
                     </div>
 
-                    {/* Nome do Cliente (TRAVADO) */}
+                    {/* Nome do Cliente */}
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
                         Nome do Cliente / Laboratório <span className="text-[10px] text-slate-400 font-normal">(Preenchimento automático)</span>
@@ -891,10 +860,11 @@
                       />
                     </div>
 
-                    {/* BLOCO DE ALERTA: DÉBITO VENCIDO / RESTRIÇÃO */}
+                    {/* BLOCO DE DÉBITO VENCIDO / RESTRIÇÃO + AUTORIZAÇÃO GERENCIAL */}
                     {clienteAtivo && (
                       analiseDebitos.temDebitoVencido ? (
                         <div className="flex flex-col gap-2 my-1">
+                          
                           <div className="p-3.5 rounded-2xl bg-[#fee2e2]/80 border border-[#fca5a5]/70 shadow-sm flex items-start justify-between gap-3">
                             <div className="flex items-start gap-2.5">
                               <span className="text-[#991b1b] text-xl font-bold leading-none mt-0.5">⚠️</span>
@@ -953,6 +923,7 @@
                               </div>
                             )}
                           </div>
+
                         </div>
                       ) : (
                         <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px] text-emerald-800">
@@ -964,7 +935,7 @@
                       )
                     )}
 
-                    {/* ETAPA 3: Vendedor Responsável & Código Automático */}
+                    {/* ETAPA 3: Vendedor Responsável & Código */}
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Cód. Vend.</label>
@@ -992,7 +963,7 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 4: Valor da Venda (R$) & Tipo de Venda */}
+                    {/* ETAPA 4: Valor da Venda & Tipo de Venda */}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Valor da Venda (R$)</label>
@@ -1025,154 +996,96 @@
                       </div>
                     </div>
 
-                    {/* ========================================================================= */}
-                    {/* ETAPA 5: CONDIÇÃO / PRAZO RIGOROSAMENTE CONFORME REQUISITOS             */}
-                    {/* ========================================================================= */}
+                    {/* ETAPA 5: Condição / Prazo com Parcelamento Completo de até 12x */}
                     <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="font-semibold text-slate-700">Condição / Prazo</label>
-                        <span className="text-[10px] text-slate-400 font-medium">Cálculo sequencial da base</span>
-                      </div>
-                      
+                      <label className="font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
                       <select 
+                        id="select-condicao"
                         ref={selectCondicaoRef}
                         value={condicaoPrazo} 
-                        onChange={e => {
-                          const val = e.target.value;
-                          setCondicaoPrazo(val);
-                          if (['1', '7', '10', '15', '20', '30'].includes(val)) {
-                            setTimeout(() => selectParcelasRef.current?.focus(), 100);
-                          }
-                        }} 
+                        onChange={e => setCondicaoPrazo(e.target.value)} 
                         onKeyDown={e => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            if (['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo)) {
-                              selectParcelasRef.current?.focus();
-                            } else {
-                              btnRegistrarRef.current?.focus();
-                            }
+                            btnRegistrarRef.current?.focus();
                           }
                         }}
-                        className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30"
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-600/30"
                         required
                       >
                         <option value="">Selecione a condição ou prazo...</option>
-                        <option value="0">0 → À Vista (Pago)</option>
-                        <option value="PROMISSORIA">PROMISSORIA → Promissória (Saldo Acumulado / Abatimento Parcial)</option>
-                        <option value="1">1 → 1 dia</option>
-                        <option value="7">7 → 7 dias</option>
-                        <option value="10">10 → 10 dias</option>
-                        <option value="15">15 → 15 dias</option>
-                        <option value="20">20 → 20 dias</option>
-                        <option value="30">30 → 30 dias</option>
+                        <optgroup label="À Vista & Conta Corrente">
+                          <option value="0">0 - À Vista (Baixa imediata no caixa)</option>
+                          <option value="PROMISSORIA">PROMISSÓRIA (Saldo devedor em carteira)</option>
+                        </optgroup>
+                        <optgroup label="Prazos Específicos em Dias">
+                          <option value="1">1 dia útil</option>
+                          <option value="7">7 dias corridos</option>
+                          <option value="10">10 dias corridos</option>
+                          <option value="15">15 dias corridos</option>
+                          <option value="20">20 dias corridos</option>
+                          <option value="30">30 dias corridos (1 Parcela)</option>
+                        </optgroup>
+                        <optgroup label="Parcelamentos Programados (2x até 12x)">
+                          <option value="2x">Parcelado em 2x (30 / 60 dias)</option>
+                          <option value="3x">Parcelado em 3x (30 / 60 / 90 dias)</option>
+                          <option value="4x">Parcelado em 4x (30 / 60 / 90 / 120 dias)</option>
+                          <option value="5x">Parcelado em 5x (Mensal)</option>
+                          <option value="6x">Parcelado em 6x (Mensal)</option>
+                          <option value="7x">Parcelado em 7x (Mensal)</option>
+                          <option value="8x">Parcelado em 8x (Mensal)</option>
+                          <option value="9x">Parcelado em 9x (Mensal)</option>
+                          <option value="10x">Parcelado em 10x (Mensal)</option>
+                          <option value="11x">Parcelado em 11x (Mensal)</option>
+                          <option value="12x">Parcelado em 12x (Mensal)</option>
+                        </optgroup>
                       </select>
                     </div>
 
-                    {/* COMPORTAMENTO DINÂMICO 1: QUANDO FOR À VISTA (0) */}
-                    {condicaoPrazo === '0' && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1 animate-in fade-in">
-                        <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-xs">
-                          <i data-lucide="check-circle-2" className="w-4 h-4 text-emerald-600"></i>
-                          <span>Baixa Automática Imediata</span>
-                        </div>
-                        <p className="text-[11px] text-emerald-700 leading-tight">
-                          Gravado com status <b>Pago</b> na data da venda. A comissão do vendedor é contabilizada e apurada imediatamente no mês corrente.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* COMPORTAMENTO DINÂMICO 2: QUANDO FOR PROMISSÓRIA (PROMISSORIA) */}
-                    {condicaoPrazo === 'PROMISSORIA' && (
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1 animate-in fade-in">
-                        <div className="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
-                          <i data-lucide="file-text" className="w-4 h-4 text-amber-700"></i>
-                          <span>Saldo Devedor em Carteira (Conta Corrente)</span>
-                        </div>
-                        <p className="text-[11px] text-amber-800 leading-tight">
-                          O valor será adicionado ao saldo devedor aberto do cliente (<code className="bg-amber-100 px-1 rounded font-bold">isPromissoria: true</code>), permitindo amortizações e abatimentos parciais posteriores.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* COMPORTAMENTO DINÂMICO 3: QUANDO FOR A PRAZO (1, 7, 10, 15, 20 ou 30 dias) */}
-                    {['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo) && (
-                      <div className="space-y-3 animate-in fade-in">
-                        
-                        {/* Campo Nº de Parcelas */}
-                        <div>
-                          <label className="font-semibold text-slate-700 block mb-1">
-                            Nº de Parcelas <span className="text-[10px] text-indigo-600 font-bold">(Multiplica os prazos a partir da venda)</span>
-                          </label>
-                          <select 
-                            ref={selectParcelasRef}
-                            value={numParcelas} 
-                            onChange={e => setNumParcelas(parseInt(e.target.value, 10))} 
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                btnRegistrarRef.current?.focus();
-                              }
-                            }}
-                            className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30"
-                          >
-                            <option value="1">1x (Parcela única em {condicaoPrazo} dias)</option>
-                            <option value="2">2x (em {Number(condicaoPrazo)}d e {Number(condicaoPrazo) * 2}d)</option>
-                            <option value="3">3x (em {Number(condicaoPrazo)}d, {Number(condicaoPrazo) * 2}d e {Number(condicaoPrazo) * 3}d)</option>
-                            <option value="4">4x (em {Number(condicaoPrazo)}d, {Number(condicaoPrazo) * 2}d, {Number(condicaoPrazo) * 3}d e {Number(condicaoPrazo) * 4}d)</option>
-                            <option value="5">5x ({Number(condicaoPrazo)} em {Number(condicaoPrazo)} dias)</option>
-                            <option value="6">6x ({Number(condicaoPrazo)} em {Number(condicaoPrazo)} dias)</option>
-                          </select>
+                    {/* ETAPA 6: Prévia Editável dos Vencimentos */}
+                    {previaParcelas.length > 0 && (
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1">
+                            <i data-lucide="calendar-check" className="w-3.5 h-3.5 text-indigo-600"></i>
+                            Prévia e Cálculo de Vencimento ({previaParcelas.length}x)
+                          </span>
+                          <span className="text-[10px] font-bold text-indigo-700">
+                            Total: R$ {valorVenda}
+                          </span>
                         </div>
 
-                        {/* Prévia Editável dos Vencimentos (Vencimento_i = Data + Prazo * i) */}
-                        {previaParcelas.length > 0 && (
-                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-bold text-slate-700 uppercase flex items-center gap-1">
-                                <i data-lucide="calendar-check" className="w-3.5 h-3.5 text-indigo-600"></i>
-                                Prévia de Vencimentos ({condicaoPrazo} em {condicaoPrazo} dias)
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                          {previaParcelas.map((p, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 text-[11px]">
+                              <span className="font-bold text-slate-700 w-16 shrink-0">
+                                Parc. {p.number}:
                               </span>
-                              <span className="text-[10px] font-bold text-indigo-700 font-mono">
-                                {numParcelas}x de R$ {(parseFloat(valorVenda.replace(',', '.')) / numParcelas || 0).toFixed(2)}
+                              <div className="flex-1">
+                                <input 
+                                  type="text" 
+                                  value={p.dueDate} 
+                                  onChange={e => handleAtualizarParcelaPrevia(idx, 'dueDate', e.target.value)}
+                                  placeholder="DD/MM/AAAA"
+                                  className="w-full p-1 border rounded bg-slate-50 font-semibold outline-none text-center" 
+                                />
+                              </div>
+                              <div className="w-24">
+                                <input 
+                                  type="number" 
+                                  step="0.01"
+                                  max="999999"
+                                  value={p.amount} 
+                                  onChange={e => handleAtualizarParcelaPrevia(idx, 'amount', parseFloat(e.target.value) || 0)}
+                                  className="w-full p-1 border rounded bg-slate-50 font-black outline-none text-right" 
+                                />
+                              </div>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${p.status === 'Pago' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                                {p.status}
                               </span>
                             </div>
-
-                            <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
-                              {previaParcelas.map((p, idx) => (
-                                <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 text-[11px]">
-                                  <span className="font-bold text-slate-700 w-16 shrink-0">
-                                    Parcela {p.number}/{numParcelas}
-                                    <span className="block text-[9px] text-slate-400 font-normal">+{p.prazoOffset}d</span>
-                                  </span>
-                                  <div className="flex-1">
-                                    <input 
-                                      type="text" 
-                                      value={p.dueDate} 
-                                      onChange={e => handleAtualizarParcelaPrevia(idx, 'dueDate', e.target.value)}
-                                      placeholder="DD/MM/AAAA"
-                                      className="w-full p-1 border rounded bg-slate-50 font-semibold outline-none text-center" 
-                                    />
-                                  </div>
-                                  <div className="w-24">
-                                    <input 
-                                      type="number" 
-                                      step="0.01"
-                                      value={p.amount} 
-                                      onChange={e => handleAtualizarParcelaPrevia(idx, 'amount', parseFloat(e.target.value) || 0)}
-                                      className="w-full p-1 border rounded bg-slate-50 font-black outline-none text-right" 
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            
-                            <p className="text-[10px] text-slate-400 text-right">
-                              Vencimento<sub>i</sub> = Venda + ({condicaoPrazo} × i) • <span className="text-indigo-600 font-semibold">Datas editáveis</span>
-                            </p>
-                          </div>
-                        )}
-
+                          ))}
+                        </div>
                       </div>
                     )}
 
@@ -1208,7 +1121,7 @@
                   )}
                 </div>
 
-                {/* LIVRO DE VENDAS RECENTES (COLUNA 7) */}
+                {/* LIVRO DE VENDAS RECENTES */}
                 <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
                   <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
                     <ToothWatermark className="w-full h-full text-slate-900" />
@@ -1303,7 +1216,7 @@
             </div>
           </main>
 
-          {/* MODAL: CADASTRO DE CLIENTE COM CÓDIGO INÉDITO */}
+          {/* MODAL: CADASTRO DE CLIENTE INÉDITO */}
           {showModalNovoCliente && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
