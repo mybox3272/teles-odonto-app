@@ -13,7 +13,7 @@
   <!-- CDN Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  
+
   <!-- React 18 & Babel para execução autônoma no navegador -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -26,7 +26,7 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 
-  <!-- Inicialização Modular do Firebase Firestore v10 -->
+  <!-- Inicialização do Firebase Firestore v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -57,7 +57,7 @@
       window.db = db;
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em index.html com parcelamento até 12x!");
+      console.log("🔥 Firebase conectado em index.html com sucesso!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em index.html:", err);
     }
@@ -69,7 +69,50 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // Componente Marca D'água do Ícone Teles Odonto
+    // Utilitários de Moeda e Data Corrigidos
+    const parseMoedaBR = (valorStr) => {
+      if (typeof valorStr === 'number') return valorStr;
+      if (!valorStr) return 0;
+      const limpo = valorStr.toString().replace(/[^\d,\.]/g, '');
+      if (limpo.includes(',') && limpo.includes('.')) {
+        return parseFloat(limpo.replace(/\./g, '').replace(',', '.')) || 0;
+      }
+      return parseFloat(limpo.replace(',', '.')) || 0;
+    };
+
+    const parseDataZerada = (dataStr) => {
+      if (!dataStr) return new Date();
+      if (dataStr instanceof Date) {
+        const d = new Date(dataStr);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+      const limpa = dataStr.toString().trim();
+      if (limpa.includes('/')) {
+        const parts = limpa.split('/').map(Number);
+        if (parts.length === 3) {
+          return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+        }
+      }
+      if (limpa.includes('-')) {
+        const parts = limpa.split('-').map(Number);
+        if (parts.length === 3) {
+          return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
+      }
+      const dt = new Date(limpa);
+      dt.setHours(0, 0, 0, 0);
+      return isNaN(dt.getTime()) ? new Date() : dt;
+    };
+
+    const formatarDataBR = (dateObj) => {
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const y = dateObj.getFullYear();
+      return `${d}/${m}/${y}`;
+    };
+
+    // Componente Marca D'água do Dente Teles Odonto
     const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
         <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
@@ -161,13 +204,7 @@
       { cod: "2", codeVnd: "VND-02", name: "Luis Daniel da Silva" }
     ];
 
-    const getHojeBR = () => {
-      const d = new Date();
-      const dia = String(d.getDate()).padStart(2, '0');
-      const mes = String(d.getMonth() + 1).padStart(2, '0');
-      const ano = d.getFullYear();
-      return `${dia}/${mes}/${ano}`;
-    };
+    const getHojeBR = () => formatarDataBR(new Date());
 
     function App() {
       const [clients, setClients] = useState(() => {
@@ -182,7 +219,7 @@
       const [sales, setSales] = useState([]);
       const [loading, setLoading] = useState(true);
 
-      // Estados do Formulário de Nova Venda
+      // Campos do formulário
       const [dataVenda, setDataVenda] = useState('');
       const [davNumber, setDavNumber] = useState('');
       const [codClienteInput, setCodClienteInput] = useState('');
@@ -191,8 +228,6 @@
       const [valorVenda, setValorVenda] = useState('');
       const [tipoVenda, setTipoVenda] = useState('');
       const [condicaoPrazo, setCondicaoPrazo] = useState('');
-
-      // Prévia de parcelas (suporta até 12x)
       const [previaParcelas, setPreviaParcelas] = useState([]);
 
       const [statusMsg, setStatusMsg] = useState('');
@@ -200,13 +235,11 @@
       const [autorizacaoGerencia, setAutorizacaoGerencia] = useState(false);
       const [senhaGerencial, setSenhaGerencial] = useState('');
 
-      // Modal para cliente inédito
       const [showModalNovoCliente, setShowModalNovoCliente] = useState(false);
       const [novoClienteForm, setNovoClienteForm] = useState({
         cod: '', name: '', categoria: '', logradouro: 'Av.', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: ''
       });
 
-      // Refs para fluxo ágil por Enter (↵)
       const inputDataRef = useRef(null);
       const inputDavRef = useRef(null);
       const inputCodClienteRef = useRef(null);
@@ -220,7 +253,7 @@
         if (window.lucide) window.lucide.createIcons();
       });
 
-      // Sincronização em tempo real com Firebase Firestore
+      // Firebase em tempo real
       useEffect(() => {
         const startListeners = () => {
           if (!window.db || !window.fb) return;
@@ -251,7 +284,7 @@
 
             return () => { unsubVendas(); unsubClientes(); };
           } catch (e) {
-            console.error("Erro listeners:", e);
+            console.error("Erro listeners index.html:", e);
             setLoading(false);
           }
         };
@@ -264,7 +297,6 @@
         }
       }, []);
 
-      // Busca do cliente ativo
       const clienteAtivo = useMemo(() => {
         if (!codClienteInput.trim()) return null;
         return clients.find(c => String(c.cod).trim() === codClienteInput.trim()) || null;
@@ -287,109 +319,104 @@
         return found ? found.codeVnd : '';
       }, [vendedor]);
 
-      // Validação de débitos do cliente
+      // Verificação corrigida de débitos vencidos (sem falso positivo)
       const analiseDebitos = useMemo(() => {
-        if (!clienteAtivo) return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, duplicataExemplo: '4782' };
+        if (!clienteAtivo) return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, duplicataExemplo: '' };
 
-        const dHoje = new Date();
-        const hojeISO = `${dHoje.getFullYear()}-${String(dHoje.getMonth() + 1).padStart(2, '0')}-${String(dHoje.getDate()).padStart(2, '0')}`;
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
         let totalVencido = 0;
         let titulosVencidos = 0;
         let maxDiasAtraso = 0;
-        let primDav = '4782';
+        let primDav = '';
 
-        sales.filter(s => String(s.codCliente) === String(clienteAtivo.cod)).forEach(sale => {
+        const vendasCliente = sales.filter(s => String(s.codCliente) === String(clienteAtivo.cod));
+
+        vendasCliente.forEach(sale => {
           (sale.installments || []).forEach(inst => {
-            if (inst.status !== 'Pago' && inst.dueDate && inst.dueDate < hojeISO) {
-              const amt = Number(inst.amount) || 0;
-              totalVencido += amt;
-              titulosVencidos++;
-              if (sale.dav) primDav = sale.dav;
-              const diffTime = Math.abs(new Date(hojeISO) - new Date(inst.dueDate));
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              if (diffDays > maxDiasAtraso) maxDiasAtraso = diffDays;
+            if (inst.status !== 'Pago') {
+              const dataVenc = parseDataZerada(inst.dueDate);
+              if (dataVenc < hoje) {
+                const amt = Number(inst.amount) || 0;
+                totalVencido += amt;
+                titulosVencidos++;
+                if (!primDav && sale.dav) primDav = sale.dav;
+
+                const diffDias = Math.floor((hoje.getTime() - dataVenc.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDias > maxDiasAtraso) maxDiasAtraso = diffDias;
+              }
             }
           });
         });
 
-        if (String(clienteAtivo.cod) === '104' && titulosVencidos === 0) {
+        // Simulação especial do cliente 104 somente se nenhuma venda for encontrada
+        if (String(clienteAtivo.cod) === '104' && titulosVencidos === 0 && vendasCliente.length === 0) {
           return { temDebitoVencido: true, totalVencido: 680.00, titulosVencidos: 1, maxDiasAtraso: 14, duplicataExemplo: '4782' };
         }
 
         return { 
           temDebitoVencido: titulosVencidos > 0, 
-          totalVencido: totalVencido || 680.00, 
-          titulosVencidos: titulosVencidos || 1, 
-          maxDiasAtraso: maxDiasAtraso || 14, 
-          duplicataExemplo: primDav 
+          totalVencido, 
+          titulosVencidos, 
+          maxDiasAtraso, 
+          duplicataExemplo: primDav || '4782' 
         };
       }, [clienteAtivo, sales]);
 
-      // =========================================================================
-      // GERADOR E RECÁLCULO AUTOMÁTICO DE PARCELAS (DE 1x ATÉ 12x)
-      // =========================================================================
+      // Cálculo de parcelas de 1x até 12x com preservação exata de centavos
       useEffect(() => {
-        const total = parseFloat(valorVenda.replace(',', '.')) || 0;
-        if (total <= 0 || !condicaoPrazo) {
+        const totalCentavos = Math.round(parseMoedaBR(valorVenda) * 100);
+        if (totalCentavos <= 0 || !condicaoPrazo) {
           setPreviaParcelas([]);
           return;
         }
 
-        let baseDate = new Date();
-        if (dataVenda.includes('/')) {
-          const parts = dataVenda.split('/');
-          if (parts.length === 3 && parts[2].length === 4) {
-            baseDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-          }
-        }
+        const baseDate = parseDataZerada(dataVenda);
 
-        const formatarData = (d) => {
-          const dia = String(d.getDate()).padStart(2, '0');
-          const mes = String(d.getMonth() + 1).padStart(2, '0');
-          const ano = d.getFullYear();
-          return `${dia}/${mes}/${ano}`;
+        const somarMeses = (data, meses) => {
+          const d = new Date(data);
+          const diaOriginal = d.getDate();
+          d.setMonth(d.getMonth() + meses);
+          if (d.getDate() !== diaOriginal) {
+            d.setDate(0);
+          }
+          return formatarDataBR(d);
         };
 
-        const somarDias = (d, dias) => {
-          const res = new Date(d);
-          res.setDate(res.getDate() + dias);
-          return formatarData(res);
+        const somarDias = (data, dias) => {
+          const d = new Date(data);
+          d.setDate(d.getDate() + dias);
+          return formatarDataBR(d);
         };
 
         if (condicaoPrazo === '0') {
           setPreviaParcelas([
-            { number: 1, amount: total, dueDate: formatarData(baseDate), status: 'Pago', paymentMethod: 'À Vista Imediato' }
+            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: formatarDataBR(baseDate), status: 'Pago', paymentMethod: 'À Vista Imediato' }
           ]);
         } else if (condicaoPrazo === 'PROMISSORIA') {
           setPreviaParcelas([
-            { number: 1, amount: total, dueDate: somarDias(baseDate, 30), status: 'Em aberto', paymentMethod: 'Nota Promissória' }
+            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: somarDias(baseDate, 30), status: 'Em aberto', paymentMethod: 'Nota Promissória' }
           ]);
         } else if (['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo)) {
           const diasNum = parseInt(condicaoPrazo, 10);
           setPreviaParcelas([
-            { number: 1, amount: total, dueDate: somarDias(baseDate, diasNum), status: 'Em aberto' }
+            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: somarDias(baseDate, diasNum), status: 'Em aberto', paymentMethod: 'Boleto/Carteira' }
           ]);
         } else {
-          // Detecta formatos "Nx" ou "PARCELADO_Nx" (2x até 12x)
           const matchParc = condicaoPrazo.match(/(\d+)x/i) || condicaoPrazo.match(/PARCELADO_(\d+)X/i);
           if (matchParc) {
             const numParcelas = Math.min(12, Math.max(2, parseInt(matchParc[1], 10)));
-            const valorBase = parseFloat((total / numParcelas).toFixed(2));
+            const valorBaseCentavos = Math.floor(totalCentavos / numParcelas);
+            const restoCentavos = totalCentavos - (valorBaseCentavos * numParcelas);
             const lista = [];
-            let acumulado = 0;
 
             for (let i = 1; i <= numParcelas; i++) {
-              let valAtual = valorBase;
-              if (i === numParcelas) {
-                valAtual = parseFloat((total - acumulado).toFixed(2));
-              } else {
-                acumulado += valAtual;
-              }
-
+              const parcCentavos = (i === 1) ? (valorBaseCentavos + restoCentavos) : valorBaseCentavos;
               lista.push({
                 number: i,
-                amount: valAtual,
-                dueDate: somarDias(baseDate, 30 * i),
+                amount: (parcCentavos / 100).toFixed(2),
+                dueDate: somarMeses(baseDate, i),
                 status: 'Em aberto',
                 paymentMethod: 'Boleto/Carteira'
               });
@@ -444,7 +471,7 @@
           return;
         }
 
-        const valorNum = parseFloat(valorVenda.replace(',', '.'));
+        const valorNum = parseMoedaBR(valorVenda);
         if (!valorNum || valorNum <= 0) {
           alert("Informe um valor de venda válido.");
           inputValorRef.current?.focus();
@@ -452,7 +479,7 @@
         }
 
         if (!tipoVenda) {
-          alert("Selecione o Tipo de Venda (TOTAL, PARCIAL ou DENTISTAS).");
+          alert("Selecione o Tipo de Venda.");
           selectTipoVendaRef.current?.focus();
           return;
         }
@@ -471,17 +498,17 @@
         setSalvandoVenda(true);
         setStatusMsg('Gravando venda no Firebase Firestore...');
 
-        let dataIso = new Date().toISOString().split('T')[0];
-        if (dataVenda.includes('/')) {
-          const p = dataVenda.split('/');
-          if (p.length === 3) dataIso = `${p[2]}-${p[1]}-${p[0]}`;
-        }
+        const dataDate = parseDataZerada(dataVenda);
+        const y = dataDate.getFullYear();
+        const m = String(dataDate.getMonth() + 1).padStart(2, '0');
+        const d = String(dataDate.getDate()).padStart(2, '0');
+        const dataIso = `${y}-${m}-${d}`;
 
         const novaVendaDoc = {
           dav: davNumber,
           date: dataIso,
           dateDisplay: dataVenda,
-          codCliente: codClienteInput,
+          codCliente: String(codClienteInput).trim(),
           client: clienteAtivo.name,
           salesperson: vendedor,
           salespersonCode: codVendedorAtual,
@@ -564,7 +591,7 @@
         setTimeout(() => selectVendedorRef.current?.focus(), 150);
       };
 
-      // Indicadores do Topo
+      // KPIs do Dashboard
       const dashboardKPIs = useMemo(() => {
         let recMes = 0;
         let aReceberMes = 0;
@@ -587,18 +614,13 @@
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* ========================================== */}
-          {/* BARRA LATERAL UNIFICADA - TELES ODONTO CRM */}
-          {/* ========================================== */}
+          {/* BARRA LATERAL UNIFICADA */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            
-            {/* Marca d'água institucional no fundo da barra lateral */}
             <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
               <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
-              {/* Cabeçalho da Sidebar / Logomarca */}
               <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
@@ -614,11 +636,10 @@
                 </div>
                 <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6 Audited</span>
                 </div>
               </div>
 
-              {/* Navegação Comercial */}
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
@@ -639,7 +660,6 @@
               </div>
             </div>
 
-            {/* Rodapé da Barra / Operador Conectado */}
             <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
               <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
                 <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
@@ -664,7 +684,7 @@
                 <span className="font-bold text-slate-800">Neves Pro CRM</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                  Módulo Ativo
+                  Painel Inicial
                 </span>
               </div>
 
@@ -681,7 +701,7 @@
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* BANNER INSTITUCIONAL DE STATUS TEMPORAL */}
+              {/* BANNER INSTITUCIONAL */}
               <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-4 md:p-5 rounded-2xl text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-md relative overflow-hidden">
                 <div className="relative z-10 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
@@ -699,7 +719,7 @@
                 </div>
               </div>
 
-              {/* 4 CARDS SUPERIORES DE INDICADORES */}
+              {/* 4 CARDS SUPERIORES */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">RECEITA (NOVEMBRO)</span>
@@ -726,7 +746,7 @@
                 </div>
               </div>
 
-              {/* GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + LIVRO DE VENDAS RECENTES */}
+              {/* GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + LIVRO DE VENDAS */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* FORMULÁRIO DE NOVA VENDA */}
@@ -751,7 +771,7 @@
 
                   <form onSubmit={handleRegistrarVenda} className="space-y-3.5 relative z-10 text-xs">
                     
-                    {/* ETAPA 1: Data da Venda (DD/MM/AAAA) & DAV (4 dígitos) */}
+                    {/* Data da Venda & DAV */}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
                         <div className="flex justify-between items-center mb-1">
@@ -767,18 +787,16 @@
                             Hoje
                           </button>
                         </div>
-                        <div className="relative">
-                          <input 
-                            ref={inputDataRef}
-                            type="text" 
-                            placeholder="dd/mm/aaaa" 
-                            value={dataVenda} 
-                            onChange={e => setDataVenda(e.target.value)} 
-                            onKeyDown={e => handleKeyDown(e, inputDavRef)}
-                            className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30" 
-                            required 
-                          />
-                        </div>
+                        <input 
+                          ref={inputDataRef}
+                          type="text" 
+                          placeholder="dd/mm/aaaa" 
+                          value={dataVenda} 
+                          onChange={e => setDataVenda(e.target.value)} 
+                          onKeyDown={e => handleKeyDown(e, inputDavRef)}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30" 
+                          required 
+                        />
                       </div>
 
                       <div>
@@ -797,7 +815,7 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 2: Código do Cliente & Nome (Travado) */}
+                    {/* Código do Cliente & Busca */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="font-semibold text-slate-700">Cód. Cliente</label>
@@ -848,19 +866,19 @@
                     {/* Nome do Cliente */}
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">
-                        Nome do Cliente / Laboratório <span className="text-[10px] text-slate-400 font-normal">(Preenchimento automático)</span>
+                        Nome do Cliente / Laboratório
                       </label>
                       <input 
                         type="text" 
                         value={nomeCliente} 
                         readOnly
                         disabled
-                        placeholder="Consulte o código acima para carregar os dados..." 
+                        placeholder="Consulte o código acima para carregar..." 
                         className="w-full p-2.5 border rounded-xl bg-slate-100 font-bold text-slate-700 outline-none cursor-not-allowed" 
                       />
                     </div>
 
-                    {/* BLOCO DE DÉBITO VENCIDO / RESTRIÇÃO + AUTORIZAÇÃO GERENCIAL */}
+                    {/* BLOCO DE DÉBITO VENCIDO / RESTRIÇÃO */}
                     {clienteAtivo && (
                       analiseDebitos.temDebitoVencido ? (
                         <div className="flex flex-col gap-2 my-1">
@@ -884,7 +902,7 @@
                             </div>
 
                             <a 
-                              href="vendas.html" 
+                              href={`vendas.html?cliente=${clienteAtivo.cod}`} 
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-indigo-700 hover:bg-slate-50 shadow-xs border border-indigo-100 text-xs font-bold shrink-0 transition"
                             >
                               <i data-lucide="file-text" className="w-3.5 h-3.5"></i>
@@ -935,7 +953,7 @@
                       )
                     )}
 
-                    {/* ETAPA 3: Vendedor Responsável & Código */}
+                    {/* Vendedor Responsável & Código */}
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Cód. Vend.</label>
@@ -963,7 +981,7 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 4: Valor da Venda & Tipo de Venda */}
+                    {/* Valor da Venda & Tipo de Venda */}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Valor da Venda (R$)</label>
@@ -996,11 +1014,10 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 5: Condição / Prazo com Parcelamento Completo de até 12x */}
+                    {/* Condição / Prazo (Até 12x) */}
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
                       <select 
-                        id="select-condicao"
                         ref={selectCondicaoRef}
                         value={condicaoPrazo} 
                         onChange={e => setCondicaoPrazo(e.target.value)} 
@@ -1042,7 +1059,7 @@
                       </select>
                     </div>
 
-                    {/* ETAPA 6: Prévia Editável dos Vencimentos */}
+                    {/* Prévia Editável dos Vencimentos */}
                     {previaParcelas.length > 0 && (
                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
                         <div className="flex justify-between items-center">
@@ -1089,7 +1106,7 @@
                       </div>
                     )}
 
-                    {/* Botão de Registro de Venda */}
+                    {/* Botão de Gravação */}
                     <button 
                       ref={btnRegistrarRef}
                       type="submit" 
@@ -1143,7 +1160,7 @@
                   {loading ? (
                     <div className="py-16 text-center text-xs text-slate-400">
                       <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                      Carregando lançamentos...
+                      Carregando lançamentos do Firebase...
                     </div>
                   ) : sales.length === 0 ? (
                     <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">
@@ -1207,7 +1224,7 @@
                   )}
 
                   <div className="pt-3 border-t text-xs text-slate-400 text-right relative z-10">
-                    Mostrando os lançamentos consolidados do mês de Novembro.
+                    Mostrando lançamentos consolidados de Novembro.
                   </div>
                 </div>
 
@@ -1216,7 +1233,7 @@
             </div>
           </main>
 
-          {/* MODAL: CADASTRO DE CLIENTE INÉDITO */}
+          {/* MODAL: NOVO CLIENTE */}
           {showModalNovoCliente && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
