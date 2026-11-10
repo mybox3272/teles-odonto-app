@@ -34,7 +34,7 @@
       collection, 
       doc, 
       setDoc,
-      addDoc, 
+      addDoc,
       updateDoc, 
       onSnapshot, 
       query, 
@@ -57,7 +57,7 @@
       window.db = db;
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em index.html com alerta de débitos e fluxo por Enter!");
+      console.log("🔥 Firebase conectado em index.html com validação de débitos!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em index.html:", err);
     }
@@ -67,9 +67,9 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef } = React;
+    const { useState, useEffect, useMemo } = React;
 
-    // Componente Marca D'água do Ícone Teles Odonto
+    // Componente Vetorial do Ícone Gráfico do Dente Oficial Teles Odonto
     const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
         <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
@@ -157,20 +157,12 @@
     ];
 
     const sellersList = [
-      { cod: "1", codeVnd: "VND-01", name: "André Luiz Nóbrega Martins" },
-      { cod: "2", codeVnd: "VND-02", name: "Luis Daniel da Silva" }
+      { cod: "1", codeVnd: "VND-01", name: "André Luiz Nóbrega Martins", rate: "3.5%" },
+      { cod: "2", codeVnd: "VND-02", name: "Luis Daniel da Silva", rate: "3.0%" }
     ];
 
-    // Helper para converter data atual em formato DD/MM/AAAA
-    const getHojeBR = () => {
-      const d = new Date();
-      const dia = String(d.getDate()).padStart(2, '0');
-      const mes = String(d.getMonth() + 1).padStart(2, '0');
-      const ano = d.getFullYear();
-      return `${dia}/${mes}/${ano}`;
-    };
-
     function App() {
+      // Estado de Clientes com persistência e sincronia Firebase
       const [clients, setClients] = useState(() => {
         try {
           const saved = localStorage.getItem('neves_crm_clients');
@@ -183,52 +175,50 @@
       const [sales, setSales] = useState([]);
       const [loading, setLoading] = useState(true);
 
-      // =========================================================================
-      // ESTADOS DO FORMULÁRIO DE NOVA VENDA (INICIALIZADOS EM BRANCO)
-      // =========================================================================
-      const [dataVenda, setDataVenda] = useState('');
+      // Campos da Nova Venda
+      const [dataVenda, setDataVenda] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      });
       const [davNumber, setDavNumber] = useState('');
-      const [codClienteInput, setCodClienteInput] = useState('');
-      const [nomeCliente, setNomeCliente] = useState('');
-      const [vendedor, setVendedor] = useState('');
-      const [valorVenda, setValorVenda] = useState('');
-      const [tipoVenda, setTipoVenda] = useState('');
-      const [condicaoPrazo, setCondicaoPrazo] = useState('');
-
-      // Prévia editável das parcelas
-      const [previaParcelas, setPreviaParcelas] = useState([]);
-
+      const [codClienteInput, setCodClienteInput] = useState('104');
+      const [nomeCliente, setNomeCliente] = useState('Clínica OdontoPrime Dr. Valter');
+      const [vendedor, setVendedor] = useState(sellersList[0].name);
+      const [valorVenda, setValorVenda] = useState('1850.00');
+      const [tipoVenda, setTipoVenda] = useState('TOTAL');
+      const [condicaoPrazo, setCondicaoPrazo] = useState('2x');
       const [statusMsg, setStatusMsg] = useState('');
       const [salvandoVenda, setSalvandoVenda] = useState(false);
-      const [autorizacaoGerencia, setAutorizacaoGerencia] = useState(false);
-      const [senhaGerencial, setSenhaGerencial] = useState('');
 
-      // Modal para cliente inédito
+      // Controle de Autorização Gerencial para Débitos Vencidos
+      const [autorizacaoGerencia, setAutorizacaoGerencia] = useState(false);
+      const [justificativaLiberacao, setJustificativaLiberacao] = useState('');
+
+      // Modal de Novo Cliente Rápido caso o código não exista
       const [showModalNovoCliente, setShowModalNovoCliente] = useState(false);
       const [novoClienteForm, setNovoClienteForm] = useState({
-        cod: '', name: '', categoria: '', logradouro: 'Av.', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: ''
+        cod: '', name: '', categoria: '', logradouro: 'Av.', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: 'André Luiz Nóbrega Martins'
       });
-
-      // Referências para avanço estrito com tecla Enter (↵)
-      const inputDataRef = useRef(null);
-      const inputDavRef = useRef(null);
-      const inputCodClienteRef = useRef(null);
-      const selectVendedorRef = useRef(null);
-      const inputValorRef = useRef(null);
-      const selectTipoVendaRef = useRef(null);
-      const selectCondicaoRef = useRef(null);
-      const btnRegistrarRef = useRef(null);
 
       useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
       });
 
-      // Sincronização em tempo real com Firebase Firestore
+      // Gerador automático de DAV sugerido
+      useEffect(() => {
+        if (!davNumber) {
+          const randomDav = Math.floor(48900 + Math.random() * 100);
+          setDavNumber(String(randomDav));
+        }
+      }, [davNumber]);
+
+      // Listener Firebase Firestore para Vendas e Clientes
       useEffect(() => {
         const startListeners = () => {
           if (!window.db || !window.fb) return;
 
           try {
+            // 1. Vendas
             const vendasCol = window.fb.collection(window.db, "vendas");
             const qVendas = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
             const unsubVendas = window.fb.onSnapshot(qVendas, (snapshot) => {
@@ -237,6 +227,7 @@
               setLoading(false);
             }, () => setLoading(false));
 
+            // 2. Clientes (coleção compartilhada)
             const clientesCol = window.fb.collection(window.db, "clientes");
             const unsubClientes = window.fb.onSnapshot(clientesCol, (snapshot) => {
               if (!snapshot.empty) {
@@ -267,308 +258,110 @@
         }
       }, []);
 
-      // Cliente Ativo pelo código digitado
+      // Cliente Ativo Encontrado pela busca do Código
       const clienteAtivo = useMemo(() => {
-        if (!codClienteInput.trim()) return null;
-        return clients.find(c => String(c.cod).trim() === codClienteInput.trim()) || null;
+        if (!codClienteInput) return null;
+        return clients.find(c => String(c.cod).trim() === String(codClienteInput).trim()) || null;
       }, [clients, codClienteInput]);
 
-      // Ao encontrar o cliente, preenche o Nome (travado) e sugere o vendedor
+      // Atualiza Nome do Cliente e Vendedor ao encontrar o código
       useEffect(() => {
         if (clienteAtivo) {
           setNomeCliente(clienteAtivo.name);
-          if (clienteAtivo.vendor && !vendedor) {
-            const vMatch = sellersList.find(s => s.name.toLowerCase().includes(clienteAtivo.vendor.toLowerCase()) || clienteAtivo.vendor.toLowerCase().includes(s.name.toLowerCase()));
+          if (clienteAtivo.vendor) {
+            const vMatch = sellersList.find(s => s.name.includes(clienteAtivo.vendor) || clienteAtivo.vendor.includes(s.name));
             if (vMatch) setVendedor(vMatch.name);
           }
-        } else {
-          setNomeCliente('');
+          // Reseta a autorização ao trocar de cliente
+          setAutorizacaoGerencia(false);
+          setJustificativaLiberacao('');
         }
       }, [clienteAtivo]);
 
-      // Código do vendedor selecionado
-      const codVendedorAtual = useMemo(() => {
-        const found = sellersList.find(s => s.name === vendedor);
-        return found ? found.codeVnd : '';
-      }, [vendedor]);
-
-      // Validação de débitos do cliente ativo
+      // =========================================================================
+      // VALIDAÇÃO EM TEMPO REAL: VERIFICA SE O CLIENTE POSSUI DÉBITOS VENCIDOS
+      // =========================================================================
       const analiseDebitos = useMemo(() => {
-        if (!clienteAtivo) return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, duplicataExemplo: '4782' };
+        if (!clienteAtivo) {
+          return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, listaVencidos: [] };
+        }
 
-        const dHoje = new Date();
-        const hojeISO = `${dHoje.getFullYear()}-${String(dHoje.getMonth() + 1).padStart(2, '0')}-${String(dHoje.getDate()).padStart(2, '0')}`;
+        const hoje = new Date().toISOString().split('T')[0];
         let totalVencido = 0;
         let titulosVencidos = 0;
         let maxDiasAtraso = 0;
-        let primDav = '4782';
+        const listaVencidos = [];
 
         sales.filter(s => String(s.codCliente) === String(clienteAtivo.cod)).forEach(sale => {
           (sale.installments || []).forEach(inst => {
-            if (inst.status !== 'Pago' && inst.dueDate && inst.dueDate < hojeISO) {
+            if (inst.status !== 'Pago' && inst.dueDate && inst.dueDate < hoje) {
               const amt = Number(inst.amount) || 0;
               totalVencido += amt;
               titulosVencidos++;
-              if (sale.dav) primDav = sale.dav;
-              const diffTime = Math.abs(new Date(hojeISO) - new Date(inst.dueDate));
+              const diffTime = Math.abs(new Date(hoje) - new Date(inst.dueDate));
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
               if (diffDays > maxDiasAtraso) maxDiasAtraso = diffDays;
+
+              listaVencidos.push({
+                dav: sale.dav,
+                installmentNumber: inst.number,
+                amount: amt,
+                dueDate: inst.dueDate,
+                diffDays
+              });
             }
           });
         });
 
-        // Simulação padrão para teste caso cliente possua débitos configurados
-        if (String(clienteAtivo.cod) === '104' && titulosVencidos === 0) {
-          return { temDebitoVencido: true, totalVencido: 680.00, titulosVencidos: 1, maxDiasAtraso: 14, duplicataExemplo: '4782' };
-        }
-
-        return { 
-          temDebitoVencido: titulosVencidos > 0, 
-          totalVencido: totalVencido || 680.00, 
-          titulosVencidos: titulosVencidos || 1, 
-          maxDiasAtraso: maxDiasAtraso || 14, 
-          duplicataExemplo: primDav 
+        return {
+          temDebitoVencido: titulosVencidos > 0,
+          totalVencido,
+          titulosVencidos,
+          maxDiasAtraso,
+          listaVencidos
         };
       }, [clienteAtivo, sales]);
 
-      // =========================================================================
-      // GERADOR E RECÁLCULO AUTOMÁTICO DA PRÉVIA EDITÁVEL DE PARCELAS
-      // =========================================================================
-      useEffect(() => {
+      // Cálculo das Parcelas Automáticas
+      const parcelasCalculadas = useMemo(() => {
         const total = parseFloat(valorVenda.replace(',', '.')) || 0;
-        if (total <= 0 || !condicaoPrazo) {
-          setPreviaParcelas([]);
-          return;
-        }
+        if (total <= 0) return [];
 
-        let baseDate = new Date();
-        if (dataVenda.includes('/')) {
-          const parts = dataVenda.split('/');
-          if (parts.length === 3 && parts[2].length === 4) {
-            baseDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-          }
-        }
-
-        const formatarData = (d) => {
-          const dia = String(d.getDate()).padStart(2, '0');
-          const mes = String(d.getMonth() + 1).padStart(2, '0');
-          const ano = d.getFullYear();
-          return `${dia}/${mes}/${ano}`;
-        };
-
-        const somarDias = (d, dias) => {
-          const res = new Date(d);
-          res.setDate(res.getDate() + dias);
-          return formatarData(res);
+        const addDays = (dateStr, days) => {
+          const d = new Date(dateStr + "T12:00:00");
+          d.setDate(d.getDate() + days);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         };
 
         if (condicaoPrazo === '0') {
-          setPreviaParcelas([
-            { number: 1, amount: total, dueDate: formatarData(baseDate), status: 'Pago', paymentMethod: 'À Vista Imediato' }
-          ]);
-        } else if (condicaoPrazo === 'PROMISSORIA') {
-          setPreviaParcelas([
-            { number: 1, amount: total, dueDate: somarDias(baseDate, 30), status: 'Em aberto', paymentMethod: 'Nota Promissória' }
-          ]);
-        } else if (['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo)) {
-          const diasNum = parseInt(condicaoPrazo, 10);
-          setPreviaParcelas([
-            { number: 1, amount: total, dueDate: somarDias(baseDate, diasNum), status: 'Em aberto' }
-          ]);
+          return [{ number: 1, amount: total, dueDate: dataVenda, status: 'Em aberto' }];
+        } else if (condicaoPrazo === '1x') {
+          return [{ number: 1, amount: total, dueDate: addDays(dataVenda, 30), status: 'Em aberto' }];
         } else if (condicaoPrazo === '2x') {
           const part = parseFloat((total / 2).toFixed(2));
-          setPreviaParcelas([
-            { number: 1, amount: part, dueDate: somarDias(baseDate, 30), status: 'Em aberto' },
-            { number: 2, amount: total - part, dueDate: somarDias(baseDate, 60), status: 'Em aberto' }
-          ]);
+          return [
+            { number: 1, amount: part, dueDate: addDays(dataVenda, 30), status: 'Em aberto' },
+            { number: 2, amount: total - part, dueDate: addDays(dataVenda, 60), status: 'Em aberto' }
+          ];
         } else if (condicaoPrazo === '3x') {
           const part = parseFloat((total / 3).toFixed(2));
-          setPreviaParcelas([
-            { number: 1, amount: part, dueDate: somarDias(baseDate, 30), status: 'Em aberto' },
-            { number: 2, amount: part, dueDate: somarDias(baseDate, 60), status: 'Em aberto' },
-            { number: 3, amount: total - (part * 2), dueDate: somarDias(baseDate, 90), status: 'Em aberto' }
-          ]);
-        } else if (condicaoPrazo === '4x') {
+          return [
+            { number: 1, amount: part, dueDate: addDays(dataVenda, 30), status: 'Em aberto' },
+            { number: 2, amount: part, dueDate: addDays(dataVenda, 60), status: 'Em aberto' },
+            { number: 3, amount: total - (part * 2), dueDate: addDays(dataVenda, 90), status: 'Em aberto' }
+          ];
+        } else {
           const part = parseFloat((total / 4).toFixed(2));
-          setPreviaParcelas([
-            { number: 1, amount: part, dueDate: somarDias(baseDate, 30), status: 'Em aberto' },
-            { number: 2, amount: part, dueDate: somarDias(baseDate, 60), status: 'Em aberto' },
-            { number: 3, amount: part, dueDate: somarDias(baseDate, 90), status: 'Em aberto' },
-            { number: 4, amount: total - (part * 3), dueDate: somarDias(baseDate, 120), status: 'Em aberto' }
-          ]);
+          return [
+            { number: 1, amount: part, dueDate: addDays(dataVenda, 30), status: 'Em aberto' },
+            { number: 2, amount: part, dueDate: addDays(dataVenda, 60), status: 'Em aberto' },
+            { number: 3, amount: part, dueDate: addDays(dataVenda, 90), status: 'Em aberto' },
+            { number: 4, amount: total - (part * 3), dueDate: addDays(dataVenda, 120), status: 'Em aberto' }
+          ];
         }
       }, [valorVenda, condicaoPrazo, dataVenda]);
 
-      const handleAtualizarParcelaPrevia = (index, campo, valor) => {
-        setPreviaParcelas(prev => {
-          const copy = [...prev];
-          copy[index] = { ...copy[index], [campo]: valor };
-          return copy;
-        });
-      };
-
-      // Navegação sequencial com Enter
-      const handleKeyDown = (e, proximoRef) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (proximoRef && proximoRef.current) {
-            proximoRef.current.focus();
-          }
-        }
-      };
-
-      // Submissão da Nova Venda
-      const handleRegistrarVenda = async (e) => {
-        if (e) e.preventDefault();
-
-        if (!dataVenda) {
-          alert("Informe a Data da Venda.");
-          inputDataRef.current?.focus();
-          return;
-        }
-
-        if (!davNumber || davNumber.length !== 4) {
-          alert("O número do DAV deve conter exatamente 4 dígitos.");
-          inputDavRef.current?.focus();
-          return;
-        }
-
-        if (!codClienteInput || !clienteAtivo) {
-          alert("Informe um Código de Cliente válido ou utilize a opção de cadastrar código inédito.");
-          inputCodClienteRef.current?.focus();
-          return;
-        }
-
-        if (!vendedor) {
-          alert("Selecione o Vendedor Responsável.");
-          selectVendedorRef.current?.focus();
-          return;
-        }
-
-        const valorNum = parseFloat(valorVenda.replace(',', '.'));
-        if (!valorNum || valorNum <= 0) {
-          alert("Informe um valor de venda válido.");
-          inputValorRef.current?.focus();
-          return;
-        }
-
-        if (!tipoVenda) {
-          alert("Selecione o Tipo de Venda (TOTAL, PARCIAL ou DENTISTAS).");
-          selectTipoVendaRef.current?.focus();
-          return;
-        }
-
-        if (!condicaoPrazo) {
-          alert("Selecione a Condição / Prazo.");
-          selectCondicaoRef.current?.focus();
-          return;
-        }
-
-        // Validação de restrição de inadimplência
-        if (analiseDebitos.temDebitoVencido && !autorizacaoGerencia) {
-          alert(`⛔ BLOQUEIO DE CRÉDITO:\n\nO cliente #${clienteAtivo.cod} possui débitos vencidos.\n\nPara prosseguir com a venda, marque a caixa de autorização excepcional com aprovação gerencial.`);
-          return;
-        }
-
-        setSalvandoVenda(true);
-        setStatusMsg('Gravando venda no Firebase Firestore...');
-
-        let dataIso = new Date().toISOString().split('T')[0];
-        if (dataVenda.includes('/')) {
-          const p = dataVenda.split('/');
-          if (p.length === 3) dataIso = `${p[2]}-${p[1]}-${p[0]}`;
-        }
-
-        const novaVendaDoc = {
-          dav: davNumber,
-          date: dataIso,
-          dateDisplay: dataVenda,
-          codCliente: codClienteInput,
-          client: clienteAtivo.name,
-          salesperson: vendedor,
-          salespersonCode: codVendedorAtual,
-          amount: valorNum,
-          tipoVenda: tipoVenda,
-          prazo: condicaoPrazo,
-          installments: previaParcelas.map(p => ({
-            number: p.number,
-            amount: Number(p.amount) || (valorNum / previaParcelas.length),
-            dueDate: p.dueDate,
-            status: p.status || (condicaoPrazo === '0' ? 'Pago' : 'Em aberto'),
-            paymentMethod: p.paymentMethod || (condicaoPrazo === '0' ? 'À Vista Imediato' : condicaoPrazo === 'PROMISSORIA' ? 'Nota Promissória' : 'Boleto/Carteira')
-          })),
-          isPaid: condicaoPrazo === '0',
-          liberacaoExcepcional: analiseDebitos.temDebitoVencido ? {
-            autorizadoPorGerencia: true,
-            senhaTokenInformado: !!senhaGerencial,
-            debitoExistenteNaData: analiseDebitos.totalVencido
-          } : null,
-          criadoEm: new Date().toISOString()
-        };
-
-        try {
-          if (window.db && window.fb) {
-            await window.fb.addDoc(window.fb.collection(window.db, "vendas"), novaVendaDoc);
-          } else {
-            setSales(prev => [novaVendaDoc, ...prev]);
-          }
-
-          setStatusMsg(`✅ Venda DAV #${novaVendaDoc.dav} registrada com sucesso!`);
-          
-          // Reseta formulário
-          setDataVenda('');
-          setDavNumber('');
-          setCodClienteInput('');
-          setNomeCliente('');
-          setVendedor('');
-          setValorVenda('');
-          setTipoVenda('');
-          setCondicaoPrazo('');
-          setPreviaParcelas([]);
-          setAutorizacaoGerencia(false);
-          setSenhaGerencial('');
-          
-          inputDataRef.current?.focus();
-          setTimeout(() => setStatusMsg(''), 5000);
-        } catch (err) {
-          console.error("Erro ao salvar:", err);
-          setStatusMsg(`❌ Erro ao gravar: ${err.message}`);
-        } finally {
-          setSalvandoVenda(false);
-        }
-      };
-
-      // Cadastro de código inédito
-      const handleSalvarClienteInedito = async (e) => {
-        e.preventDefault();
-        if (!novoClienteForm.cod || !novoClienteForm.name) {
-          alert("Código e Nome são obrigatórios!");
-          return;
-        }
-
-        const clientDoc = {
-          ...novoClienteForm,
-          cod: String(novoClienteForm.cod).trim()
-        };
-
-        setClients(prev => [...prev.filter(c => String(c.cod) !== clientDoc.cod), clientDoc]);
-        setCodClienteInput(clientDoc.cod);
-        setNomeCliente(clientDoc.name);
-        if (clientDoc.vendor) setVendedor(clientDoc.vendor);
-
-        if (window.db && window.fb) {
-          try {
-            await window.fb.setDoc(window.fb.doc(window.db, "clientes", clientDoc.cod), clientDoc, { merge: true });
-          } catch (err) {
-            console.error("Erro ao gravar cliente:", err);
-          }
-        }
-
-        setShowModalNovoCliente(false);
-        setTimeout(() => selectVendedorRef.current?.focus(), 150);
-      };
-
-      // KPIs do Dashboard
+      // KPIs do Dashboard Inicial
       const dashboardKPIs = useMemo(() => {
         let recMes = 0;
         let aReceberMes = 0;
@@ -588,16 +381,107 @@
         return { recMes, aReceberMes, totalPedidos, ticketMedio, clientesAtivos: clientesSet.size };
       }, [sales]);
 
+      // Gravação do DAV no Firebase com validação de Débitos
+      const handleRegistrarVenda = async (e) => {
+        e.preventDefault();
+
+        // 1. Bloqueio por inadimplência
+        if (analiseDebitos.temDebitoVencido && !autorizacaoGerencia) {
+          alert(`⛔ BLOQUEIO DE CRÉDITO:\n\nO cliente #${clienteAtivo.cod} possui R$ ${analiseDebitos.totalVencido.toFixed(2)} em parcelas vencidas (${analiseDebitos.titulosVencidos} título(s) em atraso há ${analiseDebitos.maxDiasAtraso} dias).\n\nPara prosseguir, marque a opção de autorização gerencial excepcional no formulário.`);
+          return;
+        }
+
+        const valorNum = parseFloat(valorVenda.replace(',', '.'));
+        if (!valorNum || valorNum <= 0) {
+          alert("Informe um valor válido de venda.");
+          return;
+        }
+
+        setSalvandoVenda(true);
+        setStatusMsg('Gravando venda no Firebase Firestore...');
+
+        const novaVendaDoc = {
+          dav: davNumber || String(Math.floor(48000 + Math.random() * 2000)),
+          date: dataVenda,
+          codCliente: codClienteInput || '0',
+          client: nomeCliente || 'Cliente Balcão',
+          salesperson: vendedor,
+          amount: valorNum,
+          tipoVenda: tipoVenda,
+          prazo: condicaoPrazo,
+          installments: parcelasCalculadas,
+          isPaid: false,
+          liberacaoExcepcional: analiseDebitos.temDebitoVencido ? {
+            autorizadoPorGerencia: true,
+            justificativa: justificativaLiberacao || 'Aprovado pelo operador comercial',
+            debitoExistenteNaData: analiseDebitos.totalVencido
+          } : null,
+          criadoEm: new Date().toISOString()
+        };
+
+        try {
+          if (window.db && window.fb) {
+            await window.fb.addDoc(window.fb.collection(window.db, "vendas"), novaVendaDoc);
+          } else {
+            setSales(prev => [novaVendaDoc, ...prev]);
+          }
+
+          setStatusMsg(`✅ Venda DAV #${novaVendaDoc.dav} gravada com sucesso!`);
+          setDavNumber(String(Math.floor(48900 + Math.random() * 100)));
+          setValorVenda('');
+          setAutorizacaoGerencia(false);
+          setJustificativaLiberacao('');
+          setTimeout(() => setStatusMsg(''), 5000);
+        } catch (err) {
+          console.error("Erro ao salvar:", err);
+          setStatusMsg(`❌ Erro ao gravar: ${err.message}`);
+        } finally {
+          setSalvandoVenda(false);
+        }
+      };
+
+      // Salvar Novo Cliente Rápido caso o código seja inédito
+      const handleSalvarNovoClienteRapido = async (e) => {
+        e.preventDefault();
+        if (!novoClienteForm.cod || !novoClienteForm.name) {
+          alert("Código e Nome são obrigatórios!");
+          return;
+        }
+
+        const cData = {
+          ...novoClienteForm,
+          cod: String(novoClienteForm.cod)
+        };
+
+        setClients(prev => [...prev.filter(c => String(c.cod) !== cData.cod), cData]);
+        setCodClienteInput(cData.cod);
+        setNomeCliente(cData.name);
+
+        if (window.db && window.fb) {
+          try {
+            await window.fb.setDoc(window.fb.doc(window.db, "clientes", cData.cod), cData, { merge: true });
+          } catch (err) {
+            console.error("Erro ao gravar cliente:", err);
+          }
+        }
+
+        setShowModalNovoCliente(false);
+        alert(`✅ Cliente #${cData.cod} cadastrado com sucesso!`);
+      };
+
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* MENU LATERAL ESCURO (SIDEBAR #1a202c) */}
+          {/* MENU LATERAL ESCURO (SIDEBAR #1a202c / bg-slate-900) */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-slate-300 flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden">
+            
+            {/* MARCA D'ÁGUA INFERIOR */}
             <div className="absolute -bottom-12 -right-12 pointer-events-none text-white opacity-[0.06] w-72 h-72">
               <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
+              {/* TOPO: LOGO OFICIAL TELES ODONTO + NEVES PRO CRM */}
               <div className="p-5 border-b border-slate-800">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-indigo-400/20">
@@ -613,6 +497,7 @@
                 </div>
               </div>
 
+              {/* NAVEGAÇÃO COMERCIAL */}
               <div className="px-4 py-5">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2.5">
                   NAVEGAÇÃO COMERCIAL
@@ -643,6 +528,7 @@
               </div>
             </div>
 
+            {/* CARD DE OPERADOR */}
             <div className="p-4 border-t border-slate-800 relative z-10 space-y-3">
               <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex items-center gap-3 shadow-inner">
                 <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center text-xs font-bold shrink-0">
@@ -650,13 +536,13 @@
                 </div>
                 <div className="truncate">
                   <p className="text-xs font-bold text-slate-200 leading-tight">Operador Comercial</p>
-                  <p className="text-[10px] text-slate-400 truncate">operador@salespro.com</p>
+                  <p className="text-[10px] text-slate-400 truncate">operador@nevespro.com</p>
                 </div>
               </div>
 
               <div className="text-[9px] text-slate-500 text-center leading-tight">
-                <p>© 2026 SalesPro CRM</p>
-                <p className="text-indigo-400 font-semibold mt-0.5">Teles Odonto</p>
+                <p>Neves Pro CRM, Todos os Direitos Reservado</p>
+                <p className="text-indigo-400 font-semibold mt-0.5">Por Daniel Silva</p>
               </div>
             </div>
           </aside>
@@ -667,10 +553,10 @@
             {/* TOPBAR */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span className="font-bold text-slate-800">SalesPro</span>
+                <span className="font-bold text-slate-800">Neves Pro CRM</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                  Módulo Ativo
+                  Painel Inicial & Lançamento de DAV
                 </span>
               </div>
 
@@ -735,9 +621,7 @@
               {/* GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + LIVRO DE VENDAS RECENTES */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                {/* ========================================================================= */}
-                {/* FORMULÁRIO DE NOVA VENDA COM FLUXO GUIADO POR ENTER (↵)                  */}
-                {/* ========================================================================= */}
+                {/* FORMULÁRIO DE NOVA VENDA (COLUNA 5) */}
                 <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
                   <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
                     <ToothWatermark className="w-full h-full text-slate-900" />
@@ -748,70 +632,45 @@
                       <i data-lucide="shopping-bag" className="w-4 h-4 text-indigo-700"></i>
                       Nova Venda
                     </h3>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md border flex items-center gap-1">
-                        <span>Pressione</span>
-                        <kbd className="bg-white px-1 py-0.2 rounded border shadow-2xs font-mono font-bold">↵ Enter</kbd>
-                        <span>p/ avançar</span>
-                      </span>
-                    </div>
+                    <span className="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100 uppercase">
+                      Lançamento DAV
+                    </span>
                   </div>
 
                   <form onSubmit={handleRegistrarVenda} className="space-y-3.5 relative z-10 text-xs">
                     
-                    {/* ETAPA 1: Data da Venda (DD/MM/AAAA) & DAV (4 dígitos) */}
+                    {/* Linha 1: Data e DAV */}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="font-semibold text-slate-600">Data da Venda</label>
-                          <button 
-                            type="button" 
-                            onClick={() => {
-                              setDataVenda(getHojeBR());
-                              inputDavRef.current?.focus();
-                            }}
-                            className="text-[10px] text-indigo-600 hover:underline font-bold"
-                          >
-                            Hoje
-                          </button>
-                        </div>
-                        <div className="relative">
-                          <input 
-                            ref={inputDataRef}
-                            type="text" 
-                            placeholder="dd/mm/aaaa" 
-                            value={dataVenda} 
-                            onChange={e => setDataVenda(e.target.value)} 
-                            onKeyDown={e => handleKeyDown(e, inputDavRef)}
-                            className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30" 
-                            required 
-                          />
-                        </div>
+                        <label className="font-semibold text-slate-600 block mb-1">Data da Venda</label>
+                        <input 
+                          type="date" 
+                          value={dataVenda} 
+                          onChange={e => setDataVenda(e.target.value)} 
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
+                          required 
+                        />
                       </div>
-
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">DAV (Nº Pedido)</label>
                         <input 
-                          ref={inputDavRef}
                           type="text" 
-                          maxLength="4"
-                          placeholder="Ex: 4892" 
                           value={davNumber} 
-                          onChange={e => setDavNumber(e.target.value.replace(/\D/g, '').slice(0, 4))} 
-                          onKeyDown={e => handleKeyDown(e, inputCodClienteRef)}
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30 font-mono" 
+                          onChange={e => setDavNumber(e.target.value)} 
+                          placeholder="Ex: 48922" 
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold outline-none font-mono" 
                           required 
                         />
                       </div>
                     </div>
 
-                    {/* ETAPA 2: Código do Cliente & Nome (Bloqueado/Travado) */}
+                    {/* Linha 2: Busca por Código do Cliente */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="font-semibold text-slate-700">Cód. Cliente</label>
                         {clienteAtivo ? (
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <span>✓ Cliente Encontrado</span>
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                            ✓ Cliente Cadastrado
                           </span>
                         ) : (
                           <button 
@@ -822,30 +681,17 @@
                             }}
                             className="text-[10px] text-indigo-700 font-bold hover:underline flex items-center gap-1"
                           >
-                            <i data-lucide="user-plus" className="w-3 h-3"></i>
-                            <span>Novo</span>
+                            <span>+ Cadastrar Cliente</span>
                           </button>
                         )}
                       </div>
 
                       <div className="relative">
                         <input 
-                          ref={inputCodClienteRef}
                           type="text" 
-                          placeholder="Digite o código (ex: CLI-104)..." 
+                          placeholder="Digite o código (ex: 2, 4, 104)..." 
                           value={codClienteInput} 
                           onChange={e => setCodClienteInput(e.target.value)} 
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              if (!clienteAtivo && codClienteInput.trim()) {
-                                setNovoClienteForm(f => ({ ...f, cod: codClienteInput }));
-                                setShowModalNovoCliente(true);
-                              } else {
-                                selectVendedorRef.current?.focus();
-                              }
-                            }
-                          }}
                           className="w-full p-2.5 pl-8 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30 font-mono" 
                           required 
                         />
@@ -853,154 +699,171 @@
                       </div>
                     </div>
 
-                    {/* Nome do Cliente (TRAVADO conforme banco de dados) */}
+                    {/* Nome do Cliente */}
                     <div>
-                      <label className="font-semibold text-slate-600 block mb-1">
-                        Nome do Cliente / Laboratório <span className="text-[10px] text-slate-400 font-normal">(Preenchimento automático)</span>
-                      </label>
+                      <label className="font-semibold text-slate-600 block mb-1">Nome do Cliente / Laboratório</label>
                       <input 
                         type="text" 
                         value={nomeCliente} 
-                        readOnly
-                        disabled
-                        placeholder="Consulte o código acima para carregar os dados..." 
-                        className="w-full p-2.5 border rounded-xl bg-slate-100 font-bold text-slate-700 outline-none cursor-not-allowed" 
+                        onChange={e => setNomeCliente(e.target.value)} 
+                        placeholder="Nome completo ou Razão Social" 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-800 outline-none" 
+                        required 
                       />
                     </div>
 
-                    {/* ========================================================================= */}
-                    {/* BLOCO EXATO DA IMAGEM: DÉBITO VENCIDO / RESTRIÇÃO + AUTORIZAÇÃO GERENCIAL */}
-                    {/* ========================================================================= */}
+                    {/* ======================================================== */}
+                    {/* CARD DETALHADO DOS CAMPOS CADASTRAIS DO CLIENTE          */}
+                    {/* ======================================================== */}
+                    {clienteAtivo && (
+                      <div className="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl space-y-2 text-[11px] shadow-2xs">
+                        
+                        {/* Categoria e Área Comercial */}
+                        <div className="flex items-center justify-between">
+                          <span className="bg-indigo-700 text-white font-bold px-2 py-0.5 rounded-md text-[10px] flex items-center gap-1">
+                            <i data-lucide="tag" className="w-3 h-3"></i>
+                            <span>{clienteAtivo.categoria || 'Laboratório Dental'}</span>
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-semibold">
+                            Área: <b className="text-slate-800">{clienteAtivo.area || 'Metropolitana'}</b>
+                          </span>
+                        </div>
+
+                        {/* Telefone e Contato */}
+                        <div className="flex items-center justify-between text-slate-700 pt-1 border-t border-indigo-100/70">
+                          <span className="flex items-center gap-1 font-semibold">
+                            <i data-lucide="phone" className="w-3 h-3 text-indigo-600"></i>
+                            <span>{clienteAtivo.ddd && clienteAtivo.telefone ? `(${clienteAtivo.ddd}) ${clienteAtivo.telefone}` : (clienteAtivo.telefone || 'Sem telefone')}</span>
+                          </span>
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">
+                            WhatsApp
+                          </span>
+                        </div>
+
+                        {/* Endereço Completo */}
+                        <div className="flex items-start gap-1.5 text-slate-600 pt-0.5">
+                          <i data-lucide="map-pin" className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5"></i>
+                          <span className="leading-tight">
+                            {clienteAtivo.endereco 
+                              ? `${clienteAtivo.logradouro || ''} ${clienteAtivo.endereco}, ${clienteAtivo.numero || 'S/N'} - ${clienteAtivo.bairro || ''}, ${clienteAtivo.cidade || 'Fortaleza'}/${clienteAtivo.uf || 'CE'}` 
+                              : 'Endereço não cadastrado'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ======================================================== */}
+                    {/* ALERTA DE DÉBITOS VENCIDOS / TRAVA DE INADIMPLÊNCIA      */}
+                    {/* ======================================================== */}
                     {clienteAtivo && (
                       analiseDebitos.temDebitoVencido ? (
-                        <div className="flex flex-col gap-2 my-1">
-                          
-                          {/* Card Rosado Suave de Restrição com Badge Vinho e Botão Ver Extrato */}
-                          <div className="p-3.5 rounded-2xl bg-[#fee2e2]/80 border border-[#fca5a5]/70 shadow-sm flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-2.5">
-                              <span className="text-[#991b1b] text-xl font-bold leading-none mt-0.5">⚠️</span>
-                              <div>
-                                <div className="flex items-center flex-wrap gap-2">
-                                  <span className="text-xs font-black text-[#991b1b] uppercase tracking-tight">
-                                    DÉBITO VENCIDO / RESTRIÇÃO
-                                  </span>
-                                  <span className="px-2 py-0.5 rounded bg-[#991b1b] text-white text-[10px] font-bold tracking-wide shadow-xs">
-                                    {analiseDebitos.titulosVencidos} título em atraso
-                                  </span>
-                                </div>
-                                <p className="text-xs text-[#7f1d1d] font-semibold mt-1">
-                                  R$ {analiseDebitos.totalVencido.toFixed(2)} vencido há {analiseDebitos.maxDiasAtraso} dias (Duplicata #{analiseDebitos.duplicataExemplo})
-                                </p>
-                              </div>
+                        <div className="p-3.5 bg-rose-50 border-2 border-rose-300 rounded-2xl space-y-2.5">
+                          <div className="flex items-start gap-2 text-rose-800">
+                            <div className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center shrink-0 font-bold text-xs">
+                              ⚠
                             </div>
+                            <div>
+                              <p className="font-extrabold text-xs text-rose-900 leading-tight">
+                                BLOQUEIO COMERCIAL: Possui Débitos Vencidos!
+                              </p>
+                              <p className="text-[11px] text-rose-700 mt-0.5">
+                                Total em atraso: <b className="text-rose-900 font-black">R$ {analiseDebitos.totalVencido.toFixed(2)}</b> ({analiseDebitos.titulosVencidos} título(s) vencido(s) há até {analiseDebitos.maxDiasAtraso} dias).
+                              </p>
+                            </div>
+                          </div>
 
+                          {/* Link para a página de vendas e cobrança */}
+                          <div className="flex justify-between items-center text-[10px] border-t border-rose-200/80 pt-1.5">
+                            <span className="text-rose-600 font-semibold">Regularize via Amortização FIFO</span>
                             <a 
                               href="vendas.html" 
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-indigo-700 hover:bg-slate-50 shadow-xs border border-indigo-100 text-xs font-bold shrink-0 transition"
+                              className="font-bold text-rose-700 underline hover:text-rose-900 flex items-center gap-0.5"
                             >
-                              <i data-lucide="file-text" className="w-3.5 h-3.5"></i>
-                              <span>Ver Extrato</span>
+                              <span>Ver Extrato do Cliente &gt;</span>
                             </a>
                           </div>
 
-                          {/* Caixa de Autorização com Senha/Token */}
-                          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <label className="flex items-center gap-2 cursor-pointer select-none">
-                                <input 
-                                  type="checkbox" 
-                                  checked={autorizacaoGerencia} 
-                                  onChange={e => setAutorizacaoGerencia(e.target.checked)} 
-                                  className="w-4 h-4 rounded text-indigo-700 border-slate-300 focus:ring-indigo-600 cursor-pointer" 
-                                />
-                                <span className="text-xs font-extrabold text-slate-800">
-                                  Autorizar venda excepcional com aprovação gerencial
-                                </span>
-                              </label>
-                              <span className="text-[11px] text-slate-400 font-medium">Exige senha/token</span>
-                            </div>
+                          {/* Checkbox de Liberação Excepcional */}
+                          <div className="bg-white p-2.5 rounded-xl border border-rose-200 space-y-1.5">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={autorizacaoGerencia} 
+                                onChange={e => setAutorizacaoGerencia(e.target.checked)} 
+                                className="w-4 h-4 text-rose-600 rounded" 
+                              />
+                              <span className="font-extrabold text-rose-900 text-[11px]">
+                                Liberar venda excepcional com autorização gerencial
+                              </span>
+                            </label>
 
                             {autorizacaoGerencia && (
-                              <div className="pt-2 border-t border-slate-200 flex gap-2 items-center animate-in fade-in duration-150">
-                                <input 
-                                  type="password" 
-                                  placeholder="Digite a senha ou token gerencial..." 
-                                  value={senhaGerencial} 
-                                  onChange={e => setSenhaGerencial(e.target.value)} 
-                                  className="flex-1 p-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold outline-none" 
-                                />
-                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">
-                                  Autorizado
-                                </span>
-                              </div>
+                              <input 
+                                type="text" 
+                                placeholder="Informe o motivo / nome de quem autorizou..." 
+                                value={justificativaLiberacao} 
+                                onChange={e => setJustificativaLiberacao(e.target.value)} 
+                                className="w-full p-2 border rounded-lg bg-rose-50 text-[11px] outline-none font-medium" 
+                              />
                             )}
                           </div>
-
                         </div>
                       ) : (
-                        <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px] text-emerald-800">
+                        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px] text-emerald-800">
                           <span className="font-bold flex items-center gap-1.5">
-                            <i data-lucide="check-circle" className="w-3.5 h-3.5 text-emerald-600"></i>
+                            <i data-lucide="check-circle" className="w-4 h-4 text-emerald-600"></i>
                             Crédito Liberado • Sem débitos vencidos
+                          </span>
+                          <span className="text-[10px] font-bold bg-emerald-100 px-2 py-0.5 rounded-md text-emerald-900">
+                            Aprovado
                           </span>
                         </div>
                       )
                     )}
 
-                    {/* ETAPA 3: Vendedor Responsável & Código Automático */}
+                    {/* Vendedor Responsável */}
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Cód. Vend.</label>
                         <input 
                           type="text" 
-                          value={codVendedorAtual} 
+                          value={sellersList.find(s => s.name === vendedor)?.codeVnd || 'VND-01'} 
                           disabled 
-                          placeholder="VND-00"
-                          className="w-full p-2.5 border rounded-xl bg-slate-100 text-slate-500 font-bold text-center font-mono" 
+                          className="w-full p-2.5 border rounded-xl bg-slate-100 text-slate-500 font-bold text-center" 
                         />
                       </div>
                       <div className="col-span-2">
                         <label className="font-semibold text-slate-600 block mb-1">Vendedor Responsável</label>
                         <select 
-                          ref={selectVendedorRef}
                           value={vendedor} 
                           onChange={e => setVendedor(e.target.value)} 
-                          onKeyDown={e => handleKeyDown(e, inputValorRef)}
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-600/30"
-                          required
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none"
                         >
-                          <option value="">Selecione o vendedor...</option>
                           {sellersList.map(s => <option key={s.cod} value={s.name}>{s.name}</option>)}
                         </select>
                       </div>
                     </div>
 
-                    {/* ETAPA 4: Valor da Venda (R$) & Tipo de Venda */}
+                    {/* Valor e Tipo de Venda */}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Valor da Venda (R$)</label>
                         <input 
-                          ref={inputValorRef}
                           type="text" 
                           value={valorVenda} 
                           onChange={e => setValorVenda(e.target.value)} 
-                          onKeyDown={e => handleKeyDown(e, selectTipoVendaRef)}
-                          placeholder="R$ 0,00" 
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-black text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30 text-sm" 
+                          placeholder="0.00" 
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-black text-slate-900 outline-none text-sm" 
                           required 
                         />
                       </div>
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Tipo de Venda</label>
                         <select 
-                          ref={selectTipoVendaRef}
                           value={tipoVenda} 
                           onChange={e => setTipoVenda(e.target.value)} 
-                          onKeyDown={e => handleKeyDown(e, selectCondicaoRef)}
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-600/30"
-                          required
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none"
                         >
-                          <option value="">Selecione o tipo...</option>
                           <option value="TOTAL">TOTAL (Completa)</option>
                           <option value="PARCIAL">PARCIAL (Taxa Reduzida)</option>
                           <option value="DENTISTAS">DENTISTAS (Especial)</option>
@@ -1008,98 +871,48 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 5: Condição / Prazo com opções operacionais */}
+                    {/* Condição / Prazo */}
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
                       <select 
-                        ref={selectCondicaoRef}
                         value={condicaoPrazo} 
                         onChange={e => setCondicaoPrazo(e.target.value)} 
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            btnRegistrarRef.current?.focus();
-                          }
-                        }}
-                        className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-600/30"
-                        required
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none"
                       >
-                        <option value="">Selecione a condição ou prazo...</option>
-                        <optgroup label="À Vista & Conta Corrente">
-                          <option value="0">0 - À Vista (Baixa imediata no caixa)</option>
-                          <option value="PROMISSORIA">PROMISSÓRIA (Saldo devedor em carteira)</option>
-                        </optgroup>
-                        <optgroup label="Prazos Específicos em Dias">
-                          <option value="1">1 dia útil</option>
-                          <option value="7">7 dias corridos</option>
-                          <option value="10">10 dias corridos</option>
-                          <option value="15">15 dias corridos</option>
-                          <option value="20">20 dias corridos</option>
-                          <option value="30">30 dias corridos (1 Parcela)</option>
-                        </optgroup>
-                        <optgroup label="Parcelamentos Programados">
-                          <option value="2x">Parcelado em 2x (30 / 60 dias)</option>
-                          <option value="3x">Parcelado em 3x (30 / 60 / 90 dias)</option>
-                          <option value="4x">Parcelado em 4x (30 / 60 / 90 / 120 dias)</option>
-                        </optgroup>
+                        <option value="0">À Vista / Boleto Imediato</option>
+                        <option value="1x">30 dias (1 Parcela)</option>
+                        <option value="2x">Parcelado em 2x (30 / 60 dias)</option>
+                        <option value="3x">Parcelado em 3x (30 / 60 / 90 dias)</option>
+                        <option value="4x">Parcelado em 4x (30 / 60 / 90 / 120 dias)</option>
                       </select>
                     </div>
 
-                    {/* ETAPA 6: Prévia Editável dos Vencimentos */}
-                    {previaParcelas.length > 0 && (
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1">
-                            <i data-lucide="calendar-check" className="w-3.5 h-3.5 text-indigo-600"></i>
-                            Prévia e Cálculo de Vencimento
-                          </span>
-                          <span className="text-[10px] font-bold text-indigo-700">
-                            Total: R$ {valorVenda}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar">
-                          {previaParcelas.map((p, idx) => (
-                            <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 text-[11px]">
-                              <span className="font-bold text-slate-700 w-16 shrink-0">
-                                Parc. {p.number}:
-                              </span>
-                              <div className="flex-1">
-                                <input 
-                                  type="text" 
-                                  value={p.dueDate} 
-                                  onChange={e => handleAtualizarParcelaPrevia(idx, 'dueDate', e.target.value)}
-                                  placeholder="DD/MM/AAAA"
-                                  className="w-full p-1 border rounded bg-slate-50 font-semibold outline-none text-center" 
-                                />
-                              </div>
-                              <div className="w-24">
-                                <input 
-                                  type="number" 
-                                  step="0.01"
-                                  value={p.amount} 
-                                  onChange={e => handleAtualizarParcelaPrevia(idx, 'amount', parseFloat(e.target.value) || 0)}
-                                  className="w-full p-1 border rounded bg-slate-50 font-black outline-none text-right" 
-                                />
-                              </div>
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${p.status === 'Pago' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                                {p.status}
-                              </span>
+                    {/* Prévia Automática das Parcelas */}
+                    {parcelasCalculadas.length > 0 && (
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                          <i data-lucide="info" className="w-3 h-3 text-indigo-600"></i>
+                          Previsão de Parcelamento Automático ({parcelasCalculadas.length}x)
+                        </span>
+                        <div className="space-y-1 max-h-28 overflow-y-auto custom-scrollbar">
+                          {parcelasCalculadas.map((p, i) => (
+                            <div key={i} className="flex justify-between items-center text-[11px] bg-white p-1.5 rounded-lg border border-slate-100">
+                              <span className="text-slate-600 font-medium">Parcela {p.number} (Venc: {p.dueDate})</span>
+                              <b className="text-slate-900 font-bold">R$ {p.amount.toFixed(2)}</b>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Botão de Registro de Venda */}
+                    {/* Botão de Registro com Bloqueio de Segurança */}
                     <button 
-                      ref={btnRegistrarRef}
                       type="submit" 
                       disabled={salvandoVenda || (analiseDebitos.temDebitoVencido && !autorizacaoGerencia)}
                       className={`w-full font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
                         analiseDebitos.temDebitoVencido && !autorizacaoGerencia
                           ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-not-allowed opacity-90'
-                          : 'bg-indigo-700 hover:bg-indigo-800 text-white focus:ring-4 focus:ring-indigo-300'
+                          : 'bg-indigo-700 hover:bg-indigo-800 text-white'
                       }`}
                     >
                       {salvandoVenda ? (
@@ -1107,11 +920,7 @@
                       ) : analiseDebitos.temDebitoVencido && !autorizacaoGerencia ? (
                         <span>⛔ Bloqueado: Exige Autorização</span>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <i data-lucide="check" className="w-4 h-4"></i>
-                          <span>Registrar Venda</span>
-                          <kbd className="bg-indigo-800/80 text-[10px] px-1.5 py-0.5 rounded border border-indigo-500 font-mono">↵ Enter</kbd>
-                        </div>
+                        <span>✓ Registrar Venda</span>
                       )}
                     </button>
                   </form>
@@ -1172,7 +981,7 @@
                             return (
                               <tr key={sale.id || sale.dav} className="hover:bg-slate-50 transition">
                                 <td className="py-3 px-3">
-                                  <span className="font-bold text-slate-800 block">{sale.dateDisplay || sale.date}</span>
+                                  <span className="font-bold text-slate-800 block">{sale.date}</span>
                                   <span className="text-[10px] text-indigo-700 font-mono">DAV #{sale.dav}</span>
                                 </td>
                                 <td className="py-3 px-3 max-w-[160px]">
@@ -1218,26 +1027,24 @@
             </div>
           </main>
 
-          {/* ======================================================== */}
-          {/* MODAL: CADASTRO DE CLIENTE COM CÓDIGO INÉDITO           */}
-          {/* ======================================================== */}
+          {/* MODAL: CADASTRO RÁPIDO DE CLIENTE */}
           {showModalNovoCliente && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
                 <div className="flex justify-between items-center border-b pb-2">
                   <h4 className="font-bold text-base text-slate-900 flex items-center gap-2">
                     <i data-lucide="user-plus" className="w-5 h-5 text-indigo-700"></i>
-                    <span>Cadastrar Código Inédito #{novoClienteForm.cod}</span>
+                    <span>Cadastrar Cliente #{novoClienteForm.cod}</span>
                   </h4>
                   <button onClick={() => setShowModalNovoCliente(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
                 </div>
 
-                <form onSubmit={handleSalvarClienteInedito} className="space-y-3 text-xs">
+                <form onSubmit={handleSalvarNovoClienteRapido} className="space-y-3 text-xs">
                   <div>
                     <label className="font-semibold text-slate-700 block mb-1">Nome / Razão Social *</label>
                     <input 
                       type="text" 
-                      placeholder="Ex: Laboratório Dental Especial" 
+                      placeholder="Ex: Laboratório Dental Central" 
                       value={novoClienteForm.name} 
                       onChange={e => setNovoClienteForm({ ...novoClienteForm, name: e.target.value })} 
                       className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
@@ -1303,7 +1110,7 @@
                       type="submit" 
                       className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow"
                     >
-                      Salvar e Prosseguir (↵)
+                      Salvar e Selecionar
                     </button>
                   </div>
                 </form>
