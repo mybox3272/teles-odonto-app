@@ -58,7 +58,7 @@
       window.db = db;
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em vendas.html com parcelas corrigidas!");
+      console.log("🔥 Firebase conectado em vendas.html sem mocks fictícios!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em vendas.html:", err);
     }
@@ -70,6 +70,11 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
+    const formatBRL = (val) => {
+      const n = Number(val) || 0;
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+
     // Componente Marca D'água Teles Odonto
     const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
       <svg viewBox="0 0 100 120" className={className} fill="currentColor">
@@ -80,7 +85,7 @@
     );
 
     // =========================================================================
-    // FUNÇÃO ROBUSTA DE VERIFICAÇÃO DE STATUS DE PARCELA (CORREÇÃO DE DATAS)
+    // VERIFICAÇÃO PRECISA DE DATAS (SEM FALSO POSITIVO DE ATRASO)
     // =========================================================================
     const verificarStatusParcela = (dueDateStr, statusAtual) => {
       if (statusAtual === 'Pago') {
@@ -116,7 +121,6 @@
         return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
       }
 
-      // Se a data for hoje ou futura, está À VENCER
       if (dataVenc >= hoje) {
         const diffMs = dataVenc.getTime() - hoje.getTime();
         const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -128,7 +132,6 @@
         };
       }
 
-      // Se venceu antes de hoje, calcula o atraso real
       const atrasoMs = hoje.getTime() - dataVenc.getTime();
       const atrasoDias = Math.floor(atrasoMs / (1000 * 60 * 60 * 24));
       return {
@@ -269,7 +272,7 @@
         if (window.lucide) window.lucide.createIcons();
       });
 
-      // Captura o parâmetro ?cliente= vindo do index.html
+      // Leitura do parâmetro ?cliente= vindo da tela inicial
       useEffect(() => {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -326,7 +329,9 @@
         }
       }, []);
 
-      // Resumo financeiro consolidado de cada cliente
+      // =========================================================================
+      // DADOS FINANCEIROS CONSOLIDADOS POR CLIENTE (SEM MOCK OU SALDO FICTÍCIO)
+      // =========================================================================
       const dadosFinanceirosPorCliente = useMemo(() => {
         const map = {};
 
@@ -368,22 +373,10 @@
           });
         });
 
-        if (map["4"] && map["4"].pedidosCount === 0) {
-          map["4"] = {
-            totalComprado: 3200.00,
-            totalPago: 1600.00,
-            totalEmAberto: 1600.00,
-            totalVencido: 0,
-            pedidosCount: 1,
-            temVencido: false,
-            temAReceber: true
-          };
-        }
-
         return map;
       }, [clients, sales]);
 
-      // Filtragem da carteira
+      // Filtragem da carteira de clientes
       const clientesFiltrados = useMemo(() => {
         return clients.filter(c => {
           const cod = String(c.cod);
@@ -409,27 +402,12 @@
         return clients.find(c => String(c.cod) === String(selectedClientCod)) || clients[0] || null;
       }, [clients, selectedClientCod]);
 
+      // =========================================================================
+      // VENDAS REAIS DO CLIENTE SELECIONADO (100% FIEL AO FIREBASE)
+      // =========================================================================
       const vendasDoCliente = useMemo(() => {
         if (!clienteSelecionado) return [];
-        const lista = sales.filter(s => String(s.codCliente) === String(clienteSelecionado.cod));
-
-        if (lista.length === 0 && String(clienteSelecionado.cod) === "4") {
-          return [{
-            id: 'mock-dav-002',
-            dav: '002',
-            dateDisplay: '01/10/2026',
-            amount: 3200.00,
-            salesperson: 'ERDENIA',
-            tipoVenda: 'TOTAL',
-            description: 'Pedido Odonto Prótese Estética',
-            installments: [
-              { number: 1, amount: 1600.00, dueDate: '01/11/2026', status: 'À Vencer', paymentMethod: 'Boleto / Duplicata' },
-              { number: 2, amount: 1600.00, dueDate: '01/12/2026', status: 'À Vencer', paymentMethod: 'Boleto / Duplicata' }
-            ]
-          }];
-        }
-
-        return lista;
+        return sales.filter(s => String(s.codCliente) === String(clienteSelecionado.cod));
       }, [sales, clienteSelecionado]);
 
       const resumoFinanceiroCliente = useMemo(() => {
@@ -440,6 +418,49 @@
         }
         return { comprado: 0, pago: 0, emAberto: 0 };
       }, [clienteSelecionado, dadosFinanceirosPorCliente]);
+
+      // Métricas Consolidadas dos 2 Cards Superiores (Calculadas das vendas reais)
+      const metricasGerais = useMemo(() => {
+        let vencendoHojeValor = 0;
+        let vencendoHojeCount = 0;
+        let vencendoMesValor = 0;
+        let vencendoMesCount = 0;
+
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const mesAtual = hoje.getMonth();
+        const anoAtual = hoje.getFullYear();
+
+        sales.forEach(sale => {
+          (sale.installments || []).forEach(inst => {
+            if (inst.status !== 'Pago') {
+              const valorParc = Number(inst.amount) || 0;
+              let dataVenc;
+
+              if (typeof inst.dueDate === 'string' && inst.dueDate.includes('/')) {
+                const parts = inst.dueDate.split('/').map(Number);
+                if (parts.length === 3) dataVenc = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+              } else if (typeof inst.dueDate === 'string' && inst.dueDate.includes('-')) {
+                const parts = inst.dueDate.split('-').map(Number);
+                if (parts.length === 3) dataVenc = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+              }
+
+              if (dataVenc && !isNaN(dataVenc.getTime())) {
+                if (dataVenc.getTime() === hoje.getTime()) {
+                  vencendoHojeValor += valorParc;
+                  vencendoHojeCount++;
+                }
+                if (dataVenc.getMonth() === mesAtual && dataVenc.getFullYear() === anoAtual) {
+                  vencendoMesValor += valorParc;
+                  vencendoMesCount++;
+                }
+              }
+            }
+          });
+        });
+
+        return { vencendoHojeValor, vencendoHojeCount, vencendoMesValor, vencendoMesCount };
+      }, [sales]);
 
       // Amortização Inteligente (Regra FIFO)
       const handleAmortizarSaldo = async () => {
@@ -479,7 +500,7 @@
 
           if (mudou) {
             const todasPagas = novosInst.every(i => i.status === 'Pago');
-            if (window.db && window.fb && venda.id && !venda.id.startsWith('mock')) {
+            if (window.db && window.fb && venda.id) {
               try {
                 await window.fb.updateDoc(window.fb.doc(window.db, "vendas", venda.id), {
                   installments: novosInst,
@@ -498,7 +519,7 @@
         setValorAmortizacao('');
       };
 
-      // Ação: Dar Baixa Direta em Parcela Específica
+      // Ação: Dar Baixa Direta em Parcela
       const handleDarBaixaParcela = async (vendaId, numeroParcela) => {
         const vendaAlvo = sales.find(s => s.id === vendaId) || vendasDoCliente.find(s => s.id === vendaId);
         if (!vendaAlvo) return;
@@ -512,7 +533,7 @@
 
         const todasPagas = novosInst.every(i => i.status === 'Pago');
 
-        if (window.db && window.fb && vendaAlvo.id && !vendaAlvo.id.startsWith('mock')) {
+        if (window.db && window.fb && vendaAlvo.id) {
           await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
             installments: novosInst,
             isPaid: todasPagas
@@ -524,7 +545,7 @@
         alert(`✅ Parcela ${numeroParcela} baixada com sucesso!`);
       };
 
-      // Ação: Abater Parcial em Parcela Específica
+      // Ação: Abater Parcial em Parcela
       const handleAbaterParcial = async (vendaId, numeroParcela) => {
         const valorStr = prompt("Informe o valor a abater desta parcela (R$):");
         if (!valorStr) return;
@@ -551,7 +572,7 @@
 
         const todasPagas = novosInst.every(i => i.status === 'Pago');
 
-        if (window.db && window.fb && vendaAlvo.id && !vendaAlvo.id.startsWith('mock')) {
+        if (window.db && window.fb && vendaAlvo.id) {
           await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
             installments: novosInst,
             isPaid: todasPagas
@@ -563,13 +584,13 @@
         alert(`✅ Abatimento de R$ ${abater.toFixed(2)} registrado!`);
       };
 
-      // Ação: Excluir DAV de Teste
+      // Ação: Excluir DAV com 1 Clique (Exclusão Real no Firestore)
       const handleExcluirDAV = async (vendaId, davNum) => {
         if (!confirm(`Deseja realmente excluir o DAV #${davNum}? Esta ação não pode ser desfeita.`)) {
           return;
         }
 
-        if (window.db && window.fb && vendaId && !vendaId.startsWith('mock')) {
+        if (window.db && window.fb && vendaId) {
           try {
             await window.fb.deleteDoc(window.fb.doc(window.db, "vendas", vendaId));
           } catch (e) {
@@ -735,7 +756,7 @@
                 </div>
               </div>
 
-              {/* 2 CARDS SUPERIORES */}
+              {/* 2 CARDS SUPERIORES DINÂMICOS */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white p-5 rounded-2xl border-l-4 border-l-indigo-600 border border-slate-200/80 shadow-sm">
                   <div className="flex justify-between items-start">
@@ -744,17 +765,17 @@
                         <i data-lucide="calendar" className="w-4 h-4"></i>
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-slate-800 block">Vencendo Hoje (05/11/2026)</span>
+                        <span className="text-xs font-bold text-slate-800 block">Vencendo Hoje</span>
                         <span className="text-[11px] text-slate-400">Liquidações com vencimento programado para o dia corrente</span>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                      1 cliente(s) • 1 parc.
+                      {metricasGerais.vencendoHojeCount} parcela(s)
                     </span>
                   </div>
                   <div className="mt-4 flex justify-between items-baseline">
-                    <span className="text-2xl font-black text-slate-900">R$ 1.600,00</span>
-                    <span className="text-[11px] font-semibold text-indigo-600">51.6% do mês atual</span>
+                    <span className="text-2xl font-black text-slate-900">{formatBRL(metricasGerais.vencendoHojeValor)}</span>
+                    <span className="text-[11px] font-semibold text-indigo-600">Posição em tempo real</span>
                   </div>
                 </div>
 
@@ -770,12 +791,12 @@
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-                      2 cliente(s) • 2 parc.
+                      {metricasGerais.vencendoMesCount} parcela(s)
                     </span>
                   </div>
                   <div className="mt-4 flex justify-between items-baseline">
-                    <span className="text-2xl font-black text-slate-900">R$ 3.100,00</span>
-                    <span className="text-[11px] font-semibold text-slate-400">Meta Mês: R$ 5.000,00</span>
+                    <span className="text-2xl font-black text-slate-900">{formatBRL(metricasGerais.vencendoMesValor)}</span>
+                    <span className="text-[11px] font-semibold text-slate-400">Carteira Ativa</span>
                   </div>
                 </div>
               </div>
@@ -798,7 +819,7 @@
                       abaFiltro === 'COM_COMPRAS' ? 'bg-indigo-700 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    ● Com compras (2)
+                    ● Com compras ({Object.values(dadosFinanceirosPorCliente).filter(f => f.pedidosCount > 0).length})
                   </button>
 
                   <button 
@@ -807,7 +828,7 @@
                       abaFiltro === 'INADIMPLENTES' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
                     }`}
                   >
-                    ● Inadimplentes (0)
+                    ● Inadimplentes ({Object.values(dadosFinanceirosPorCliente).filter(f => f.temVencido).length})
                   </button>
 
                   <button 
@@ -816,7 +837,7 @@
                       abaFiltro === 'A_RECEBER' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                     }`}
                   >
-                    ● À receber (2)
+                    ● À receber ({Object.values(dadosFinanceirosPorCliente).filter(f => f.temAReceber).length})
                   </button>
                 </div>
 
@@ -835,80 +856,86 @@
               {/* MASTER-DETAIL */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                {/* LISTAGEM (MASTER) */}
+                {/* LISTAGEM DA CARTEIRA (MASTER) */}
                 <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>
                       <span className="text-xs font-bold text-slate-800">Listagem da Carteira</span>
                       <span className="text-[11px] text-slate-400 ml-2">{clientesFiltrados.length} listados</span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-medium">Clique para abrir ficha</span>
+                    <span className="text-[10px] text-slate-500 font-medium">Clique para abrir a ficha</span>
                   </div>
 
-                  <div className="divide-y divide-slate-100">
-                    {clientesFiltrados.map(c => {
-                      const cod = String(c.cod);
-                      const isSelected = String(selectedClientCod) === cod;
-                      const fin = dadosFinanceirosPorCliente[cod] || { totalComprado: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
+                  {clientesFiltrados.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      Nenhum cliente corresponde ao filtro selecionado.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {clientesFiltrados.map(c => {
+                        const cod = String(c.cod);
+                        const isSelected = String(selectedClientCod) === cod;
+                        const fin = dadosFinanceirosPorCliente[cod] || { totalComprado: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
 
-                      return (
-                        <div 
-                          key={cod} 
-                          onClick={() => setSelectedClientCod(cod)}
-                          className={`p-4 flex items-center justify-between cursor-pointer transition ${
-                            isSelected ? 'bg-indigo-50/60 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-8 text-xs font-mono font-bold text-indigo-700">#{cod}</span>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <h4 className="text-xs font-bold text-slate-900 truncate">{c.name}</h4>
-                                {c.vendor && (
-                                  <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded uppercase">
-                                    {c.vendor.split(' ')[0]}
+                        return (
+                          <div 
+                            key={cod} 
+                            onClick={() => setSelectedClientCod(cod)}
+                            className={`p-4 flex items-center justify-between cursor-pointer transition ${
+                              isSelected ? 'bg-indigo-50/60 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-8 text-xs font-mono font-bold text-indigo-700">#{cod}</span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs font-bold text-slate-900 truncate">{c.name}</h4>
+                                  {c.vendor && (
+                                    <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded uppercase">
+                                      {c.vendor.split(' ')[0]}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {c.categoria} • {c.cidade} - {c.uf}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 ml-4 flex items-center gap-4">
+                              <div>
+                                <span className="text-xs font-black text-slate-900 block">
+                                  {formatBRL(fin.totalComprado)}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  {fin.pedidosCount} pedido(s)
+                                </span>
+                              </div>
+
+                              <div>
+                                {fin.temVencido ? (
+                                  <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
+                                    ● Vencido
+                                  </span>
+                                ) : fin.temAReceber ? (
+                                  <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                    ● À vencer
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                                    Sem débitos
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-slate-400 truncate">
-                                {c.categoria} • {c.cidade} - {c.uf}
-                              </p>
                             </div>
                           </div>
-
-                          <div className="text-right shrink-0 ml-4 flex items-center gap-4">
-                            <div>
-                              <span className="text-xs font-black text-slate-900 block">
-                                R$ {fin.totalComprado.toFixed(2)}
-                              </span>
-                              <span className="text-[10px] text-slate-400">
-                                {fin.pedidosCount} pedido(s)
-                              </span>
-                            </div>
-
-                            <div>
-                              {fin.temVencido ? (
-                                <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
-                                  ● Vencido
-                                </span>
-                              ) : fin.temAReceber ? (
-                                <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                                  ● À vencer
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
-                                  Sem débitos
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* FICHA DETALHADA (DETAIL) */}
+                {/* FICHA DETALHADA DO CLIENTE SELECIONADO (DETAIL) */}
                 <div className="lg:col-span-5 space-y-4">
                   {clienteSelecionado ? (
                     <div className="space-y-4">
@@ -923,10 +950,10 @@
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
-                                  Vendedora: {clienteSelecionado.vendor ? clienteSelecionado.vendor.split(' ')[0] : 'ERDENIA'}
+                                  Vendedor: {clienteSelecionado.vendor ? clienteSelecionado.vendor.split(' ')[0] : 'Consultor'}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
-                                  CPF/CNPJ: {clienteSelecionado.cpf_cnpj || '043.***.***-89'}
+                                  CPF/CNPJ: {clienteSelecionado.cpf_cnpj || 'Não informado'}
                                 </span>
                               </div>
                               <h3 className="text-sm font-black text-slate-900 mt-1">{clienteSelecionado.name}</h3>
@@ -949,26 +976,26 @@
                           </button>
                         </div>
 
-                        {/* SALDOS */}
+                        {/* SALDOS REAIS */}
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t text-center">
                           <div className="bg-slate-50 p-2.5 rounded-xl">
                             <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL COMPRADO</span>
                             <span className="text-xs font-black text-slate-900 mt-0.5 block">
-                              R$ {resumoFinanceiroCliente.comprado.toFixed(2)}
+                              {formatBRL(resumoFinanceiroCliente.comprado)}
                             </span>
                           </div>
 
                           <div className="bg-slate-50 p-2.5 rounded-xl">
                             <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL PAGO</span>
                             <span className="text-xs font-black text-emerald-600 mt-0.5 block">
-                              R$ {resumoFinanceiroCliente.pago.toFixed(2)}
+                              {formatBRL(resumoFinanceiroCliente.pago)}
                             </span>
                           </div>
 
                           <div className="bg-slate-50 p-2.5 rounded-xl">
                             <span className="text-[9px] font-bold text-slate-400 uppercase block">EM ABERTO</span>
                             <span className="text-xs font-black text-indigo-700 mt-0.5 block">
-                              R$ {resumoFinanceiroCliente.emAberto.toFixed(2)}
+                              {formatBRL(resumoFinanceiroCliente.emAberto)}
                             </span>
                           </div>
                         </div>
@@ -986,7 +1013,7 @@
                           </span>
                         </div>
                         <p className="text-[11px] text-indigo-200/80 leading-relaxed">
-                          Digite o valor arrecadado para amortizar automaticamente nas parcelas mais antigas.
+                          Digite o valor arrecadado para amortizar automaticamente nas parcelas mais antigas deste cliente.
                         </p>
 
                         <div className="grid grid-cols-2 gap-2">
@@ -1024,18 +1051,18 @@
                         </button>
                       </div>
 
-                      {/* HISTÓRICO DE TÍTULOS */}
+                      {/* HISTÓRICO DE TÍTULOS E VENDAS REAIS */}
                       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
                         <div className="flex justify-between items-center border-b pb-3">
                           <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
                             <i data-lucide="receipt" className="w-4 h-4 text-indigo-600"></i>
                             Histórico de Vendas & Títulos
                           </h4>
-                          <span className="text-[11px] text-slate-400">{vendasDoCliente.length} DAV Registrado</span>
+                          <span className="text-[11px] text-slate-400">{vendasDoCliente.length} DAV(s)</span>
                         </div>
 
                         {vendasDoCliente.length === 0 ? (
-                          <div className="py-8 text-center text-xs text-slate-400">
+                          <div className="py-8 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">
                             Nenhum título em aberto ou histórico de compra para este cliente.
                           </div>
                         ) : (
@@ -1045,15 +1072,15 @@
                                 
                                 <div className="flex justify-between items-start">
                                   <div className="flex items-center gap-2.5">
-                                    <div className="w-9 h-9 rounded-xl bg-indigo-700 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0">
-                                      DAV #{venda.dav}
+                                    <div className="w-9 h-9 rounded-xl bg-indigo-700 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                      #{venda.dav}
                                     </div>
                                     <div>
                                       <h5 className="text-xs font-bold text-slate-900">
-                                        {venda.description || `Pedido ${venda.client || 'Odonto Prótese'}`}
+                                        {venda.description || `Pedido ${venda.client || 'Teles Odonto'}`}
                                       </h5>
                                       <p className="text-[10px] text-slate-400">
-                                        Emitido em {venda.dateDisplay || venda.date} • Boleto / Duplicata
+                                        Emitido em {venda.dateDisplay || venda.date} • {venda.tipoVenda || 'TOTAL'}
                                       </p>
                                     </div>
                                   </div>
@@ -1062,13 +1089,13 @@
                                     <div className="text-right">
                                       <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL</span>
                                       <span className="text-xs font-black text-slate-900">
-                                        R$ {Number(venda.amount).toFixed(2)}
+                                        {formatBRL(venda.amount)}
                                       </span>
                                     </div>
 
                                     <button 
                                       onClick={() => handleExcluirDAV(venda.id, venda.dav)}
-                                      title="Excluir DAV de teste"
+                                      title="Excluir DAV"
                                       className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition ml-1"
                                     >
                                       <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
@@ -1090,7 +1117,7 @@
                                           <div>
                                             <div className="flex items-center gap-2">
                                               <span className="text-xs font-extrabold text-slate-900">
-                                                Parcela {inst.number || i + 1} • R$ {Number(inst.amount).toFixed(2)}
+                                                Parcela {inst.number || i + 1} • {formatBRL(inst.amount)}
                                               </span>
                                               
                                               {infoStatus.status === 'Pago' ? (
