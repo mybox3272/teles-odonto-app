@@ -1,30 +1,4 @@
 <!DOCTYPE html>
-
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-    }
-  </style>
-</head>
-<body>
-<!-- STITCH_THREEJS_START:ANIMATION_50 class="fixed inset-0 w-full h-full bg-transparent" -->
-<div class="fixed inset-0 w-full h-full bg-transparent" style="display:block;">
-<script src="https://ajax.googleapis.com/ajax/libs/threejs/r125/three.min.js"></script>
-<div id="threejs-container-ANIMATION_50" style="width:100%;height:100%"></div>
-<script>
-(function() {
-  const container = document.getElementById('threejs-container-ANIMATION_50');
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -38,19 +12,22 @@
   
   <!-- CDN Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<!-- React 18 & Babel para execução autônoma no navegador -->
-<script crossorigin="" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- React 18 & Babel para execução autônoma no navegador -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
-<!-- Inicialização Modular do Firebase Firestore v10 -->
-<script type="module">
+
+  <!-- Inicialização Modular do Firebase Firestore v10 -->
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
       getFirestore, 
@@ -80,61 +57,17 @@
       window.db = db;
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em index.html com correções de auditoria ativas!");
+      console.log("🔥 Firebase conectado em index.html com parcelamento até 12x!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em index.html:", err);
     }
   </script>
-
+</head>
 <body class="min-h-screen bg-slate-50 antialiased text-slate-800">
-<div id="root"></div>
-<script type="text/babel">
+  <div id="root"></div>
+
+  <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
-
-    // =========================================================================
-    // UTILITÁRIOS SEGUROS DE MOEDA E DATAS (AUDITORIA CORRIGIDA)
-    // =========================================================================
-    const parseMoedaBR = (valorStr) => {
-      if (typeof valorStr === 'number') return valorStr;
-      if (!valorStr) return 0;
-      const limpo = valorStr.toString().replace(/[^\d,\.]/g, '');
-      if (limpo.includes(',') && limpo.includes('.')) {
-        return parseFloat(limpo.replace(/\./g, '').replace(',', '.')) || 0;
-      }
-      return parseFloat(limpo.replace(',', '.')) || 0;
-    };
-
-    const parseDataZerada = (dataStr) => {
-      if (!dataStr) return new Date();
-      if (dataStr instanceof Date) {
-        const d = new Date(dataStr);
-        d.setHours(0, 0, 0, 0);
-        return d;
-      }
-      const limpa = dataStr.toString().trim();
-      if (limpa.includes('/')) {
-        const parts = limpa.split('/').map(Number);
-        if (parts.length === 3) {
-          return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
-        }
-      }
-      if (limpa.includes('-')) {
-        const parts = limpa.split('-').map(Number);
-        if (parts.length === 3) {
-          return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
-        }
-      }
-      const dt = new Date(limpa);
-      dt.setHours(0, 0, 0, 0);
-      return isNaN(dt.getTime()) ? new Date() : dt;
-    };
-
-    const formatarDataBR = (dateObj) => {
-      const d = String(dateObj.getDate()).padStart(2, '0');
-      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const y = dateObj.getFullYear();
-      return `${d}/${m}/${y}`;
-    };
 
     // Componente Marca D'água do Ícone Teles Odonto
     const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
@@ -228,7 +161,13 @@
       { cod: "2", codeVnd: "VND-02", name: "Luis Daniel da Silva" }
     ];
 
-    const getHojeBR = () => formatarDataBR(new Date());
+    const getHojeBR = () => {
+      const d = new Date();
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const ano = d.getFullYear();
+      return `${dia}/${mes}/${ano}`;
+    };
 
     function App() {
       const [clients, setClients] = useState(() => {
@@ -253,7 +192,7 @@
       const [tipoVenda, setTipoVenda] = useState('');
       const [condicaoPrazo, setCondicaoPrazo] = useState('');
 
-      // Prévia de parcelas (suporta até 12x com centavos perfeitos)
+      // Prévia de parcelas (suporta até 12x)
       const [previaParcelas, setPreviaParcelas] = useState([]);
 
       const [statusMsg, setStatusMsg] = useState('');
@@ -312,7 +251,7 @@
 
             return () => { unsubVendas(); unsubClientes(); };
           } catch (e) {
-            console.error("Erro listeners index.html:", e);
+            console.error("Erro listeners:", e);
             setLoading(false);
           }
         };
@@ -348,108 +287,109 @@
         return found ? found.codeVnd : '';
       }, [vendedor]);
 
-      // =========================================================================
-      // VALIDAÇÃO CORRIGIDA DE DÉBITOS DO CLIENTE (SEM FALSO POSITIVO)
-      // =========================================================================
+      // Validação de débitos do cliente
       const analiseDebitos = useMemo(() => {
-        if (!clienteAtivo) return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, duplicataExemplo: '' };
+        if (!clienteAtivo) return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, duplicataExemplo: '4782' };
 
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-
+        const dHoje = new Date();
+        const hojeISO = `${dHoje.getFullYear()}-${String(dHoje.getMonth() + 1).padStart(2, '0')}-${String(dHoje.getDate()).padStart(2, '0')}`;
         let totalVencido = 0;
         let titulosVencidos = 0;
         let maxDiasAtraso = 0;
-        let primDav = '';
+        let primDav = '4782';
 
-        const vendasCliente = sales.filter(s => String(s.codCliente) === String(clienteAtivo.cod));
-
-        vendasCliente.forEach(sale => {
+        sales.filter(s => String(s.codCliente) === String(clienteAtivo.cod)).forEach(sale => {
           (sale.installments || []).forEach(inst => {
-            if (inst.status !== 'Pago') {
-              const dataVenc = parseDataZerada(inst.dueDate);
-              if (dataVenc < hoje) {
-                const amt = Number(inst.amount) || 0;
-                totalVencido += amt;
-                titulosVencidos++;
-                if (!primDav && sale.dav) primDav = sale.dav;
-
-                const diffDias = Math.floor((hoje.getTime() - dataVenc.getTime()) / (1000 * 60 * 60 * 24));
-                if (diffDias > maxDiasAtraso) maxDiasAtraso = diffDias;
-              }
+            if (inst.status !== 'Pago' && inst.dueDate && inst.dueDate < hojeISO) {
+              const amt = Number(inst.amount) || 0;
+              totalVencido += amt;
+              titulosVencidos++;
+              if (sale.dav) primDav = sale.dav;
+              const diffTime = Math.abs(new Date(hojeISO) - new Date(inst.dueDate));
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays > maxDiasAtraso) maxDiasAtraso = diffDays;
             }
           });
         });
 
-        // Simulação especial do cliente 104 somente se nenhuma venda for encontrada
-        if (String(clienteAtivo.cod) === '104' && titulosVencidos === 0 && vendasCliente.length === 0) {
+        if (String(clienteAtivo.cod) === '104' && titulosVencidos === 0) {
           return { temDebitoVencido: true, totalVencido: 680.00, titulosVencidos: 1, maxDiasAtraso: 14, duplicataExemplo: '4782' };
         }
 
         return { 
           temDebitoVencido: titulosVencidos > 0, 
-          totalVencido, 
-          titulosVencidos, 
-          maxDiasAtraso, 
-          duplicataExemplo: primDav || '4782' 
+          totalVencido: totalVencido || 680.00, 
+          titulosVencidos: titulosVencidos || 1, 
+          maxDiasAtraso: maxDiasAtraso || 14, 
+          duplicataExemplo: primDav 
         };
       }, [clienteAtivo, sales]);
 
       // =========================================================================
-      // CÁLCULO SEGURO DE PARCELAS (DE 1x ATÉ 12x SEM PERDA DE CENTAVOS)
+      // GERADOR E RECÁLCULO AUTOMÁTICO DE PARCELAS (DE 1x ATÉ 12x)
       // =========================================================================
       useEffect(() => {
-        const totalCentavos = Math.round(parseMoedaBR(valorVenda) * 100);
-        if (totalCentavos <= 0 || !condicaoPrazo) {
+        const total = parseFloat(valorVenda.replace(',', '.')) || 0;
+        if (total <= 0 || !condicaoPrazo) {
           setPreviaParcelas([]);
           return;
         }
 
-        const baseDate = parseDataZerada(dataVenda);
-
-        const somarMeses = (data, meses) => {
-          const d = new Date(data);
-          const diaOriginal = d.getDate();
-          d.setMonth(d.getMonth() + meses);
-          if (d.getDate() !== diaOriginal) {
-            d.setDate(0);
+        let baseDate = new Date();
+        if (dataVenda.includes('/')) {
+          const parts = dataVenda.split('/');
+          if (parts.length === 3 && parts[2].length === 4) {
+            baseDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
           }
-          return formatarDataBR(d);
+        }
+
+        const formatarData = (d) => {
+          const dia = String(d.getDate()).padStart(2, '0');
+          const mes = String(d.getMonth() + 1).padStart(2, '0');
+          const ano = d.getFullYear();
+          return `${dia}/${mes}/${ano}`;
         };
 
-        const somarDias = (data, dias) => {
-          const d = new Date(data);
-          d.setDate(d.getDate() + dias);
-          return formatarDataBR(d);
+        const somarDias = (d, dias) => {
+          const res = new Date(d);
+          res.setDate(res.getDate() + dias);
+          return formatarData(res);
         };
 
         if (condicaoPrazo === '0') {
           setPreviaParcelas([
-            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: formatarDataBR(baseDate), status: 'Pago', paymentMethod: 'À Vista Imediato' }
+            { number: 1, amount: total, dueDate: formatarData(baseDate), status: 'Pago', paymentMethod: 'À Vista Imediato' }
           ]);
         } else if (condicaoPrazo === 'PROMISSORIA') {
           setPreviaParcelas([
-            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: somarDias(baseDate, 30), status: 'Em aberto', paymentMethod: 'Nota Promissória' }
+            { number: 1, amount: total, dueDate: somarDias(baseDate, 30), status: 'Em aberto', paymentMethod: 'Nota Promissória' }
           ]);
         } else if (['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo)) {
           const diasNum = parseInt(condicaoPrazo, 10);
           setPreviaParcelas([
-            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: somarDias(baseDate, diasNum), status: 'Em aberto', paymentMethod: 'Boleto/Carteira' }
+            { number: 1, amount: total, dueDate: somarDias(baseDate, diasNum), status: 'Em aberto' }
           ]);
         } else {
+          // Detecta formatos "Nx" ou "PARCELADO_Nx" (2x até 12x)
           const matchParc = condicaoPrazo.match(/(\d+)x/i) || condicaoPrazo.match(/PARCELADO_(\d+)X/i);
           if (matchParc) {
             const numParcelas = Math.min(12, Math.max(2, parseInt(matchParc[1], 10)));
-            const valorBaseCentavos = Math.floor(totalCentavos / numParcelas);
-            const restoCentavos = totalCentavos - (valorBaseCentavos * numParcelas);
+            const valorBase = parseFloat((total / numParcelas).toFixed(2));
             const lista = [];
+            let acumulado = 0;
 
             for (let i = 1; i <= numParcelas; i++) {
-              const parcCentavos = (i === 1) ? (valorBaseCentavos + restoCentavos) : valorBaseCentavos;
+              let valAtual = valorBase;
+              if (i === numParcelas) {
+                valAtual = parseFloat((total - acumulado).toFixed(2));
+              } else {
+                acumulado += valAtual;
+              }
+
               lista.push({
                 number: i,
-                amount: (parcCentavos / 100).toFixed(2),
-                dueDate: somarMeses(baseDate, i),
+                amount: valAtual,
+                dueDate: somarDias(baseDate, 30 * i),
                 status: 'Em aberto',
                 paymentMethod: 'Boleto/Carteira'
               });
@@ -504,7 +444,7 @@
           return;
         }
 
-        const valorNum = parseMoedaBR(valorVenda);
+        const valorNum = parseFloat(valorVenda.replace(',', '.'));
         if (!valorNum || valorNum <= 0) {
           alert("Informe um valor de venda válido.");
           inputValorRef.current?.focus();
@@ -531,17 +471,17 @@
         setSalvandoVenda(true);
         setStatusMsg('Gravando venda no Firebase Firestore...');
 
-        const dataDate = parseDataZerada(dataVenda);
-        const y = dataDate.getFullYear();
-        const m = String(dataDate.getMonth() + 1).padStart(2, '0');
-        const d = String(dataDate.getDate()).padStart(2, '0');
-        const dataIso = `${y}-${m}-${d}`;
+        let dataIso = new Date().toISOString().split('T')[0];
+        if (dataVenda.includes('/')) {
+          const p = dataVenda.split('/');
+          if (p.length === 3) dataIso = `${p[2]}-${p[1]}-${p[0]}`;
+        }
 
         const novaVendaDoc = {
           dav: davNumber,
           date: dataIso,
           dateDisplay: dataVenda,
-          codCliente: String(codClienteInput).trim(),
+          codCliente: codClienteInput,
           client: clienteAtivo.name,
           salesperson: vendedor,
           salespersonCode: codVendedorAtual,
@@ -647,13 +587,18 @@
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL UNIFICADA */}
+          {/* ========================================== */}
+          {/* BARRA LATERAL UNIFICADA - TELES ODONTO CRM */}
+          {/* ========================================== */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
+            
+            {/* Marca d'água institucional no fundo da barra lateral */}
             <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
               <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
+              {/* Cabeçalho da Sidebar / Logomarca */}
               <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
@@ -669,10 +614,11 @@
                 </div>
                 <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6 Audited</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6</span>
                 </div>
               </div>
 
+              {/* Navegação Comercial */}
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
@@ -693,6 +639,7 @@
               </div>
             </div>
 
+            {/* Rodapé da Barra / Operador Conectado */}
             <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
               <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
                 <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
@@ -734,7 +681,7 @@
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* BANNER INSTITUCIONAL */}
+              {/* BANNER INSTITUCIONAL DE STATUS TEMPORAL */}
               <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-4 md:p-5 rounded-2xl text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-md relative overflow-hidden">
                 <div className="relative z-10 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
@@ -752,7 +699,7 @@
                 </div>
               </div>
 
-              {/* 4 CARDS SUPERIORES */}
+              {/* 4 CARDS SUPERIORES DE INDICADORES */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">RECEITA (NOVEMBRO)</span>
@@ -779,7 +726,7 @@
                 </div>
               </div>
 
-              {/* GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + LIVRO DE VENDAS */}
+              {/* GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + LIVRO DE VENDAS RECENTES */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* FORMULÁRIO DE NOVA VENDA */}
@@ -804,7 +751,7 @@
 
                   <form onSubmit={handleRegistrarVenda} className="space-y-3.5 relative z-10 text-xs">
                     
-                    {/* ETAPA 1: Data da Venda & DAV */}
+                    {/* ETAPA 1: Data da Venda (DD/MM/AAAA) & DAV (4 dígitos) */}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
                         <div className="flex justify-between items-center mb-1">
@@ -820,16 +767,18 @@
                             Hoje
                           </button>
                         </div>
-                        <input 
-                          ref={inputDataRef}
-                          type="text" 
-                          placeholder="dd/mm/aaaa" 
-                          value={dataVenda} 
-                          onChange={e => setDataVenda(e.target.value)} 
-                          onKeyDown={e => handleKeyDown(e, inputDavRef)}
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30" 
-                          required 
-                        />
+                        <div className="relative">
+                          <input 
+                            ref={inputDataRef}
+                            type="text" 
+                            placeholder="dd/mm/aaaa" 
+                            value={dataVenda} 
+                            onChange={e => setDataVenda(e.target.value)} 
+                            onKeyDown={e => handleKeyDown(e, inputDavRef)}
+                            className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30" 
+                            required 
+                          />
+                        </div>
                       </div>
 
                       <div>
@@ -848,7 +797,7 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 2: Código do Cliente & Busca */}
+                    {/* ETAPA 2: Código do Cliente & Nome (Travado) */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="font-semibold text-slate-700">Cód. Cliente</label>
@@ -911,7 +860,7 @@
                       />
                     </div>
 
-                    {/* BLOCO DE DÉBITO VENCIDO / RESTRIÇÃO (LINK PARAMETRIZADO) */}
+                    {/* BLOCO DE DÉBITO VENCIDO / RESTRIÇÃO + AUTORIZAÇÃO GERENCIAL */}
                     {clienteAtivo && (
                       analiseDebitos.temDebitoVencido ? (
                         <div className="flex flex-col gap-2 my-1">
@@ -934,9 +883,8 @@
                               </div>
                             </div>
 
-                            {/* Link com parâmetro ?cliente= para abrir a ficha exata */}
                             <a 
-                              href={`vendas.html?cliente=${clienteAtivo.cod}`} 
+                              href="vendas.html" 
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-indigo-700 hover:bg-slate-50 shadow-xs border border-indigo-100 text-xs font-bold shrink-0 transition"
                             >
                               <i data-lucide="file-text" className="w-3.5 h-3.5"></i>
@@ -1048,7 +996,7 @@
                       </div>
                     </div>
 
-                    {/* ETAPA 5: Condição / Prazo (Até 12x) */}
+                    {/* ETAPA 5: Condição / Prazo com Parcelamento Completo de até 12x */}
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
                       <select 
@@ -1141,7 +1089,7 @@
                       </div>
                     )}
 
-                    {/* Botão de Registro */}
+                    {/* Botão de Registro de Venda */}
                     <button 
                       ref={btnRegistrarRef}
                       type="submit" 
@@ -1268,7 +1216,7 @@
             </div>
           </main>
 
-          {/* MODAL: NOVO CLIENTE */}
+          {/* MODAL: CADASTRO DE CLIENTE INÉDITO */}
           {showModalNovoCliente && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
@@ -1366,12 +1314,5 @@
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
-</body>
-
-
-})();
-
-</div>
-<!-- STITCH_THREEJS_END:ANIMATION_50 -->
 </body>
 </html>
