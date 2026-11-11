@@ -21,13 +21,19 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #faf8ff; color: #1e1b4b; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f2f3ff; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #c5c6d0; border-radius: 4px; }
+    .watermark-bg {
+      background-image: url('Design sem nome (28).png');
+      background-repeat: no-repeat;
+      background-position: right -20px bottom -20px;
+      background-size: 240px;
+    }
   </style>
 
-  <!-- Inicialização do Firebase Firestore com Fallback Seguro e Busca Única -->
+  <!-- Firebase Firestore com Busca Única Protegida (Anti-Loop) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -58,18 +64,21 @@
       window.db = getFirestore(app);
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado com busca única (anti-loop) no vendas.html!");
+      console.log("🔥 Firebase conectado com busca protegida no vendas.html!");
     } catch (err) {
-      console.warn("Aviso na inicialização do Firebase:", err);
+      console.warn("Aviso na inicialização do Firebase no vendas.html:", err);
     }
   </script>
 </head>
-<body class="min-h-screen bg-slate-50 antialiased text-slate-800">
+<body class="min-h-screen bg-[#faf8ff] antialiased text-[#1e1b4b]">
   <div id="root">
-    <!-- Fallback visível caso o script demore a montar -->
-    <div style="padding: 40px; text-align: center; color: #64748b; font-family: sans-serif;">
-      <p style="font-weight: bold; font-size: 16px;">Carregando Carteira de Vendas Teles Odonto...</p>
-      <p style="font-size: 12px; margin-top: 8px;">Aguarde a inicialização do sistema.</p>
+    <!-- Fallback seguro para evitar tela em branco -->
+    <div class="flex items-center justify-center min-h-screen p-8 text-center text-slate-500">
+      <div class="space-y-3">
+        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="font-bold text-sm text-slate-800">Carregando Carteira de Vendas Teles Odonto...</p>
+        <p class="text-xs text-slate-400">Conciliando clientes e parcelas financeiras.</p>
+      </div>
     </div>
   </div>
 
@@ -81,31 +90,175 @@
       return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    // Base auditada de clientes da Teles Odonto
+    // Base auditada de clientes da Teles Odonto com dados cadastrais e histórico
     const initialClientsSeed = [
-      { cod: "2", name: "JOÃO PESSOA MEDEIROS COSTA", categoria: "Prótese Fixa", telefone: "(85) 99122-3344", cnpj: "02.145.890/0001-34", endereco: "Rua Monsenhor Tabosa, 450 - Praia de Iracema", cidade: "Fortaleza - CE", vendor: "André Luiz Nóbrega Martins", vendorCode: "VND-01" },
-      { cod: "4", name: "LEONARDO AMORIM DE FRANCA E SOUSA", categoria: "Prótese Total e Parcial", telefone: "(85) 98844-1234", cnpj: "04.312.980/0001-89", endereco: "Av. Santos Dumont, 1200 - Aldeota", cidade: "Fortaleza - CE", vendor: "Luis Daniel da Silva", vendorCode: "VND-02" },
-      { cod: "5", name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA", categoria: "Ortodontia & Fixa", telefone: "(85) 98711-2233", cnpj: "12.345.678/0001-90", endereco: "Av. Dom Luís, 800 - Aldeota", cidade: "Fortaleza - CE", vendor: "André Luiz Nóbrega Martins", vendorCode: "VND-01" },
-      { cod: "7", name: "DAVI DA CUNHA GONCALVES", categoria: "Implantodontia", telefone: "(85) 99655-4433", cnpj: "01.998.441/0001-12", endereco: "Rua Barão de Studart, 1550 - Dionísio Torres", cidade: "Fortaleza - CE", vendor: "André Luiz Nóbrega Martins", vendorCode: "VND-01" },
-      { cod: "8", name: "LEONARDO DA SILVA SOUZA", categoria: "Ortodontia Digital", telefone: "(88) 98122-9988", cnpj: "05.512.671/0001-01", endereco: "Rua Coronel Mont Alverne, 210 - Centro", cidade: "Sobral - CE", vendor: "Luis Daniel da Silva", vendorCode: "VND-02" },
-      { cod: "14", name: "CLINICA ODONTOLOGICA JORIO DA ESCOSSIA LTDA", categoria: "Próteses Múltiplas", telefone: "(85) 99455-1100", cnpj: "07.891.234/0001-45", endereco: "Av. Pontes Vieira, 2500 - Dionísio Torres", cidade: "Fortaleza - CE", vendor: "André Luiz Nóbrega Martins", vendorCode: "VND-01" }
+      { 
+        cod: "CLI-104", 
+        codNum: "4",
+        name: "Clínica OdontoPrime Dr. Valter", 
+        categoria: "Prótese Fixa & Reabilitação", 
+        area: "SP - CAPITAL / CENTRO",
+        telefone: "(11) 98765-4321", 
+        whatsapp: "5511987654321",
+        cnpj: "12.345.678/0001-90", 
+        endereco: "Av. Paulista, 1000 - Cj. 42, Bela Vista",
+        cidade: "São Paulo / SP",
+        vendor: "André Luiz Nóbrega Martins", 
+        vendorCode: "VND-01",
+        temDebito: true, 
+        debitoValor: 680.00, 
+        debitoDias: 14, 
+        debitoDoc: "Duplicata #4782"
+      },
+      { 
+        cod: "CLI-088", 
+        codNum: "88",
+        name: "Laboratório Dental Sorriso", 
+        categoria: "Prótese Total e Parcial", 
+        area: "SP - ZONA SUL",
+        telefone: "(11) 97123-4567", 
+        whatsapp: "5511971234567",
+        cnpj: "98.765.432/0001-10", 
+        endereco: "Rua Domingos de Morais, 1500 - Vila Mariana",
+        cidade: "São Paulo / SP",
+        vendor: "André Luiz Nóbrega Martins", 
+        vendorCode: "VND-01",
+        temDebito: false
+      },
+      { 
+        cod: "CLI-093", 
+        codNum: "93",
+        name: "Implantes & Próteses Vitória", 
+        categoria: "Implantodontia", 
+        area: "SP - ABC PAULISTA",
+        telefone: "(11) 96321-7890", 
+        whatsapp: "5511963217890",
+        cnpj: "45.678.901/0001-23", 
+        endereco: "Rua das Figueiras, 450 - Bairro Jardim",
+        cidade: "Santo André / SP",
+        vendor: "Luis Daniel da Silva", 
+        vendorCode: "VND-02",
+        temDebito: false
+      },
+      { 
+        cod: "CLI-112", 
+        codNum: "112",
+        name: "Consultório Dr. Marcelo Ramos", 
+        categoria: "Clínico Geral / Dentistas", 
+        area: "SP - ZONA OESTE",
+        telefone: "(11) 95544-3322", 
+        whatsapp: "5511955443322",
+        cnpj: "23.456.789/0001-67", 
+        endereco: "Rua Teodoro Sampaio, 800 - Pinheiros",
+        cidade: "São Paulo / SP",
+        vendor: "André Luiz Nóbrega Martins", 
+        vendorCode: "VND-01",
+        temDebito: false
+      },
+      { 
+        cod: "CLI-002", 
+        codNum: "2",
+        name: "JOÃO PESSOA MEDEIROS COSTA", 
+        categoria: "Prótese Fixa", 
+        area: "CE - CAPITAL",
+        telefone: "(85) 99122-3344", 
+        whatsapp: "5585991223344",
+        cnpj: "02.145.890/0001-34", 
+        endereco: "Rua Monsenhor Tabosa, 450 - Praia de Iracema",
+        cidade: "Fortaleza / CE",
+        vendor: "André Luiz Nóbrega Martins", 
+        vendorCode: "VND-01",
+        temDebito: false
+      }
+    ];
+
+    // Lançamentos originais da carteira
+    const initialSalesSeed = [
+      {
+        id: "seed-1",
+        dav: "48911",
+        codCliente: "CLI-088",
+        client: "Laboratório Dental Sorriso",
+        category: "Prótese Total e Parcial",
+        salesperson: "André Luiz Nóbrega Martins",
+        salespersonCode: "VND-01",
+        amount: 1600.00,
+        tipoVenda: "TOTAL",
+        date: "2026-11-04",
+        dateDisplay: "04/11/2026",
+        status: "Pago",
+        isPaid: true,
+        installments: [
+          { number: 1, dueDate: "04/11/2026", amount: 1600.00, status: "Pago", paidAt: "04/11/2026" }
+        ]
+      },
+      {
+        id: "seed-2",
+        dav: "48919",
+        codCliente: "CLI-093",
+        client: "Implantes & Próteses Vitória",
+        category: "Implantodontia",
+        salesperson: "Luis Daniel da Silva",
+        salespersonCode: "VND-02",
+        amount: 3100.00,
+        tipoVenda: "PARCIAL",
+        date: "2026-11-09",
+        dateDisplay: "09/11/2026",
+        status: "Em aberto",
+        isPaid: false,
+        installments: [
+          { number: 1, dueDate: "09/12/2026", amount: 1550.00, status: "Em aberto" },
+          { number: 2, dueDate: "09/01/2027", amount: 1550.00, status: "Em aberto" }
+        ]
+      },
+      {
+        id: "seed-3",
+        dav: "48921",
+        codCliente: "CLI-112",
+        client: "Consultório Dr. Marcelo Ramos",
+        category: "Clínico Geral / Dentistas",
+        salesperson: "André Luiz Nóbrega Martins",
+        salespersonCode: "VND-01",
+        amount: 940.00,
+        tipoVenda: "DENTISTAS",
+        date: "2026-11-11",
+        dateDisplay: "11/11/2026",
+        status: "Em aberto",
+        isPaid: false,
+        installments: [
+          { number: 1, dueDate: "11/12/2026", amount: 940.00, status: "Em aberto" }
+        ]
+      },
+      {
+        id: "seed-4",
+        dav: "4782",
+        codCliente: "CLI-104",
+        client: "Clínica OdontoPrime Dr. Valter",
+        category: "Prótese Fixa & Reabilitação",
+        salesperson: "André Luiz Nóbrega Martins",
+        salespersonCode: "VND-01",
+        amount: 1100.00,
+        tipoVenda: "TOTAL",
+        date: "2026-10-15",
+        dateDisplay: "15/10/2026",
+        status: "Em aberto",
+        isPaid: false,
+        installments: [
+          { number: 1, dueDate: "29/10/2026", amount: 680.00, status: "Em aberto" },
+          { number: 2, dueDate: "28/11/2026", amount: 420.00, status: "Em aberto" }
+        ]
+      }
     ];
 
     function App() {
       const [sales, setSales] = useState(() => {
         try {
           const cached = localStorage.getItem('neves_crm_sales_cache');
-          return cached ? JSON.parse(cached) : [];
+          return cached ? JSON.parse(cached) : initialSalesSeed;
         } catch {
-          return [];
+          return initialSalesSeed;
         }
       });
-      const [loading, setLoading] = useState(false);
-      const [refreshing, setRefreshing] = useState(false);
-      const [filtroTexto, setFiltroTexto] = useState('');
-      const [filtroStatus, setFiltroStatus] = useState('TODOS');
-      const [clienteSelecionadoCod, setClienteSelecionadoCod] = useState("2");
-
       const [clients, setClients] = useState(() => {
         try {
           const saved = localStorage.getItem('neves_crm_clients');
@@ -114,6 +267,12 @@
           return initialClientsSeed;
         }
       });
+
+      const [loading, setLoading] = useState(false);
+      const [refreshing, setRefreshing] = useState(false);
+      const [filtroTexto, setFiltroTexto] = useState('');
+      const [filtroStatus, setFiltroStatus] = useState('TODOS');
+      const [clienteSelecionadoCod, setClienteSelecionadoCod] = useState("CLI-104");
 
       const carregouRef = useRef(false);
 
@@ -129,7 +288,7 @@
         renderIcons();
       });
 
-      // Ler cliente passado por URL (?cliente=X)
+      // Ler cliente passado por URL (?cliente=CLI-104)
       useEffect(() => {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -140,7 +299,7 @@
         } catch (e) {}
       }, []);
 
-      // Busca única no Firebase via getDocs (Anti-Loop com 0 consumo repetitivo)
+      // Busca única no Firebase Firestore via getDocs (Anti-Loop protegido)
       const buscarDadosUmaVez = async (isManual = false) => {
         if (!window.db || !window.fb) return;
 
@@ -154,11 +313,13 @@
             window.fb.orderBy("date", "desc")
           );
           const snapVendas = await window.fb.getDocs(qVendas);
-          const listaVendas = snapVendas.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setSales(listaVendas);
-          try {
-            localStorage.setItem('neves_crm_sales_cache', JSON.stringify(listaVendas));
-          } catch (e) {}
+          if (!snapVendas.empty) {
+            const listaVendas = snapVendas.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSales(listaVendas);
+            try {
+              localStorage.setItem('neves_crm_sales_cache', JSON.stringify(listaVendas));
+            } catch (e) {}
+          }
 
           // 2. Busca ÚNICA de Clientes
           const snapClientes = await window.fb.getDocs(window.fb.collection(window.db, "clientes"));
@@ -176,7 +337,7 @@
             });
           }
         } catch (e) {
-          console.warn("Aviso na busca única do vendas.html:", e);
+          console.warn("Aviso na leitura única do vendas.html:", e);
         } finally {
           setLoading(false);
           setRefreshing(false);
@@ -195,7 +356,7 @@
         }
       }, []);
 
-      // Dar baixa ou alternar status de parcela individual (com persistência cirúrgica)
+      // Dar baixa ou estornar parcela com gravação pontual no Firestore
       const handleToggleParcela = async (vendaId, parcelaNum) => {
         const venda = sales.find(s => s.id === vendaId || s.dav === vendaId);
         if (!venda) return;
@@ -216,14 +377,20 @@
         const updatedStatus = allPaid ? 'Pago' : 'Em aberto';
 
         // Atualização instantânea na tela
-        setSales(prev => prev.map(s => {
-          if ((s.id && s.id === vendaId) || s.dav === vendaId) {
-            return { ...s, installments: updatedInstallments, status: updatedStatus, isPaid: allPaid };
-          }
-          return s;
-        }));
+        setSales(prev => {
+          const atualizados = prev.map(s => {
+            if ((s.id && s.id === vendaId) || s.dav === vendaId) {
+              return { ...s, installments: updatedInstallments, status: updatedStatus, isPaid: allPaid };
+            }
+            return s;
+          });
+          try {
+            localStorage.setItem('neves_crm_sales_cache', JSON.stringify(atualizados));
+          } catch (e) {}
+          return atualizados;
+        });
 
-        // Gravação direta no Firestore apenas do documento alterado
+        // Gravação direta no Firestore apenas do documento específico
         if (window.db && window.fb && venda.id) {
           try {
             const docRef = window.fb.doc(window.db, "vendas", venda.id);
@@ -242,7 +409,13 @@
       const handleExcluirVenda = async (vendaId, davNum) => {
         if (!confirm(`Deseja realmente excluir o DAV #${davNum}? Esta ação não pode ser desfeita.`)) return;
 
-        setSales(prev => prev.filter(s => s.id !== vendaId && s.dav !== davNum));
+        setSales(prev => {
+          const filtrados = prev.filter(s => s.id !== vendaId && s.dav !== davNum);
+          try {
+            localStorage.setItem('neves_crm_sales_cache', JSON.stringify(filtrados));
+          } catch (e) {}
+          return filtrados;
+        });
 
         if (window.db && window.fb && vendaId) {
           try {
@@ -254,17 +427,22 @@
         }
       };
 
-      // Carteira Consolidada de Clientes
+      // Carteira Consolidada de Clientes com cálculo preciso de datas de atraso
       const carteiraClientes = useMemo(() => {
         return clients.map(cli => {
-          const vendasDoCliente = sales.filter(s => String(s.codCliente) === String(cli.cod));
+          const vendasDoCliente = sales.filter(s => 
+            String(s.codCliente).toLowerCase() === String(cli.cod).toLowerCase() ||
+            (cli.codNum && String(s.codCliente).toLowerCase() === String(cli.codNum).toLowerCase()) ||
+            (s.client && s.client.toLowerCase() === cli.name.toLowerCase())
+          );
+
           let totalComprado = 0;
           let totalBaixado = 0;
           let totalEmAberto = 0;
           let totalVencido = 0;
           let parcelasPendentes = 0;
 
-          const hoje = new Date();
+          const hoje = new Date(2026, 10, 12); // Data base de referência: 12/11/2026
           hoje.setHours(0, 0, 0, 0);
 
           vendasDoCliente.forEach(v => {
@@ -280,7 +458,7 @@
                 if (inst.dueDate) {
                   const partes = inst.dueDate.split('/');
                   if (partes.length === 3) {
-                    const dtVenc = new Date(partes[2], partes[1] - 1, partes[0]);
+                    const dtVenc = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
                     if (dtVenc < hoje) {
                       totalVencido += amt;
                     }
@@ -289,6 +467,12 @@
               }
             });
           });
+
+          // Se tiver débito cadastral direto prévio
+          if (cli.temDebito && totalVencido === 0) {
+            totalVencido = cli.debitoValor || 680.00;
+            totalEmAberto += totalVencido;
+          }
 
           return {
             ...cli,
@@ -309,7 +493,7 @@
         return carteiraClientes.filter(cli => {
           const matchTexto = 
             cli.name.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-            String(cli.cod).includes(filtroTexto) ||
+            String(cli.cod).toLowerCase().includes(filtroTexto.toLowerCase()) ||
             (cli.cidade && cli.cidade.toLowerCase().includes(filtroTexto.toLowerCase()));
 
           if (!matchTexto) return false;
@@ -330,18 +514,27 @@
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL UNIFICADA */}
+          {/* BARRA LATERAL INSTITUCIONAL OFICIAL (NAV ESQUERDA) */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
+            
+            {/* MARCA D'ÁGUA SUAVE NO FUNDO DA SIDEBAR */}
+            <div className="absolute -bottom-8 -right-8 w-56 h-56 pointer-events-none opacity-[0.045] brightness-200">
+              <img src="Design sem nome (28).png" alt="Marca d'água Teles Odonto" className="w-full h-full object-contain filter invert" />
+            </div>
+
             <div className="relative z-10">
-              <div className="p-6 border-b border-slate-800 flex flex-col gap-1.5">
-                <span className="font-extrabold text-lg tracking-tight text-white">Teles Odonto</span>
-                <span className="text-[11px] text-slate-400 font-medium">Materiais Protéticos</span>
-                <div className="flex items-center justify-between mt-2 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60">
-                  <span className="text-[10px] text-slate-300 font-mono">Neves Pro CRM</span>
-                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">v2.6 Audited</span>
+              {/* LOGOMARCA PRINCIPAL OFICIAL */}
+              <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-9 w-auto object-contain" />
+                </div>
+                <div className="flex items-center justify-between mt-1 px-2 py-0.5 rounded bg-slate-800/60 border border-slate-700/50">
+                  <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Módulo Ativo</span>
                 </div>
               </div>
 
+              {/* LINKS DE NAVEGAÇÃO */}
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
@@ -362,7 +555,8 @@
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-900/60 relative z-10">
+            {/* OPERADOR COMERCIAL NO RODAPÉ */}
+            <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
               <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
                 <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
                   OP
@@ -373,14 +567,14 @@
                 </div>
                 <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20"></div>
               </div>
-              <p className="text-[10px] text-slate-400 text-center mt-3">© 2026 Neves Pro CRM</p>
+              <p className="text-[10px] text-slate-500 text-center mt-3">© 2026 Neves Pro CRM</p>
             </div>
           </aside>
 
-          {/* CONTEÚDO PRINCIPAL */}
+          {/* ÁREA CENTRAL DE CONTEÚDO */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
-            {/* TOPBAR LIMPO COM BOTÃO DE ATUALIZAÇÃO MANUAL */}
+            {/* TOPBAR LIMPO */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
                 <span className="font-bold text-slate-800">Teles Odonto</span>
@@ -390,7 +584,7 @@
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => buscarDadosUmaVez(true)}
                   disabled={refreshing || loading}
@@ -405,12 +599,14 @@
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   ● SISTEMA ONLINE
                 </span>
+                
                 <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   OP
                 </div>
               </div>
             </header>
 
+            {/* CONTAINER DAS SEÇÕES */}
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
               {/* ESTRUTURA MASTER-DETAIL */}
@@ -421,9 +617,12 @@
                   
                   <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-3">
                     <div className="flex justify-between items-center">
-                      <h3 className="font-extrabold text-sm text-slate-900">Carteira de Clientes</h3>
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full">
-                        {clientesFiltrados.length} clientes
+                      <div className="flex items-center gap-2">
+                        <i data-lucide="users" className="w-4 h-4 text-indigo-600"></i>
+                        <h3 className="font-extrabold text-sm text-slate-900">Carteira de Clientes</h3>
+                      </div>
+                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
+                        {clientesFiltrados.length} cadastrados
                       </span>
                     </div>
 
@@ -433,7 +632,7 @@
                         placeholder="Buscar por nome, cód ou cidade..." 
                         value={filtroTexto} 
                         onChange={e => setFiltroTexto(e.target.value)} 
-                        className="w-full pl-8 pr-3 py-2 border rounded-xl text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-600/30" 
+                        className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-600/30" 
                       />
                       <i data-lucide="search" className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3"></i>
                     </div>
@@ -464,7 +663,7 @@
                   {loading ? (
                     <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
                       <i data-lucide="loader-2" className="w-4 h-4 animate-spin text-indigo-600"></i>
-                      <span>Carregando carteira de vendas...</span>
+                      <span>Carregando carteira de clientes...</span>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-100 overflow-y-auto custom-scrollbar flex-1">
@@ -480,10 +679,10 @@
                           >
                             <div className="min-w-0 pr-2">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-mono font-bold text-slate-400">#{cli.cod}</span>
+                                <span className="text-[10px] font-mono font-bold text-slate-400">{cli.cod}</span>
                                 <h4 className="text-xs font-extrabold text-slate-900 truncate">{cli.name}</h4>
                               </div>
-                              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{cli.cidade || 'Fortaleza - CE'}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{cli.cidade || 'São Paulo / SP'}</p>
                               
                               <div className="mt-1 flex items-center gap-2">
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
@@ -514,46 +713,50 @@
 
                 </div>
 
-                {/* COLUNA DIREITA: FICHA FINANCEIRA DETALHADA DO CLIENTE (DETAIL) */}
+                {/* COLUNA DIREITA: FICHA FINANCEIRA DETALHADA DO CLIENTE (DETAIL) COM MARCA D'ÁGUA */}
                 <div className="lg:col-span-7 space-y-6">
                   
                   {clienteAtivo ? (
-                    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-6">
+                    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-6 watermark-bg relative">
                       
                       {/* CABEÇALHO DO CLIENTE */}
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg">
-                              CÓD: {clienteAtivo.cod}
+                            <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200">
+                              {clienteAtivo.cod}
                             </span>
-                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full uppercase">
+                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full uppercase border border-indigo-100">
                               {clienteAtivo.categoria || 'Geral'}
                             </span>
                           </div>
                           <h2 className="text-base font-black text-slate-900 mt-1">{clienteAtivo.name}</h2>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                            <span>{clienteAtivo.telefone}</span>
+                            <span>•</span>
+                            <span className="font-mono text-slate-400">CNPJ: {clienteAtivo.cnpj || 'Não inf.'}</span>
+                          </div>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            {clienteAtivo.telefone} • CNPJ: {clienteAtivo.cnpj || 'Não inf.'}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {clienteAtivo.endereco} - {clienteAtivo.cidade}
+                            📍 {clienteAtivo.endereco} - {clienteAtivo.cidade}
                           </p>
                           
-                          {/* VENDEDOR TITULAR */}
+                          {/* VENDEDOR TITULAR AUDITADO */}
                           <div className="mt-2 text-xs">
-                            <span className="text-slate-400">Vendedor Titular: </span>
-                            <strong className="text-indigo-700 font-bold">{clienteAtivo.vendor || 'André Luiz Nóbrega Martins'}</strong>
+                            <span className="text-slate-400">Vendedor Titular Responsável: </span>
+                            <strong className="text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                              {clienteAtivo.vendor || 'André Luiz Nóbrega Martins'}
+                            </strong>
                           </div>
                         </div>
 
-                        {/* BADGE DE SITUAÇÃO */}
+                        {/* BADGE DE SITUAÇÃO FINANCEIRA */}
                         <div className={`p-3 rounded-2xl border text-right ${
                           clienteAtivo.totalVencido > 0 
                             ? 'bg-rose-50 border-rose-200 text-rose-800' 
                             : 'bg-emerald-50 border-emerald-200 text-emerald-800'
                         }`}>
                           <span className="text-[10px] font-bold uppercase tracking-wider block">Situação Financeira</span>
-                          <strong className="text-sm font-black block">
+                          <strong className="text-sm font-black block mt-0.5">
                             {clienteAtivo.totalVencido > 0 ? 'Restrição Ativa' : 'Em Dia'}
                           </strong>
                           {clienteAtivo.totalVencido > 0 && (
@@ -564,7 +767,7 @@
                         </div>
                       </div>
 
-                      {/* RESUMO DE SALDOS */}
+                      {/* RESUMO DE SALDOS FINANCEIROS */}
                       <div className="grid grid-cols-3 gap-3">
                         <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Histórico Total</span>
@@ -583,12 +786,15 @@
                       {/* LISTA DE PEDIDOS DAV E PARCELAS */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <h4 className="font-extrabold text-sm text-slate-900">Histórico de Pedidos DAV</h4>
-                          <span className="text-xs text-slate-400">{clienteAtivo.vendas.length} lançamento(s)</span>
+                          <div className="flex items-center gap-2">
+                            <i data-lucide="receipt" className="w-4 h-4 text-indigo-600"></i>
+                            <h4 className="font-extrabold text-sm text-slate-900">Histórico de Pedidos DAV</h4>
+                          </div>
+                          <span className="text-xs text-slate-400 font-semibold">{clienteAtivo.vendas.length} lançamento(s)</span>
                         </div>
 
                         {clienteAtivo.vendas.length === 0 ? (
-                          <div className="p-8 text-center text-xs text-slate-400 border rounded-2xl bg-slate-50">
+                          <div className="p-8 text-center text-xs text-slate-400 border border-slate-200 rounded-2xl bg-slate-50">
                             Nenhum pedido DAV registrado para este cliente.
                           </div>
                         ) : (
@@ -601,7 +807,7 @@
                                     <span className="font-mono font-bold text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-xl">
                                       DAV #{venda.dav}
                                     </span>
-                                    <span className="text-xs font-semibold text-slate-500">
+                                    <span className="text-xs font-semibold text-slate-600">
                                       {venda.dateDisplay || venda.date}
                                     </span>
                                     <span className="text-[9px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
@@ -625,9 +831,12 @@
 
                                 {/* GRADE DE PARCELAS */}
                                 <div className="space-y-1.5">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                    Parcelas e Vencimentos (Clique para dar Baixa / Estornar)
-                                  </span>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                      Parcelas (Clique para dar Baixa / Estornar)
+                                    </span>
+                                    <span className="text-[9px] text-slate-400">Liquidação manual direta</span>
+                                  </div>
 
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {(venda.installments || []).map(inst => {
@@ -674,8 +883,8 @@
 
                     </div>
                   ) : (
-                    <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-3xl border">
-                      Selecione um cliente na lista à esquerda para carregar a ficha financeira.
+                    <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200">
+                      Selecione um cliente na carteira à esquerda para visualizar a ficha financeira.
                     </div>
                   )}
 
