@@ -21,13 +21,19 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #faf8ff; color: #1e1b4b; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f2f3ff; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #c5c6d0; border-radius: 4px; }
+    .watermark-bg {
+      background-image: url('Design sem nome (28).png');
+      background-repeat: no-repeat;
+      background-position: right -20px bottom -20px;
+      background-size: 240px;
+    }
   </style>
 
-  <!-- Inicialização do Firebase Firestore com Busca Única (Anti-Loop) -->
+  <!-- Firebase Firestore com Busca Única Protegida (Anti-Loop) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -58,18 +64,21 @@
       window.db = getFirestore(app);
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado com busca única (anti-loop) no comissoes.html!");
+      console.log("🔥 Firebase conectado com busca protegida no comissoes.html!");
     } catch (err) {
       console.warn("Aviso na inicialização do Firebase no comissoes.html:", err);
     }
   </script>
 </head>
-<body class="min-h-screen bg-slate-50 antialiased text-slate-800">
+<body class="min-h-screen bg-[#faf8ff] antialiased text-[#1e1b4b]">
   <div id="root">
-    <!-- Fallback visível caso o script demore a carregar -->
-    <div style="padding: 40px; text-align: center; color: #64748b; font-family: sans-serif;">
-      <p style="font-weight: bold; font-size: 16px;">Carregando Módulo de Comissões Teles Odonto...</p>
-      <p style="font-size: 12px; margin-top: 8px;">Aguarde a inicialização do sistema.</p>
+    <!-- Fallback seguro para evitar tela em branco -->
+    <div class="flex items-center justify-center min-h-screen p-8 text-center text-slate-500">
+      <div class="space-y-3">
+        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="font-bold text-sm text-slate-800">Carregando Painel de Comissões Teles Odonto...</p>
+        <p class="text-xs text-slate-400">Apurando vendas brutas e metas por vendedor.</p>
+      </div>
     </div>
   </div>
 
@@ -86,14 +95,72 @@
       { 
         code: "VND-01", 
         name: "André Luiz Nóbrega Martins", 
+        initials: "AL",
         metaMensal: 35000.00,
-        taxas: { TOTAL: 2.5, PARCIAL: 2.0, DENTISTAS: 1.5 } // percentuais por categoria
+        taxas: { TOTAL: 2.5, PARCIAL: 2.0, DENTISTAS: 1.5 }
       },
       { 
         code: "VND-02", 
         name: "Luis Daniel da Silva", 
+        initials: "LD",
         metaMensal: 30000.00,
         taxas: { TOTAL: 2.5, PARCIAL: 2.0, DENTISTAS: 1.5 }
+      }
+    ];
+
+    // Lançamentos originais conciliados para referência imediata
+    const initialSalesSeed = [
+      {
+        id: "seed-1",
+        dav: "48911",
+        codCliente: "CLI-088",
+        client: "Laboratório Dental Sorriso",
+        salesperson: "André Luiz Nóbrega Martins",
+        salespersonCode: "VND-01",
+        amount: 1600.00,
+        tipoVenda: "TOTAL",
+        date: "2026-11-04",
+        dateDisplay: "04/11/2026",
+        status: "Pago",
+        isPaid: true,
+        installments: [
+          { number: 1, dueDate: "04/11/2026", amount: 1600.00, status: "Pago" }
+        ]
+      },
+      {
+        id: "seed-2",
+        dav: "48919",
+        codCliente: "CLI-093",
+        client: "Implantes & Próteses Vitória",
+        salesperson: "Luis Daniel da Silva",
+        salespersonCode: "VND-02",
+        amount: 3100.00,
+        tipoVenda: "PARCIAL",
+        date: "2026-11-09",
+        dateDisplay: "09/11/2026",
+        status: "Em aberto",
+        isPaid: false,
+        installments: [
+          { number: 1, dueDate: "09/12/2026", amount: 1550.00, status: "Em aberto" },
+          { number: 2, dueDate: "09/01/2027", amount: 1550.00, status: "Em aberto" }
+        ]
+      },
+      {
+        id: "seed-3",
+        dav: "48921",
+        codCliente: "CLI-112",
+        client: "Consultório Dr. Marcelo Ramos",
+        salesperson: "André Luiz Nóbrega Martins",
+        salespersonCode: "VND-01",
+        amount: 940.00,
+        tipoVenda: "DENTISTAS",
+        date: "2026-11-11",
+        dateDisplay: "11/11/2026",
+        status: "Em aberto",
+        isPaid: false,
+        installments: [
+          { number: 1, dueDate: "11/12/2026", amount: 940.00, status: "Em aberto" }
+        ]
       }
     ];
 
@@ -101,16 +168,15 @@
       const [sales, setSales] = useState(() => {
         try {
           const cached = localStorage.getItem('neves_crm_sales_cache');
-          return cached ? JSON.parse(cached) : [];
+          return cached ? JSON.parse(cached) : initialSalesSeed;
         } catch {
-          return [];
+          return initialSalesSeed;
         }
       });
+
       const [loading, setLoading] = useState(false);
       const [refreshing, setRefreshing] = useState(false);
-      const [filtroPeriodo, setFiltroPeriodo] = useState('MES_ATUAL'); // MES_ATUAL ou COMPARATIVO
       const [vendedorFiltro, setVendedorFiltro] = useState('TODOS');
-
       const carregouRef = useRef(false);
 
       const renderIcons = () => {
@@ -125,7 +191,7 @@
         renderIcons();
       });
 
-      // Busca única no Firebase via getDocs (Anti-Loop)
+      // Busca única no Firebase Firestore via getDocs (Anti-Loop protegido)
       const buscarDadosUmaVez = async (isManual = false) => {
         if (!window.db || !window.fb) return;
 
@@ -138,13 +204,15 @@
             window.fb.orderBy("date", "desc")
           );
           const snapVendas = await window.fb.getDocs(qVendas);
-          const listaVendas = snapVendas.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setSales(listaVendas);
-          try {
-            localStorage.setItem('neves_crm_sales_cache', JSON.stringify(listaVendas));
-          } catch (e) {}
+          if (!snapVendas.empty) {
+            const listaVendas = snapVendas.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSales(listaVendas);
+            try {
+              localStorage.setItem('neves_crm_sales_cache', JSON.stringify(listaVendas));
+            } catch (e) {}
+          }
         } catch (e) {
-          console.warn("Aviso na leitura única do comissoes.html:", e);
+          console.warn("Aviso na busca do comissoes.html:", e);
         } finally {
           setLoading(false);
           setRefreshing(false);
@@ -166,11 +234,10 @@
       // Apuração completa de Vendas Brutas e Comissões por Vendedor
       const apuracaoVendedores = useMemo(() => {
         return initialVendedoresConfig.map(vend => {
-          // Filtra vendas do vendedor pelo nome ou código
           const vendasDoVendedor = sales.filter(s => {
-            const matchNome = s.salesperson && s.salesperson.toLowerCase().includes(vend.name.split(' ')[0].toLowerCase());
             const matchCode = s.salespersonCode === vend.code;
-            return matchNome || matchCode;
+            const matchNome = s.salesperson && s.salesperson.toLowerCase().includes(vend.name.split(' ')[0].toLowerCase());
+            return matchCode || matchNome;
           });
 
           let vendasBrutasTotal = 0;
@@ -195,7 +262,7 @@
               detalhesPorCategoria[cat].volume += valorVenda;
             }
 
-            // Cálculo das comissões com base no status das parcelas
+            // Cálculo das comissões pelas parcelas adimplidas vs em aberto
             (v.installments || []).forEach(inst => {
               const valorParcela = Number(inst.amount) || 0;
               const comissaoParcela = valorParcela * taxaAplicada;
@@ -229,7 +296,7 @@
         });
       }, [sales]);
 
-      // Totais consolidados da empresa
+      // Totais consolidados gerais da empresa
       const totaisGerais = useMemo(() => {
         let totalBruto = 0;
         let totalBaixado = 0;
@@ -259,18 +326,27 @@
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL UNIFICADA COM LOGO OFICIAL */}
+          {/* BARRA LATERAL INSTITUCIONAL OFICIAL (NAV ESQUERDA) */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
+            
+            {/* MARCA D'ÁGUA SUAVE NO FUNDO DA SIDEBAR */}
+            <div className="absolute -bottom-8 -right-8 w-56 h-56 pointer-events-none opacity-[0.045] brightness-200">
+              <img src="Design sem nome (28).png" alt="Marca d'água Teles Odonto" className="w-full h-full object-contain filter invert" />
+            </div>
+
             <div className="relative z-10">
-              <div className="p-6 border-b border-slate-800 flex flex-col gap-1.5">
-                <span className="font-extrabold text-lg tracking-tight text-white">Teles Odonto</span>
-                <span className="text-[11px] text-slate-400 font-medium">Materiais Protéticos</span>
-                <div className="flex items-center justify-between mt-2 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60">
-                  <span className="text-[10px] text-slate-300 font-mono">Neves Pro CRM</span>
-                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">v2.6 Audited</span>
+              {/* LOGOMARCA PRINCIPAL OFICIAL */}
+              <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-9 w-auto object-contain" />
+                </div>
+                <div className="flex items-center justify-between mt-1 px-2 py-0.5 rounded bg-slate-800/60 border border-slate-700/50">
+                  <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Módulo Ativo</span>
                 </div>
               </div>
 
+              {/* LINKS DE NAVEGAÇÃO */}
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
@@ -291,7 +367,8 @@
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-900/60 relative z-10">
+            {/* OPERADOR COMERCIAL NO RODAPÉ */}
+            <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
               <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
                 <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
                   OP
@@ -302,14 +379,14 @@
                 </div>
                 <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20"></div>
               </div>
-              <p className="text-[10px] text-slate-400 text-center mt-3">© 2026 Neves Pro CRM</p>
+              <p className="text-[10px] text-slate-500 text-center mt-3">© 2026 Neves Pro CRM</p>
             </div>
           </aside>
 
-          {/* CONTEÚDO PRINCIPAL */}
+          {/* ÁREA CENTRAL DE CONTEÚDO */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
-            {/* TOPBAR COM ATUALIZAÇÃO MANUAL */}
+            {/* TOPBAR LIMPO */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
                 <span className="font-bold text-slate-800">Teles Odonto</span>
@@ -319,7 +396,7 @@
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => buscarDadosUmaVez(true)}
                   disabled={refreshing || loading}
@@ -334,23 +411,25 @@
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   ● SISTEMA ONLINE
                 </span>
+                
                 <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   OP
                 </div>
               </div>
             </header>
 
+            {/* CONTAINER DAS SEÇÕES */}
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* CAIXA DE CONTROLE E VENDAS BRUTAS GERAIS NO TOPO */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              {/* CAIXA DE CONTROLE E VENDAS BRUTAS GERAIS NO TOPO COM MARCA D'ÁGUA */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 watermark-bg relative">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
                     Fechamento de Comissões • Novembro 2026
                   </span>
                   <h2 className="text-xl font-black text-slate-900 mt-2">Painel de Metas & Apuração de Comissões</h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Acompanhamento em tempo real das vendas brutas e liquidações por vendedor titular.
+                    Acompanhamento em tempo real das vendas brutas gerais e liquidações por vendedor titular.
                   </p>
                 </div>
 
@@ -358,7 +437,7 @@
                   <select 
                     value={vendedorFiltro} 
                     onChange={e => setVendedorFiltro(e.target.value)}
-                    className="p-2 border rounded-xl bg-slate-50 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-600/30"
+                    className="p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-600/30"
                   >
                     <option value="TODOS">Todos os Vendedores</option>
                     <option value="VND-01">André Luiz Nóbrega Martins</option>
@@ -367,7 +446,7 @@
 
                   <button 
                     onClick={() => window.print()}
-                    className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
                   >
                     <i data-lucide="printer" className="w-3.5 h-3.5"></i>
                     <span>Exportar</span>
@@ -428,26 +507,26 @@
 
               </div>
 
-              {/* CARDS INDIVIDUAIS DE CADA VENDEDOR */}
+              {/* CARDS INDIVIDUAIS DE CADA VENDEDOR COM MARCA D'ÁGUA */}
               <div className="space-y-6">
                 {vendedoresExibidos.map(vend => (
-                  <div key={vend.code} className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-5">
+                  <div key={vend.code} className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-5 watermark-bg relative">
                     
                     {/* TOPO DO CARD DO VENDEDOR */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-black text-base flex items-center justify-center shadow-md shadow-indigo-600/20">
-                          {vend.code === 'VND-01' ? 'AL' : 'LD'}
+                          {vend.initials || 'AL'}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="font-extrabold text-base text-slate-900">{vend.name}</h3>
-                            <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                            <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
                               {vend.code}
                             </span>
                           </div>
                           <p className="text-xs text-slate-400 mt-0.5">
-                            {vend.vendasCount} vendas lançadas no período vigente
+                            {vend.vendasCount} venda(s) lançada(s) no período vigente
                           </p>
                         </div>
                       </div>
@@ -460,7 +539,7 @@
                             {vend.percentualMeta.toFixed(1)}% atingido
                           </span>
                         </div>
-                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
                               vend.percentualMeta >= 100 ? 'bg-emerald-500' : 'bg-indigo-600'
@@ -513,7 +592,7 @@
                       </span>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 flex justify-between items-center">
                           <div>
                             <span className="font-bold text-slate-800 block">TOTAL (Prótese Total)</span>
                             <span className="text-[10px] text-slate-400">Taxa: {vend.taxas.TOTAL}%</span>
@@ -524,7 +603,7 @@
                           </div>
                         </div>
 
-                        <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 flex justify-between items-center">
                           <div>
                             <span className="font-bold text-slate-800 block">PARCIAL (Prótese Parcial)</span>
                             <span className="text-[10px] text-slate-400">Taxa: {vend.taxas.PARCIAL}%</span>
@@ -535,7 +614,7 @@
                           </div>
                         </div>
 
-                        <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 flex justify-between items-center">
                           <div>
                             <span className="font-bold text-slate-800 block">DENTISTAS (Clínico)</span>
                             <span className="text-[10px] text-slate-400">Taxa: {vend.taxas.DENTISTAS}%</span>
@@ -547,6 +626,34 @@
                         </div>
                       </div>
                     </div>
+
+                    {/* LISTA DE VENDAS DO VENDEDOR */}
+                    {vend.vendas.length > 0 && (
+                      <div className="pt-2 border-t border-slate-100">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                          Lançamentos do Vendedor
+                        </span>
+                        <div className="divide-y divide-slate-100 text-xs">
+                          {vend.vendas.map(v => (
+                            <div key={v.id || v.dav} className="py-2 flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px]">
+                                  DAV #{v.dav}
+                                </span>
+                                <span className="font-semibold text-slate-800">{v.client}</span>
+                                <span className="text-[10px] text-slate-400">({v.dateDisplay || v.date})</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">
+                                  {v.tipoVenda || 'TOTAL'}
+                                </span>
+                                <strong className="font-black text-slate-900">{formatBRL(v.amount)}</strong>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                   </div>
                 ))}
