@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teles Odonto - Página de Vendas & Carteira</title>
+  <title>Neves Pro CRM - Página de Vendas & Carteira</title>
   
+  <!-- Tipografia Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
+  <!-- CDN Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
+  <!-- React 18 & Babel para execução autônoma no navegador -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -23,6 +26,7 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 
+  <!-- Inicialização do Firebase Firestore v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -71,9 +75,26 @@
       return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
+    // Componente Marca D'água Teles Odonto
+    const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
+      <svg viewBox="0 0 100 120" className={className} fill="currentColor">
+        <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
+        <path d="M 8 52 C 32 78 68 78 92 38" fill="none" stroke="currentColor" strokeWidth="6"/>
+        <polygon points="78,16 81,24 89,27 81,30 78,38 75,30 67,27 75,24" />
+      </svg>
+    );
+
+    // =========================================================================
+    // VERIFICAÇÃO PRECISA DE DATAS (SEM FALSO POSITIVO DE ATRASO)
+    // =========================================================================
     const verificarStatusParcela = (dueDateStr, statusAtual) => {
-      if (statusAtual === 'Pago') return { status: 'Pago', diasAtraso: 0, isVencido: false };
-      if (!dueDateStr) return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
+      if (statusAtual === 'Pago') {
+        return { status: 'Pago', diasAtraso: 0, isVencido: false };
+      }
+
+      if (!dueDateStr) {
+        return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
+      }
 
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
@@ -81,10 +102,14 @@
       let dataVenc;
       if (typeof dueDateStr === 'string' && dueDateStr.includes('/')) {
         const parts = dueDateStr.split('/').map(Number);
-        if (parts.length === 3) dataVenc = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+        if (parts.length === 3) {
+          dataVenc = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+        }
       } else if (typeof dueDateStr === 'string' && dueDateStr.includes('-')) {
         const parts = dueDateStr.split('-').map(Number);
-        if (parts.length === 3) dataVenc = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        if (parts.length === 3) {
+          dataVenc = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
       }
 
       if (!dataVenc || isNaN(dataVenc.getTime())) {
@@ -92,26 +117,128 @@
         dataVenc.setHours(0, 0, 0, 0);
       }
 
-      if (isNaN(dataVenc.getTime())) return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
+      if (isNaN(dataVenc.getTime())) {
+        return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
+      }
 
       if (dataVenc >= hoje) {
         const diffMs = dataVenc.getTime() - hoje.getTime();
         const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        return { status: 'À Vencer', diasAtraso: 0, diasParaVencer: diffDias, isVencido: false };
+        return {
+          status: 'À Vencer',
+          diasAtraso: 0,
+          diasParaVencer: diffDias,
+          isVencido: false
+        };
       }
 
       const atrasoMs = hoje.getTime() - dataVenc.getTime();
       const atrasoDias = Math.floor(atrasoMs / (1000 * 60 * 60 * 24));
-      return { status: 'Vencido', diasAtraso: atrasoDias > 0 ? atrasoDias : 1, diasParaVencer: 0, isVencido: true };
+      return {
+        status: 'Vencido',
+        diasAtraso: atrasoDias > 0 ? atrasoDias : 1,
+        diasParaVencer: 0,
+        isVencido: true
+      };
     };
 
     const initialClientsSeed = [
-      { cod: "2", name: "JOÃO PESSOA MEDEIROS COSTA", cpf_cnpj: "021.***.***-34", categoria: "Prótese Fixa", logradouro: "Rua", endereco: "Monsenhor Tabosa", numero: "450", bairro: "Praia de Iracema", cidade: "Fortaleza", uf: "CE", ddd: "85", telefone: "99122-3344", area: "Fortaleza Centro-Leste", vendor: "André Luiz Nóbrega Martins" },
-      { cod: "4", name: "LEONARDO AMORIM DE FRANCA E SOUSA", cpf_cnpj: "043.***.***-89", categoria: "Prótese Total e Parcial", logradouro: "Av.", endereco: "Santos Dumont", numero: "1200", bairro: "Aldeota", cidade: "Fortaleza", uf: "CE", ddd: "85", telefone: "98844-1234", area: "Fortaleza Metropolitana", vendor: "Luis Daniel da Silva" },
-      { cod: "5", name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA", cpf_cnpj: "12.345.678/0001-90", categoria: "Ortodontia & Fixa", logradouro: "Av.", endereco: "Dom Luís", numero: "800", bairro: "Aldeota", cidade: "Fortaleza", uf: "CE", ddd: "85", telefone: "98711-2233", area: "Fortaleza Leste", vendor: "André Luiz Nóbrega Martins" },
-      { cod: "7", name: "DAVI DA CUNHA GONCALVES", cpf_cnpj: "019.***.***-12", categoria: "Implantodontia", logradouro: "Rua", endereco: "Barão de Studart", numero: "1550", bairro: "Dionísio Torres", cidade: "Fortaleza", uf: "CE", ddd: "85", telefone: "99655-4433", area: "Fortaleza Sul", vendor: "André Luiz Nóbrega Martins" },
-      { cod: "8", name: "LEONARDO DA SILVA SOUZA", cpf_cnpj: "055.***.***-01", categoria: "Ortodontia Digital", logradouro: "Rua", endereco: "Coronel Mont Alverne", numero: "210", bairro: "Centro", cidade: "Sobral", uf: "CE", ddd: "88", telefone: "98122-9988", area: "Zona Norte - Sobral", vendor: "Luis Daniel da Silva" },
-      { cod: "14", name: "CLINICA ODONTOLOGICA JORIO DA ESCOSSIA LTDA", cpf_cnpj: "07.891.234/0001-45", categoria: "Próteses Múltiplas", logradouro: "Av.", endereco: "Pontes Vieira", numero: "2500", bairro: "Dionísio Torres", cidade: "Fortaleza", uf: "CE", ddd: "85", telefone: "99455-1100", area: "Fortaleza Sul", vendor: "André Luiz Nóbrega Martins" }
+      { 
+        cod: "2", 
+        name: "JOÃO PESSOA MEDEIROS COSTA", 
+        cpf_cnpj: "021.***.***-34",
+        categoria: "Prótese Fixa", 
+        logradouro: "Rua", 
+        endereco: "Monsenhor Tabosa", 
+        numero: "450", 
+        bairro: "Praia de Iracema", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99122-3344", 
+        area: "Fortaleza Centro-Leste",
+        vendor: "André Luiz Nóbrega Martins"
+      },
+      { 
+        cod: "4", 
+        name: "LEONARDO AMORIM DE FRANCA E SOUSA", 
+        cpf_cnpj: "043.***.***-89",
+        categoria: "Prótese Total e Parcial", 
+        logradouro: "Av.", 
+        endereco: "Santos Dumont", 
+        numero: "1200", 
+        bairro: "Aldeota", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "98844-1234", 
+        area: "Fortaleza Metropolitana",
+        vendor: "Luis Daniel da Silva"
+      },
+      { 
+        cod: "5", 
+        name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA", 
+        cpf_cnpj: "12.345.678/0001-90",
+        categoria: "Ortodontia & Fixa", 
+        logradouro: "Av.", 
+        endereco: "Dom Luís", 
+        numero: "800", 
+        bairro: "Aldeota", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "98711-2233", 
+        area: "Fortaleza Leste",
+        vendor: "André Luiz Nóbrega Martins"
+      },
+      { 
+        cod: "7", 
+        name: "DAVI DA CUNHA GONCALVES", 
+        cpf_cnpj: "019.***.***-12",
+        categoria: "Implantodontia", 
+        logradouro: "Rua", 
+        endereco: "Barão de Studart", 
+        numero: "1550", 
+        bairro: "Dionísio Torres", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99655-4433", 
+        area: "Fortaleza Sul",
+        vendor: "André Luiz Nóbrega Martins"
+      },
+      { 
+        cod: "8", 
+        name: "LEONARDO DA SILVA SOUZA", 
+        cpf_cnpj: "055.***.***-01",
+        categoria: "Ortodontia Digital", 
+        logradouro: "Rua", 
+        endereco: "Coronel Mont Alverne", 
+        numero: "210", 
+        bairro: "Centro", 
+        cidade: "Sobral", 
+        uf: "CE", 
+        ddd: "88", 
+        telefone: "98122-9988", 
+        area: "Zona Norte - Sobral",
+        vendor: "Luis Daniel da Silva"
+      },
+      { 
+        cod: "14", 
+        name: "CLINICA ODONTOLOGICA JORIO DA ESCOSSIA LTDA", 
+        cpf_cnpj: "07.891.234/0001-45",
+        categoria: "Próteses Múltiplas", 
+        logradouro: "Av.", 
+        endereco: "Pontes Vieira", 
+        numero: "2500", 
+        bairro: "Dionísio Torres", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99455-1100", 
+        area: "Fortaleza Sul",
+        vendor: "André Luiz Nóbrega Martins"
+      }
     ];
 
     function App() {
@@ -130,9 +257,11 @@
       const [abaFiltro, setAbaFiltro] = useState('TODOS');
       const [selectedClientCod, setSelectedClientCod] = useState("4");
 
+      // Estados para Amortização FIFO
       const [valorAmortizacao, setValorAmortizacao] = useState('');
       const [vendedorAmortizacao, setVendedorAmortizacao] = useState('ERDENIA');
 
+      // Modais
       const [showModalEditarCliente, setShowModalEditarCliente] = useState(false);
       const [clienteEditando, setClienteEditando] = useState(null);
 
@@ -143,30 +272,35 @@
         if (window.lucide) window.lucide.createIcons();
       });
 
+      // Leitura do parâmetro ?cliente= vindo da tela inicial
       useEffect(() => {
         try {
           const params = new URLSearchParams(window.location.search);
           const clienteParam = params.get('cliente');
-          if (clienteParam) setSelectedClientCod(String(clienteParam).trim());
+          if (clienteParam) {
+            setSelectedClientCod(String(clienteParam).trim());
+          }
         } catch (e) {
-          console.error(e);
+          console.error("Erro leitura query param:", e);
         }
       }, []);
 
+      // Sincronização em tempo real com Firebase Firestore
       useEffect(() => {
         const startListeners = () => {
           if (!window.db || !window.fb) return;
+
           try {
             const vendasCol = window.fb.collection(window.db, "vendas");
             const qVendas = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
-            window.fb.onSnapshot(qVendas, (snapshot) => {
+            const unsubVendas = window.fb.onSnapshot(qVendas, (snapshot) => {
               const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               setSales(list);
               setLoading(false);
-            });
+            }, () => setLoading(false));
 
             const clientesCol = window.fb.collection(window.db, "clientes");
-            window.fb.onSnapshot(clientesCol, (snapshot) => {
+            const unsubClientes = window.fb.onSnapshot(clientesCol, (snapshot) => {
               if (!snapshot.empty) {
                 const firestoreClients = snapshot.docs.map(doc => ({ cod: doc.id, ...doc.data() }));
                 setClients(prev => {
@@ -179,8 +313,10 @@
                 });
               }
             });
+
+            return () => { unsubVendas(); unsubClientes(); };
           } catch (e) {
-            console.error(e);
+            console.error("Erro listeners vendas.html:", e);
             setLoading(false);
           }
         };
@@ -193,15 +329,30 @@
         }
       }, []);
 
+      // =========================================================================
+      // DADOS FINANCEIROS CONSOLIDADOS POR CLIENTE (SEM MOCK OU SALDO FICTÍCIO)
+      // =========================================================================
       const dadosFinanceirosPorCliente = useMemo(() => {
         const map = {};
+
         clients.forEach(c => {
-          map[String(c.cod)] = { totalComprado: 0, totalPago: 0, totalEmAberto: 0, totalVencido: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
+          map[String(c.cod)] = {
+            totalComprado: 0,
+            totalPago: 0,
+            totalEmAberto: 0,
+            totalVencido: 0,
+            pedidosCount: 0,
+            temVencido: false,
+            temAReceber: false
+          };
         });
 
         sales.forEach(sale => {
           const cod = String(sale.codCliente);
-          if (!map[cod]) map[cod] = { totalComprado: 0, totalPago: 0, totalEmAberto: 0, totalVencido: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
+          if (!map[cod]) {
+            map[cod] = { totalComprado: 0, totalPago: 0, totalEmAberto: 0, totalVencido: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
+          }
+
           map[cod].pedidosCount += 1;
           map[cod].totalComprado += Number(sale.amount) || 0;
 
@@ -212,6 +363,7 @@
             } else {
               map[cod].totalEmAberto += amt;
               map[cod].temAReceber = true;
+              
               const st = verificarStatusParcela(inst.dueDate, inst.status);
               if (st.isVencido) {
                 map[cod].totalVencido += amt;
@@ -224,18 +376,24 @@
         return map;
       }, [clients, sales]);
 
+      // Filtragem da carteira de clientes
       const clientesFiltrados = useMemo(() => {
         return clients.filter(c => {
           const cod = String(c.cod);
           const fin = dadosFinanceirosPorCliente[cod] || { pedidosCount: 0, temVencido: false, temAReceber: false };
+
           if (abaFiltro === 'COM_COMPRAS' && fin.pedidosCount === 0) return false;
           if (abaFiltro === 'INADIMPLENTES' && !fin.temVencido) return false;
           if (abaFiltro === 'A_RECEBER' && !fin.temAReceber) return false;
 
           if (filtroTexto.trim()) {
             const termo = filtroTexto.toLowerCase();
-            return (c.name && c.name.toLowerCase().includes(termo)) || cod.includes(termo) || (c.cidade && c.cidade.toLowerCase().includes(termo));
+            const bateNome = c.name && c.name.toLowerCase().includes(termo);
+            const bateCod = cod.includes(termo);
+            const bateCidade = c.cidade && c.cidade.toLowerCase().includes(termo);
+            return bateNome || bateCod || bateCidade;
           }
+
           return true;
         });
       }, [clients, dadosFinanceirosPorCliente, abaFiltro, filtroTexto]);
@@ -244,6 +402,9 @@
         return clients.find(c => String(c.cod) === String(selectedClientCod)) || clients[0] || null;
       }, [clients, selectedClientCod]);
 
+      // =========================================================================
+      // VENDAS REAIS DO CLIENTE SELECIONADO (100% FIEL AO FIREBASE)
+      // =========================================================================
       const vendasDoCliente = useMemo(() => {
         if (!clienteSelecionado) return [];
         return sales.filter(s => String(s.codCliente) === String(clienteSelecionado.cod));
@@ -252,9 +413,13 @@
       const resumoFinanceiroCliente = useMemo(() => {
         if (!clienteSelecionado) return { comprado: 0, pago: 0, emAberto: 0 };
         const fin = dadosFinanceirosPorCliente[String(clienteSelecionado.cod)];
-        return fin ? { comprado: fin.totalComprado, pago: fin.totalPago, emAberto: fin.totalEmAberto } : { comprado: 0, pago: 0, emAberto: 0 };
+        if (fin) {
+          return { comprado: fin.totalComprado, pago: fin.totalPago, emAberto: fin.totalEmAberto };
+        }
+        return { comprado: 0, pago: 0, emAberto: 0 };
       }, [clienteSelecionado, dadosFinanceirosPorCliente]);
 
+      // Métricas Consolidadas dos 2 Cards Superiores (Calculadas das vendas reais)
       const metricasGerais = useMemo(() => {
         let vencendoHojeValor = 0;
         let vencendoHojeCount = 0;
@@ -271,10 +436,15 @@
             if (inst.status !== 'Pago') {
               const valorParc = Number(inst.amount) || 0;
               let dataVenc;
+
               if (typeof inst.dueDate === 'string' && inst.dueDate.includes('/')) {
                 const parts = inst.dueDate.split('/').map(Number);
                 if (parts.length === 3) dataVenc = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+              } else if (typeof inst.dueDate === 'string' && inst.dueDate.includes('-')) {
+                const parts = inst.dueDate.split('-').map(Number);
+                if (parts.length === 3) dataVenc = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
               }
+
               if (dataVenc && !isNaN(dataVenc.getTime())) {
                 if (dataVenc.getTime() === hoje.getTime()) {
                   vencendoHojeValor += valorParc;
@@ -292,14 +462,24 @@
         return { vencendoHojeValor, vencendoHojeCount, vencendoMesValor, vencendoMesCount };
       }, [sales]);
 
+      // Amortização Inteligente (Regra FIFO)
       const handleAmortizarSaldo = async () => {
         const valorNum = parseFloat(valorAmortizacao.replace(',', '.'));
-        if (!valorNum || valorNum <= 0) return alert("Informe um valor válido.");
-        if (vendasDoCliente.length === 0) return alert("Nenhuma venda para amortizar.");
+        if (!valorNum || valorNum <= 0) {
+          alert("Informe um valor de amortização válido.");
+          return;
+        }
+
+        if (vendasDoCliente.length === 0) {
+          alert("O cliente não possui vendas registradas para amortizar.");
+          return;
+        }
 
         let saldoRestante = valorNum;
+
         for (const venda of vendasDoCliente) {
           if (saldoRestante <= 0) break;
+
           let mudou = false;
           const novosInst = (venda.installments || []).map(inst => {
             if (inst.status !== 'Pago' && saldoRestante > 0) {
@@ -312,75 +492,159 @@
                 const novoValor = parseFloat((valorParc - saldoRestante).toFixed(2));
                 saldoRestante = 0;
                 mudou = true;
-                return { ...inst, amount: novoValor };
+                return { ...inst, amount: novoValor, note: `Abatido parcialmente` };
               }
             }
             return inst;
           });
 
-          if (mudou && window.db && window.fb && venda.id) {
-            await window.fb.updateDoc(window.fb.doc(window.db, "vendas", venda.id), {
-              installments: novosInst,
-              isPaid: novosInst.every(i => i.status === 'Pago')
-            });
+          if (mudou) {
+            const todasPagas = novosInst.every(i => i.status === 'Pago');
+            if (window.db && window.fb && venda.id) {
+              try {
+                await window.fb.updateDoc(window.fb.doc(window.db, "vendas", venda.id), {
+                  installments: novosInst,
+                  isPaid: todasPagas
+                });
+              } catch (e) {
+                console.error("Erro ao atualizar venda:", e);
+              }
+            } else {
+              setSales(prev => prev.map(s => s.id === venda.id ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
+            }
           }
         }
-        alert(`✅ Amortização de R$ ${valorNum.toFixed(2)} aplicada!`);
+
+        alert(`✅ Amortização de R$ ${valorNum.toFixed(2)} aplicada com sucesso!`);
         setValorAmortizacao('');
       };
 
+      // Ação: Dar Baixa Direta em Parcela
       const handleDarBaixaParcela = async (vendaId, numeroParcela) => {
         const vendaAlvo = sales.find(s => s.id === vendaId) || vendasDoCliente.find(s => s.id === vendaId);
         if (!vendaAlvo) return;
-        const novosInst = (vendaAlvo.installments || []).map(inst => inst.number === numeroParcela ? { ...inst, status: 'Pago', paidAt: new Date().toISOString() } : inst);
-        if (window.db && window.fb && vendaAlvo.id) {
-          await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), { installments: novosInst, isPaid: novosInst.every(i => i.status === 'Pago') });
-        }
-        alert(`✅ Parcela ${numeroParcela} baixada!`);
-      };
 
-      const handleAbaterParcial = async (vendaId, numeroParcela) => {
-        const valorStr = prompt("Valor a abater (R$):");
-        if (!valorStr) return;
-        const abater = parseFloat(valorStr.replace(',', '.'));
-        const vendaAlvo = sales.find(s => s.id === vendaId) || vendasDoCliente.find(s => s.id === vendaId);
-        if (!vendaAlvo) return;
         const novosInst = (vendaAlvo.installments || []).map(inst => {
           if (inst.number === numeroParcela) {
-            const valAtual = Number(inst.amount) || 0;
-            return abater >= valAtual ? { ...inst, status: 'Pago', paidAt: new Date().toISOString() } : { ...inst, amount: parseFloat((valAtual - abater).toFixed(2)) };
+            return { ...inst, status: 'Pago', paidAt: new Date().toISOString() };
           }
           return inst;
         });
+
+        const todasPagas = novosInst.every(i => i.status === 'Pago');
+
         if (window.db && window.fb && vendaAlvo.id) {
-          await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), { installments: novosInst, isPaid: novosInst.every(i => i.status === 'Pago') });
+          await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
+            installments: novosInst,
+            isPaid: todasPagas
+          });
+        } else {
+          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
         }
+
+        alert(`✅ Parcela ${numeroParcela} baixada com sucesso!`);
+      };
+
+      // Ação: Abater Parcial em Parcela
+      const handleAbaterParcial = async (vendaId, numeroParcela) => {
+        const valorStr = prompt("Informe o valor a abater desta parcela (R$):");
+        if (!valorStr) return;
+        const abater = parseFloat(valorStr.replace(',', '.'));
+        if (!abater || abater <= 0) {
+          alert("Valor inválido.");
+          return;
+        }
+
+        const vendaAlvo = sales.find(s => s.id === vendaId) || vendasDoCliente.find(s => s.id === vendaId);
+        if (!vendaAlvo) return;
+
+        const novosInst = (vendaAlvo.installments || []).map(inst => {
+          if (inst.number === numeroParcela) {
+            const valAtual = Number(inst.amount) || 0;
+            if (abater >= valAtual) {
+              return { ...inst, status: 'Pago', paidAt: new Date().toISOString() };
+            } else {
+              return { ...inst, amount: parseFloat((valAtual - abater).toFixed(2)) };
+            }
+          }
+          return inst;
+        });
+
+        const todasPagas = novosInst.every(i => i.status === 'Pago');
+
+        if (window.db && window.fb && vendaAlvo.id) {
+          await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
+            installments: novosInst,
+            isPaid: todasPagas
+          });
+        } else {
+          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
+        }
+
         alert(`✅ Abatimento de R$ ${abater.toFixed(2)} registrado!`);
       };
 
+      // Ação: Excluir DAV com 1 Clique (Exclusão Real no Firestore)
       const handleExcluirDAV = async (vendaId, davNum) => {
-        if (!confirm(`Deseja realmente excluir o DAV #${davNum}?`)) return;
+        if (!confirm(`Deseja realmente excluir o DAV #${davNum}? Esta ação não pode ser desfeita.`)) {
+          return;
+        }
+
         if (window.db && window.fb && vendaId) {
-          await window.fb.deleteDoc(window.fb.doc(window.db, "vendas", vendaId));
+          try {
+            await window.fb.deleteDoc(window.fb.doc(window.db, "vendas", vendaId));
+          } catch (e) {
+            console.error("Erro ao excluir DAV:", e);
+          }
         } else {
           setSales(prev => prev.filter(s => s.id !== vendaId));
         }
-        alert(`🗑️ DAV #${davNum} excluído!`);
+
+        alert(`🗑️ DAV #${davNum} excluído com sucesso!`);
+      };
+
+      // Salvar Edição do Cliente
+      const handleSalvarEdicaoCliente = async (e) => {
+        e.preventDefault();
+        if (!clienteEditando) return;
+
+        setClients(prev => prev.map(c => String(c.cod) === String(clienteEditando.cod) ? clienteEditando : c));
+        localStorage.setItem('neves_crm_clients', JSON.stringify(clients));
+
+        if (window.db && window.fb) {
+          try {
+            await window.fb.setDoc(window.fb.doc(window.db, "clientes", String(clienteEditando.cod)), clienteEditando, { merge: true });
+          } catch (err) {
+            console.error("Erro ao atualizar cliente:", err);
+          }
+        }
+
+        setShowModalEditarCliente(false);
+        alert("✅ Dados do cliente atualizados com sucesso!");
       };
 
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL UNIFICADA COM LOGO OFICIAL E MARCA D'ÁGUA */}
+          {/* BARRA LATERAL UNIFICADA */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.05] brightness-200">
-              <img src="Design sem nome (28).png" alt="Marca d'água Teles Odonto" className="w-full h-full object-contain filter invert" />
+            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
+              <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
               <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-10 w-auto object-contain" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 2C7 2 4 5 4 9c0 5 2 9 3 13 1 1 2 1 3 0 1-2 2-2 2-2s1 0 2 2c1 1 2 1 3 0 1-4 3-8 3-13 0-4-3-7-8-7z"></path>
+                      <path d="M9 8c.5-1 1.5-1.5 3-1.5s2.5.5 3 1.5"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-base font-bold text-white tracking-tight leading-tight">Teles Odonto</h1>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Materiais Protéticos</p>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
@@ -391,17 +655,17 @@
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
-                <a href="index.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="index.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="layout-grid" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Página Inicial</span>
                 </a>
 
-                <a href="vendas.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                <a href="vendas.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
                   <i data-lucide="shopping-cart" className="w-4 h-4 text-white"></i>
                   <span>Página de Vendas</span>
                 </a>
 
-                <a href="comissoes.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="comissoes.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="briefcase" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Comissões</span>
                 </a>
@@ -426,10 +690,10 @@
           {/* CONTEÚDO PRINCIPAL (MASTER-DETAIL) */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
-            {/* TOPBAR LIMPO */}
+            {/* TOPBAR */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span className="font-bold text-slate-800">Teles Odonto</span>
+                <span className="font-bold text-slate-800">SalesPro</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
                   Carteira e Cobrança
@@ -470,6 +734,18 @@
                     <span>Importar Clientes</span>
                   </button>
 
+                  <button 
+                    onClick={() => {
+                      const novoCod = String(clients.length + 1);
+                      setClienteEditando({ cod: novoCod, name: '', categoria: 'Geral', logradouro: 'Rua', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: '' });
+                      setShowModalEditarCliente(true);
+                    }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-xs"
+                  >
+                    <i data-lucide="user-plus" className="w-4 h-4 text-slate-500"></i>
+                    <span>Novo Cliente</span>
+                  </button>
+
                   <a 
                     href="index.html" 
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-700 text-white text-xs font-black hover:bg-indigo-800 shadow-md shadow-indigo-600/20"
@@ -490,7 +766,7 @@
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-800 block">Vencendo Hoje</span>
-                        <span className="text-[11px] text-slate-400">Liquidações programadas para o dia corrente</span>
+                        <span className="text-[11px] text-slate-400">Liquidações com vencimento programado para o dia corrente</span>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
@@ -511,7 +787,7 @@
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-800 block">Vencendo no Mês Atual (Novembro/2026)</span>
-                        <span className="text-[11px] text-slate-400">Projeção total de recebimento</span>
+                        <span className="text-[11px] text-slate-400">Projeção total de recebimento para o calendário operacional</span>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
@@ -534,7 +810,7 @@
                       abaFiltro === 'TODOS' ? 'bg-indigo-700 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    👥 Todos ({clients.length})
+                    👥 Todos os Clientes ({clients.length})
                   </button>
 
                   <button 
@@ -580,7 +856,7 @@
               {/* MASTER-DETAIL */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                {/* LISTAGEM (MASTER) */}
+                {/* LISTAGEM DA CARTEIRA (MASTER) */}
                 <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>
@@ -590,117 +866,189 @@
                     <span className="text-[10px] text-slate-500 font-medium">Clique para abrir a ficha</span>
                   </div>
 
-                  <div className="divide-y divide-slate-100">
-                    {clientesFiltrados.map(c => {
-                      const cod = String(c.cod);
-                      const isSelected = String(selectedClientCod) === cod;
-                      const fin = dadosFinanceirosPorCliente[cod] || { totalComprado: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
+                  {clientesFiltrados.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      Nenhum cliente corresponde ao filtro selecionado.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {clientesFiltrados.map(c => {
+                        const cod = String(c.cod);
+                        const isSelected = String(selectedClientCod) === cod;
+                        const fin = dadosFinanceirosPorCliente[cod] || { totalComprado: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
 
-                      return (
-                        <div 
-                          key={cod} 
-                          onClick={() => setSelectedClientCod(cod)}
-                          className={`p-4 flex items-center justify-between cursor-pointer transition ${
-                            isSelected ? 'bg-indigo-50/60 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-8 text-xs font-mono font-bold text-indigo-700">#{cod}</span>
-                            <div className="min-w-0">
-                              <h4 className="text-xs font-bold text-slate-900 truncate">{c.name}</h4>
-                              <p className="text-[11px] text-slate-400 truncate">{c.categoria} • {c.cidade} - {c.uf}</p>
+                        return (
+                          <div 
+                            key={cod} 
+                            onClick={() => setSelectedClientCod(cod)}
+                            className={`p-4 flex items-center justify-between cursor-pointer transition ${
+                              isSelected ? 'bg-indigo-50/60 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-8 text-xs font-mono font-bold text-indigo-700">#{cod}</span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs font-bold text-slate-900 truncate">{c.name}</h4>
+                                  {c.vendor && (
+                                    <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded uppercase">
+                                      {c.vendor.split(' ')[0]}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {c.categoria} • {c.cidade} - {c.uf}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 ml-4 flex items-center gap-4">
+                              <div>
+                                <span className="text-xs font-black text-slate-900 block">
+                                  {formatBRL(fin.totalComprado)}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  {fin.pedidosCount} pedido(s)
+                                </span>
+                              </div>
+
+                              <div>
+                                {fin.temVencido ? (
+                                  <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
+                                    ● Vencido
+                                  </span>
+                                ) : fin.temAReceber ? (
+                                  <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                    ● À vencer
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                                    Sem débitos
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-
-                          <div className="text-right shrink-0 ml-4 flex items-center gap-4">
-                            <div>
-                              <span className="text-xs font-black text-slate-900 block">{formatBRL(fin.totalComprado)}</span>
-                              <span className="text-[10px] text-slate-400">{fin.pedidosCount} pedido(s)</span>
-                            </div>
-
-                            <div>
-                              {fin.temVencido ? (
-                                <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">● Vencido</span>
-                              ) : fin.temAReceber ? (
-                                <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">● À vencer</span>
-                              ) : (
-                                <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">Sem débitos</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* FICHA DETALHADA (DETAIL) */}
+                {/* FICHA DETALHADA DO CLIENTE SELECIONADO (DETAIL) */}
                 <div className="lg:col-span-5 space-y-4">
-                  {clienteSelecionado && (
+                  {clienteSelecionado ? (
                     <div className="space-y-4">
                       
                       {/* CARD DO CLIENTE */}
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
                         <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
-                                Cód: #{clienteSelecionado.cod}
-                              </span>
-                              <span className="text-[10px] text-slate-400">CPF/CNPJ: {clienteSelecionado.cpf_cnpj || 'Não informado'}</span>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-700 text-white font-black text-sm flex items-center justify-center shrink-0 shadow">
+                              #{clienteSelecionado.cod}
                             </div>
-                            <h3 className="text-sm font-black text-slate-900 mt-1">{clienteSelecionado.name}</h3>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              {clienteSelecionado.logradouro} {clienteSelecionado.endereco}, {clienteSelecionado.numero} - {clienteSelecionado.bairro}, {clienteSelecionado.cidade}
-                            </p>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
+                                  Vendedor: {clienteSelecionado.vendor ? clienteSelecionado.vendor.split(' ')[0] : 'Consultor'}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  CPF/CNPJ: {clienteSelecionado.cpf_cnpj || 'Não informado'}
+                                </span>
+                              </div>
+                              <h3 className="text-sm font-black text-slate-900 mt-1">{clienteSelecionado.name}</h3>
+                              <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                                <i data-lucide="map-pin" className="w-3 h-3 text-slate-400"></i>
+                                {clienteSelecionado.logradouro} {clienteSelecionado.endereco}, {clienteSelecionado.numero} - {clienteSelecionado.bairro}, {clienteSelecionado.cidade} - {clienteSelecionado.uf}
+                              </p>
+                            </div>
                           </div>
+
+                          <button 
+                            onClick={() => {
+                              setClienteEditando(clienteSelecionado);
+                              setShowModalEditarCliente(true);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shrink-0"
+                          >
+                            <i data-lucide="edit-3" className="w-3.5 h-3.5 text-slate-500"></i>
+                            <span>Editar</span>
+                          </button>
                         </div>
 
                         {/* SALDOS REAIS */}
                         <div className="grid grid-cols-3 gap-2 pt-2 border-t text-center">
                           <div className="bg-slate-50 p-2.5 rounded-xl">
                             <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL COMPRADO</span>
-                            <span className="text-xs font-black text-slate-900 mt-0.5 block">{formatBRL(resumoFinanceiroCliente.comprado)}</span>
+                            <span className="text-xs font-black text-slate-900 mt-0.5 block">
+                              {formatBRL(resumoFinanceiroCliente.comprado)}
+                            </span>
                           </div>
+
                           <div className="bg-slate-50 p-2.5 rounded-xl">
                             <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL PAGO</span>
-                            <span className="text-xs font-black text-emerald-600 mt-0.5 block">{formatBRL(resumoFinanceiroCliente.pago)}</span>
+                            <span className="text-xs font-black text-emerald-600 mt-0.5 block">
+                              {formatBRL(resumoFinanceiroCliente.pago)}
+                            </span>
                           </div>
+
                           <div className="bg-slate-50 p-2.5 rounded-xl">
                             <span className="text-[9px] font-bold text-slate-400 uppercase block">EM ABERTO</span>
-                            <span className="text-xs font-black text-indigo-700 mt-0.5 block">{formatBRL(resumoFinanceiroCliente.emAberto)}</span>
+                            <span className="text-xs font-black text-indigo-700 mt-0.5 block">
+                              {formatBRL(resumoFinanceiroCliente.emAberto)}
+                            </span>
                           </div>
                         </div>
                       </div>
 
                       {/* AMORTIZAÇÃO FIFO */}
-                      <div className="bg-indigo-900 text-white p-5 rounded-2xl shadow-md space-y-3">
+                      <div className="bg-indigo-900 text-white p-5 rounded-2xl shadow-md space-y-3 relative overflow-hidden">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold flex items-center gap-2 text-indigo-200">
                             <i data-lucide="credit-card" className="w-4 h-4"></i>
-                            Promissória & Amortização FIFO
+                            Promissória & Amortização de Débito
+                          </span>
+                          <span className="text-[9px] font-black bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded uppercase">
+                            Regra FIFO
                           </span>
                         </div>
                         <p className="text-[11px] text-indigo-200/80 leading-relaxed">
                           Digite o valor arrecadado para amortizar automaticamente nas parcelas mais antigas deste cliente.
                         </p>
 
-                        <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            placeholder="R$ 800,00" 
-                            value={valorAmortizacao} 
-                            onChange={e => setValorAmortizacao(e.target.value)} 
-                            className="flex-1 p-2 rounded-xl bg-white text-slate-900 font-black text-xs outline-none" 
-                          />
-                          <button 
-                            onClick={handleAmortizarSaldo}
-                            className="px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs transition shadow flex items-center gap-1.5"
-                          >
-                            <i data-lucide="check" className="w-4 h-4"></i>
-                            <span>Abater Saldo</span>
-                          </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-indigo-300 font-semibold block mb-1">Valor Recebido (R$)</label>
+                            <input 
+                              type="text" 
+                              placeholder="R$ 800,00" 
+                              value={valorAmortizacao} 
+                              onChange={e => setValorAmortizacao(e.target.value)} 
+                              className="w-full p-2 rounded-xl bg-white text-slate-900 font-black text-xs outline-none" 
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-indigo-300 font-semibold block mb-1">Vendedor / Responsável</label>
+                            <select 
+                              value={vendedorAmortizacao} 
+                              onChange={e => setVendedorAmortizacao(e.target.value)} 
+                              className="w-full p-2 rounded-xl bg-white text-slate-900 font-semibold text-xs outline-none"
+                            >
+                              <option value="ERDENIA">ERDENIA (Titular)</option>
+                              <option value="ANDRE">André Luiz</option>
+                              <option value="LUIS">Luis Daniel</option>
+                            </select>
+                          </div>
                         </div>
+
+                        <button 
+                          onClick={handleAmortizarSaldo}
+                          className="w-full py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs transition shadow flex items-center justify-center gap-2"
+                        >
+                          <i data-lucide="check-check" className="w-4 h-4"></i>
+                          <span>Abater no Saldo</span>
+                        </button>
                       </div>
 
                       {/* HISTÓRICO DE TÍTULOS E VENDAS REAIS */}
@@ -724,21 +1072,31 @@
                                 
                                 <div className="flex justify-between items-start">
                                   <div className="flex items-center gap-2.5">
-                                    <div className="w-9 h-9 rounded-xl bg-indigo-700 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                                    <div className="w-9 h-9 rounded-xl bg-indigo-700 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
                                       #{venda.dav}
                                     </div>
                                     <div>
-                                      <h5 className="text-xs font-bold text-slate-900">{venda.client}</h5>
-                                      <p className="text-[10px] text-slate-400">Emitido em {venda.dateDisplay || venda.date}</p>
+                                      <h5 className="text-xs font-bold text-slate-900">
+                                        {venda.description || `Pedido ${venda.client || 'Teles Odonto'}`}
+                                      </h5>
+                                      <p className="text-[10px] text-slate-400">
+                                        Emitido em {venda.dateDisplay || venda.date} • {venda.tipoVenda || 'TOTAL'}
+                                      </p>
                                     </div>
                                   </div>
 
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs font-black text-slate-900">{formatBRL(venda.amount)}</span>
+                                    <div className="text-right">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL</span>
+                                      <span className="text-xs font-black text-slate-900">
+                                        {formatBRL(venda.amount)}
+                                      </span>
+                                    </div>
+
                                     <button 
                                       onClick={() => handleExcluirDAV(venda.id, venda.dav)}
                                       title="Excluir DAV"
-                                      className="p-1 rounded text-slate-400 hover:text-rose-600 transition"
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition ml-1"
                                     >
                                       <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
                                     </button>
@@ -751,36 +1109,50 @@
                                     const infoStatus = verificarStatusParcela(inst.dueDate, inst.status);
 
                                     return (
-                                      <div key={i} className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
-                                        <div>
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-slate-900">
-                                              Parcela {inst.number || i + 1} • {formatBRL(inst.amount)}
-                                            </span>
-                                            {infoStatus.status === 'Pago' ? (
-                                              <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">Quitado</span>
-                                            ) : infoStatus.status === 'Vencido' ? (
-                                              <span className="text-[9px] font-black bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded">Vencido</span>
-                                            ) : (
-                                              <span className="text-[9px] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded">À Vencer</span>
-                                            )}
+                                      <div key={i} className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2.5">
+                                          <span className="text-xs font-mono font-bold text-slate-400">
+                                            {inst.number || i + 1}/{(venda.installments || []).length}
+                                          </span>
+                                          <div>
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs font-extrabold text-slate-900">
+                                                Parcela {inst.number || i + 1} • {formatBRL(inst.amount)}
+                                              </span>
+                                              
+                                              {infoStatus.status === 'Pago' ? (
+                                                <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                                                  ✓ Quitado
+                                                </span>
+                                              ) : infoStatus.status === 'Vencido' ? (
+                                                <span className="text-[9px] font-black bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
+                                                  ⚠️ Vencido ({infoStatus.diasAtraso}d)
+                                                </span>
+                                              ) : (
+                                                <span className="text-[9px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                                  ● À Vencer ({infoStatus.diasParaVencer || 0}d)
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">
+                                              Vencimento: <strong className="text-slate-700">{inst.dueDate}</strong>
+                                            </p>
                                           </div>
-                                          <p className="text-[10px] text-slate-400">Vencimento: {inst.dueDate}</p>
                                         </div>
 
                                         {infoStatus.status !== 'Pago' && (
-                                          <div className="flex items-center gap-1">
+                                          <div className="flex items-center gap-1.5 shrink-0">
                                             <button 
                                               onClick={() => handleAbaterParcial(venda.id, inst.number || i + 1)}
-                                              className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold"
+                                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition"
                                             >
-                                              Abater
+                                              Abater Parcial
                                             </button>
                                             <button 
                                               onClick={() => handleDarBaixaParcela(venda.id, inst.number || i + 1)}
-                                              className="px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200"
+                                              className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 transition"
                                             >
-                                              Baixar
+                                              Dar Baixa
                                             </button>
                                           </div>
                                         )}
@@ -796,6 +1168,10 @@
                       </div>
 
                     </div>
+                  ) : (
+                    <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-2xl border">
+                      Selecione um cliente ao lado para ver a ficha detalhada.
+                    </div>
                   )}
                 </div>
 
@@ -803,6 +1179,200 @@
 
             </div>
           </main>
+
+          {/* MODAL: EDITAR CLIENTE */}
+          {showModalEditarCliente && clienteEditando && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h4 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i data-lucide="user-check" className="w-5 h-5 text-indigo-700"></i>
+                    <span>Editar Cadastro #{clienteEditando.cod}</span>
+                  </h4>
+                  <button onClick={() => setShowModalEditarCliente(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                </div>
+
+                <form onSubmit={handleSalvarEdicaoCliente} className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Nome / Razão Social *</label>
+                    <input 
+                      type="text" 
+                      value={clienteEditando.name} 
+                      onChange={e => setClienteEditando({ ...clienteEditando, name: e.target.value })} 
+                      className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">CPF ou CNPJ</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.cpf_cnpj || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, cpf_cnpj: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Categoria</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.categoria || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, categoria: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Logradouro</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.logradouro || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, logradouro: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="font-semibold text-slate-600 block mb-1">Endereço</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.endereco || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, endereco: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Número</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.numero || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, numero: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none text-center font-bold" 
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="font-semibold text-slate-600 block mb-1">Bairro</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.bairro || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, bairro: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Cidade</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.cidade || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, cidade: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">UF</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.uf || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, uf: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none text-center font-bold" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowModalEditarCliente(false)} 
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow"
+                    >
+                      Salvar Alterações
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL: IMPORTAR CLIENTES */}
+          {showModalImportar && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h4 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" className="w-5 h-5 text-indigo-700"></i>
+                    <span>Importar Lista em Lote (Excel / CSV)</span>
+                  </h4>
+                  <button onClick={() => setShowModalImportar(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Cole as linhas da sua planilha (Código, Nome, Categoria, Cidade, Telefone) separadas por ponto-e-vírgula ou tabulação:
+                </p>
+
+                <textarea 
+                  rows="6"
+                  placeholder="2; JOÃO PESSOA MEDEIROS COSTA; Prótese Fixa; Fortaleza; 85 99122-3344"
+                  value={textoImportacao}
+                  onChange={e => setTextoImportacao(e.target.value)}
+                  className="w-full p-3 border rounded-2xl bg-slate-50 font-mono text-xs outline-none focus:ring-2 focus:ring-indigo-600/30"
+                ></textarea>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowModalImportar(false)} 
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                  >
+                    Fechar
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (!textoImportacao.trim()) return;
+                      const linhas = textoImportacao.split('\n');
+                      const novos = [];
+                      linhas.forEach(linha => {
+                        const parts = linha.includes(';') ? linha.split(';') : linha.includes('\t') ? linha.split('\t') : linha.split(',');
+                        if (parts.length >= 2) {
+                          novos.push({
+                            cod: parts[0].trim(),
+                            name: parts[1].trim(),
+                            categoria: parts[2] ? parts[2].trim() : 'Geral',
+                            cidade: parts[3] ? parts[3].trim() : 'Fortaleza',
+                            uf: 'CE',
+                            telefone: parts[4] ? parts[4].trim() : ''
+                          });
+                        }
+                      });
+                      if (novos.length > 0) {
+                        setClients(prev => [...prev, ...novos]);
+                        alert(`✅ ${novos.length} clientes adicionados à carteira!`);
+                        setShowModalImportar(false);
+                      }
+                    }}
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow"
+                  >
+                    Processar e Adicionar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       );
