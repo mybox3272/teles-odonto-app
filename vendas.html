@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neves Pro CRM - Página de Vendas & Carteira</title>
+  <title>Teles Odonto - Página de Vendas & Carteira</title>
   
   <!-- Tipografia Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,7 +58,7 @@
       window.db = db;
       window.fb = { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado em vendas.html sem mocks fictícios!");
+      console.log("🔥 Firebase conectado em vendas.html sem mocks fictícios e com vendedores auditados!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em vendas.html:", err);
     }
@@ -75,18 +75,7 @@
       return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    // Componente Marca D'água Teles Odonto
-    const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
-      <svg viewBox="0 0 100 120" className={className} fill="currentColor">
-        <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
-        <path d="M 8 52 C 32 78 68 78 92 38" fill="none" stroke="currentColor" strokeWidth="6"/>
-        <polygon points="78,16 81,24 89,27 81,30 78,38 75,30 67,27 75,24" />
-      </svg>
-    );
-
-    // =========================================================================
-    // VERIFICAÇÃO PRECISA DE DATAS (SEM FALSO POSITIVO DE ATRASO)
-    // =========================================================================
+    // Verificação de datas sem falso positivo de atraso
     const verificarStatusParcela = (dueDateStr, statusAtual) => {
       if (statusAtual === 'Pago') {
         return { status: 'Pago', diasAtraso: 0, isVencido: false };
@@ -142,6 +131,7 @@
       };
     };
 
+    // Base inicial de clientes vinculados exclusivamente aos vendedores cadastrados
     const initialClientsSeed = [
       { 
         cod: "2", 
@@ -257,9 +247,9 @@
       const [abaFiltro, setAbaFiltro] = useState('TODOS');
       const [selectedClientCod, setSelectedClientCod] = useState("4");
 
-      // Estados para Amortização FIFO
+      // Estado de Amortização: Padrão VND-01 (André Luiz Nóbrega Martins)
       const [valorAmortizacao, setValorAmortizacao] = useState('');
-      const [vendedorAmortizacao, setVendedorAmortizacao] = useState('ERDENIA');
+      const [vendedorAmortizacao, setVendedorAmortizacao] = useState('VND-01');
 
       // Modais
       const [showModalEditarCliente, setShowModalEditarCliente] = useState(false);
@@ -272,7 +262,7 @@
         if (window.lucide) window.lucide.createIcons();
       });
 
-      // Leitura do parâmetro ?cliente= vindo da tela inicial
+      // Leitura de parâmetro da URL ?cliente=
       useEffect(() => {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -329,9 +319,7 @@
         }
       }, []);
 
-      // =========================================================================
-      // DADOS FINANCEIROS CONSOLIDADOS POR CLIENTE (SEM MOCK OU SALDO FICTÍCIO)
-      // =========================================================================
+      // Consolidação financeira real por cliente
       const dadosFinanceirosPorCliente = useMemo(() => {
         const map = {};
 
@@ -402,9 +390,7 @@
         return clients.find(c => String(c.cod) === String(selectedClientCod)) || clients[0] || null;
       }, [clients, selectedClientCod]);
 
-      // =========================================================================
-      // VENDAS REAIS DO CLIENTE SELECIONADO (100% FIEL AO FIREBASE)
-      // =========================================================================
+      // Vendas reais do cliente selecionado
       const vendasDoCliente = useMemo(() => {
         if (!clienteSelecionado) return [];
         return sales.filter(s => String(s.codCliente) === String(clienteSelecionado.cod));
@@ -419,7 +405,7 @@
         return { comprado: 0, pago: 0, emAberto: 0 };
       }, [clienteSelecionado, dadosFinanceirosPorCliente]);
 
-      // Métricas Consolidadas dos 2 Cards Superiores (Calculadas das vendas reais)
+      // Métricas gerais consolidadas
       const metricasGerais = useMemo(() => {
         let vencendoHojeValor = 0;
         let vencendoHojeCount = 0;
@@ -519,7 +505,7 @@
         setValorAmortizacao('');
       };
 
-      // Ação: Dar Baixa Direta em Parcela
+      // Dar baixa direta em parcela
       const handleDarBaixaParcela = async (vendaId, numeroParcela) => {
         const vendaAlvo = sales.find(s => s.id === vendaId) || vendasDoCliente.find(s => s.id === vendaId);
         if (!vendaAlvo) return;
@@ -545,7 +531,7 @@
         alert(`✅ Parcela ${numeroParcela} baixada com sucesso!`);
       };
 
-      // Ação: Abater Parcial em Parcela
+      // Abatimento parcial de parcela
       const handleAbaterParcial = async (vendaId, numeroParcela) => {
         const valorStr = prompt("Informe o valor a abater desta parcela (R$):");
         if (!valorStr) return;
@@ -584,7 +570,7 @@
         alert(`✅ Abatimento de R$ ${abater.toFixed(2)} registrado!`);
       };
 
-      // Ação: Excluir DAV com 1 Clique (Exclusão Real no Firestore)
+      // Exclusão de DAV no Firebase Firestore
       const handleExcluirDAV = async (vendaId, davNum) => {
         if (!confirm(`Deseja realmente excluir o DAV #${davNum}? Esta ação não pode ser desfeita.`)) {
           return;
@@ -603,7 +589,7 @@
         alert(`🗑️ DAV #${davNum} excluído com sucesso!`);
       };
 
-      // Salvar Edição do Cliente
+      // Salvar edição cadastral do cliente
       const handleSalvarEdicaoCliente = async (e) => {
         e.preventDefault();
         if (!clienteEditando) return;
@@ -626,25 +612,16 @@
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL UNIFICADA */}
+          {/* BARRA LATERAL UNIFICADA COM LOGO OFICIAL E MARCA D'ÁGUA TELES ODONTO */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
-              <ToothWatermark className="w-full h-full text-white" />
+            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.05] brightness-200">
+              <img src="Design sem nome (28).png" alt="Marca d'água Teles Odonto" className="w-full h-full object-contain filter invert" />
             </div>
 
             <div className="relative z-10">
               <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <path d="M12 2C7 2 4 5 4 9c0 5 2 9 3 13 1 1 2 1 3 0 1-2 2-2 2-2s1 0 2 2c1 1 2 1 3 0 1-4 3-8 3-13 0-4-3-7-8-7z"></path>
-                      <path d="M9 8c.5-1 1.5-1.5 3-1.5s2.5.5 3 1.5"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <h1 className="text-base font-bold text-white tracking-tight leading-tight">Teles Odonto</h1>
-                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Materiais Protéticos</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-10 w-auto object-contain" />
                 </div>
                 <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
@@ -655,17 +632,17 @@
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
-                <a href="index.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="index.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="layout-grid" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Página Inicial</span>
                 </a>
 
-                <a href="vendas.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                <a href="vendas.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
                   <i data-lucide="shopping-cart" className="w-4 h-4 text-white"></i>
                   <span>Página de Vendas</span>
                 </a>
 
-                <a href="comissoes.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="comissoes.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="briefcase" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Comissões</span>
                 </a>
@@ -690,10 +667,10 @@
           {/* CONTEÚDO PRINCIPAL (MASTER-DETAIL) */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
-            {/* TOPBAR */}
+            {/* TOPBAR LIMPO */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span className="font-bold text-slate-800">SalesPro</span>
+                <span className="font-bold text-slate-800">Teles Odonto</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
                   Carteira e Cobrança
@@ -737,7 +714,7 @@
                   <button 
                     onClick={() => {
                       const novoCod = String(clients.length + 1);
-                      setClienteEditando({ cod: novoCod, name: '', categoria: 'Geral', logradouro: 'Rua', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: '' });
+                      setClienteEditando({ cod: novoCod, name: '', categoria: 'Geral', logradouro: 'Rua', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: 'André Luiz Nóbrega Martins' });
                       setShowModalEditarCliente(true);
                     }}
                     className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-xs"
@@ -950,7 +927,7 @@
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
-                                  Vendedor: {clienteSelecionado.vendor ? clienteSelecionado.vendor.split(' ')[0] : 'Consultor'}
+                                  Vendedor: {clienteSelecionado.vendor ? clienteSelecionado.vendor : 'André Luiz Nóbrega Martins'}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
                                   CPF/CNPJ: {clienteSelecionado.cpf_cnpj || 'Não informado'}
@@ -1001,7 +978,7 @@
                         </div>
                       </div>
 
-                      {/* AMORTIZAÇÃO FIFO */}
+                      {/* AMORTIZAÇÃO FIFO - SELETOR COM VENDEDORES CADASTRADOS */}
                       <div className="bg-indigo-900 text-white p-5 rounded-2xl shadow-md space-y-3 relative overflow-hidden">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold flex items-center gap-2 text-indigo-200">
@@ -1035,9 +1012,8 @@
                               onChange={e => setVendedorAmortizacao(e.target.value)} 
                               className="w-full p-2 rounded-xl bg-white text-slate-900 font-semibold text-xs outline-none"
                             >
-                              <option value="ERDENIA">ERDENIA (Titular)</option>
-                              <option value="ANDRE">André Luiz</option>
-                              <option value="LUIS">Luis Daniel</option>
+                              <option value="VND-01">André Luiz Nóbrega Martins (VND-01)</option>
+                              <option value="VND-02">Luis Daniel da Silva (VND-02)</option>
                             </select>
                           </div>
                         </div>
@@ -1080,7 +1056,7 @@
                                         {venda.description || `Pedido ${venda.client || 'Teles Odonto'}`}
                                       </h5>
                                       <p className="text-[10px] text-slate-400">
-                                        Emitido em {venda.dateDisplay || venda.date} • {venda.tipoVenda || 'TOTAL'}
+                                        Emitido em {venda.dateDisplay || venda.date} • {venda.tipoVenda || 'TOTAL'} • Vend: {venda.salesperson || 'André Luiz Nóbrega Martins'}
                                       </p>
                                     </div>
                                   </div>
@@ -1225,6 +1201,18 @@
                     </div>
                   </div>
 
+                  <div>
+                    <label className="font-semibold text-slate-600 block mb-1">Vendedor Responsável</label>
+                    <select
+                      value={clienteEditando.vendor || 'André Luiz Nóbrega Martins'}
+                      onChange={e => setClienteEditando({ ...clienteEditando, vendor: e.target.value })}
+                      className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold outline-none"
+                    >
+                      <option value="André Luiz Nóbrega Martins">André Luiz Nóbrega Martins (VND-01)</option>
+                      <option value="Luis Daniel da Silva">Luis Daniel da Silva (VND-02)</option>
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="font-semibold text-slate-600 block mb-1">Logradouro</label>
@@ -1355,7 +1343,8 @@
                             categoria: parts[2] ? parts[2].trim() : 'Geral',
                             cidade: parts[3] ? parts[3].trim() : 'Fortaleza',
                             uf: 'CE',
-                            telefone: parts[4] ? parts[4].trim() : ''
+                            telefone: parts[4] ? parts[4].trim() : '',
+                            vendor: 'André Luiz Nóbrega Martins'
                           });
                         }
                       });
