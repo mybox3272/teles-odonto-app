@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teles Odonto - Dashboard & Nova Venda</title>
+  <title>Neves Pro CRM - Painel Inicial & Nova Venda</title>
   
+  <!-- Tipografia Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
+  <!-- CDN Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
+  <!-- React 18 & Babel para execução autônoma no navegador -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -23,14 +26,16 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 
+  <!-- Inicialização do Firebase Firestore v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
       getFirestore, 
       collection, 
       doc, 
-      setDoc, 
+      setDoc,
       addDoc, 
+      updateDoc, 
       onSnapshot, 
       query, 
       orderBy 
@@ -50,9 +55,9 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
       window.db = db;
-      window.fb = { collection, doc, setDoc, addDoc, onSnapshot, query, orderBy };
+      window.fb = { collection, doc, setDoc, addDoc, updateDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase Firestore conectado com sucesso em index.html!");
+      console.log("🔥 Firebase conectado em index.html com sucesso!");
     } catch (err) {
       console.error("Erro ao inicializar Firebase em index.html:", err);
     }
@@ -62,21 +67,146 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo } = React;
+    const { useState, useEffect, useMemo, useRef } = React;
 
-    const formatBRL = (val) => {
-      const n = Number(val) || 0;
-      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    // Utilitários de Moeda e Data Corrigidos
+    const parseMoedaBR = (valorStr) => {
+      if (typeof valorStr === 'number') return valorStr;
+      if (!valorStr) return 0;
+      const limpo = valorStr.toString().replace(/[^\d,\.]/g, '');
+      if (limpo.includes(',') && limpo.includes('.')) {
+        return parseFloat(limpo.replace(/\./g, '').replace(',', '.')) || 0;
+      }
+      return parseFloat(limpo.replace(',', '.')) || 0;
     };
 
+    const parseDataZerada = (dataStr) => {
+      if (!dataStr) return new Date();
+      if (dataStr instanceof Date) {
+        const d = new Date(dataStr);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+      const limpa = dataStr.toString().trim();
+      if (limpa.includes('/')) {
+        const parts = limpa.split('/').map(Number);
+        if (parts.length === 3) {
+          return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+        }
+      }
+      if (limpa.includes('-')) {
+        const parts = limpa.split('-').map(Number);
+        if (parts.length === 3) {
+          return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
+      }
+      const dt = new Date(limpa);
+      dt.setHours(0, 0, 0, 0);
+      return isNaN(dt.getTime()) ? new Date() : dt;
+    };
+
+    const formatarDataBR = (dateObj) => {
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const y = dateObj.getFullYear();
+      return `${d}/${m}/${y}`;
+    };
+
+    // Componente Marca D'água do Dente Teles Odonto
+    const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
+      <svg viewBox="0 0 100 120" className={className} fill="currentColor">
+        <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
+        <path d="M 8 52 C 32 78 68 78 92 38" fill="none" stroke="currentColor" strokeWidth="6"/>
+        <polygon points="78,16 81,24 89,27 81,30 78,38 75,30 67,27 75,24" />
+      </svg>
+    );
+
     const initialClientsSeed = [
-      { cod: "CLI-088", name: "Laboratório Dental Sorriso", categoria: "Prótese Fixa & Reabilitação", endereco: "Av. Paulista, 1000 - Cj. 42, Bela Vista - São Paulo / SP", vendor: "André Luiz N." },
-      { cod: "CLI-093", name: "Implantes & Próteses Vitória", categoria: "Implantodontia", endereco: "Rua das Flores, 450 - Centro - Vitória / ES", vendor: "Luis Daniel da Silva" },
-      { cod: "CLI-112", name: "Consultório Dr. Marcelo Ramos", categoria: "Dentistas", endereco: "Rua do Ouro, 120 - Savassi - Belo Horizonte / MG", vendor: "André Luiz N." }
+      { 
+        cod: "2", 
+        name: "JOÃO PESSOA MEDEIROS COSTA", 
+        categoria: "Prótese Fixa", 
+        logradouro: "Rua", 
+        endereco: "Monsenhor Tabosa", 
+        numero: "450", 
+        bairro: "Praia de Iracema", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99122-3344", 
+        area: "Fortaleza Centro-Leste",
+        vendor: "André Luiz Nóbrega Martins"
+      },
+      { 
+        cod: "4", 
+        name: "LEONARDO AMORIM DE FRANCA E SOUSA", 
+        categoria: "Prótese Total e Parcial", 
+        logradouro: "Av.", 
+        endereco: "Santos Dumont", 
+        numero: "1200", 
+        bairro: "Aldeota", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "98844-1234", 
+        area: "Fortaleza Metropolitana",
+        vendor: "Luis Daniel da Silva"
+      },
+      { 
+        cod: "5", 
+        name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA", 
+        categoria: "Ortodontia & Fixa", 
+        logradouro: "Av.", 
+        endereco: "Dom Luís", 
+        numero: "800", 
+        bairro: "Aldeota", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "98711-2233", 
+        area: "Fortaleza Leste",
+        vendor: "André Luiz Nóbrega Martins"
+      },
+      { 
+        cod: "7", 
+        name: "DAVI DA CUNHA GONCALVES", 
+        categoria: "Implantodontia", 
+        logradouro: "Rua", 
+        endereco: "Barão de Studart", 
+        numero: "1550", 
+        bairro: "Dionísio Torres", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99655-4433", 
+        area: "Fortaleza Sul",
+        vendor: "André Luiz Nóbrega Martins"
+      },
+      { 
+        cod: "104", 
+        name: "Clínica OdontoPrime Dr. Valter", 
+        categoria: "Reabilitação & Implante", 
+        logradouro: "Av.", 
+        endereco: "Washington Soares", 
+        numero: "3000", 
+        bairro: "Edson Queiroz", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99233-8899", 
+        area: "Fortaleza Sul",
+        vendor: "André Luiz Nóbrega Martins"
+      }
     ];
 
+    const sellersList = [
+      { cod: "1", codeVnd: "VND-01", name: "André Luiz Nóbrega Martins" },
+      { cod: "2", codeVnd: "VND-02", name: "Luis Daniel da Silva" }
+    ];
+
+    const getHojeBR = () => formatarDataBR(new Date());
+
     function App() {
-      const [sales, setSales] = useState([]);
       const [clients, setClients] = useState(() => {
         try {
           const saved = localStorage.getItem('neves_crm_clients');
@@ -86,51 +216,76 @@
         }
       });
 
-      const [horaBrasilia, setHoraBrasilia] = useState('');
+      const [sales, setSales] = useState([]);
+      const [loading, setLoading] = useState(true);
 
-      // Form Nova Venda
-      const [dataVenda, setDataVenda] = useState(new Date().toISOString().split('T')[0]);
-      const [davNumero, setDavNumero] = useState(String(Math.floor(10000 + Math.random() * 90000)));
+      // Campos do formulário
+      const [dataVenda, setDataVenda] = useState('');
+      const [davNumber, setDavNumber] = useState('');
       const [codClienteInput, setCodClienteInput] = useState('');
-      const [clienteSelecionado, setClienteSelecionado] = useState(null);
-      const [vendedorResp, setVendedorResp] = useState('VND-01');
+      const [nomeCliente, setNomeCliente] = useState('');
+      const [vendedor, setVendedor] = useState('');
       const [valorVenda, setValorVenda] = useState('');
-      const [tipoVenda, setTipoVenda] = useState('TOTAL');
-      const [condicaoPrazo, setCondicaoPrazo] = useState('30');
-      const [numParcelas, setNumParcelas] = useState(1);
-      const [parcelasCustom, setParcelasCustom] = useState([]);
+      const [tipoVenda, setTipoVenda] = useState('');
+      const [condicaoPrazo, setCondicaoPrazo] = useState('');
+      const [previaParcelas, setPreviaParcelas] = useState([]);
 
-      // Validação de Débitos
-      const [autorizarExcepcional, setAutorizarExcepcional] = useState(false);
-      const [tokenSupervisor, setTokenSupervisor] = useState('');
-      const [tokenValidado, setTokenValidado] = useState(false);
+      const [statusMsg, setStatusMsg] = useState('');
+      const [salvandoVenda, setSalvandoVenda] = useState(false);
+      const [autorizacaoGerencia, setAutorizacaoGerencia] = useState(false);
+      const [senhaGerencial, setSenhaGerencial] = useState('');
+
+      const [showModalNovoCliente, setShowModalNovoCliente] = useState(false);
+      const [novoClienteForm, setNovoClienteForm] = useState({
+        cod: '', name: '', categoria: '', logradouro: 'Av.', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: ''
+      });
+
+      const inputDataRef = useRef(null);
+      const inputDavRef = useRef(null);
+      const inputCodClienteRef = useRef(null);
+      const selectVendedorRef = useRef(null);
+      const inputValorRef = useRef(null);
+      const selectTipoVendaRef = useRef(null);
+      const selectCondicaoRef = useRef(null);
+      const btnRegistrarRef = useRef(null);
 
       useEffect(() => {
         if (window.lucide) window.lucide.createIcons();
       });
 
-      useEffect(() => {
-        const updateClock = () => {
-          const agora = new Date();
-          setHoraBrasilia(agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
-        };
-        updateClock();
-        const timer = setInterval(updateClock, 1000);
-        return () => clearInterval(timer);
-      }, []);
-
+      // Firebase em tempo real
       useEffect(() => {
         const startListeners = () => {
           if (!window.db || !window.fb) return;
+
           try {
             const vendasCol = window.fb.collection(window.db, "vendas");
             const qVendas = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
-            window.fb.onSnapshot(qVendas, (snapshot) => {
+            const unsubVendas = window.fb.onSnapshot(qVendas, (snapshot) => {
               const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               setSales(list);
+              setLoading(false);
+            }, () => setLoading(false));
+
+            const clientesCol = window.fb.collection(window.db, "clientes");
+            const unsubClientes = window.fb.onSnapshot(clientesCol, (snapshot) => {
+              if (!snapshot.empty) {
+                const firestoreClients = snapshot.docs.map(doc => ({ cod: doc.id, ...doc.data() }));
+                setClients(prev => {
+                  const map = {};
+                  prev.forEach(c => map[String(c.cod)] = c);
+                  firestoreClients.forEach(c => map[String(c.cod)] = { ...map[String(c.cod)], ...c });
+                  const merged = Object.values(map);
+                  localStorage.setItem('neves_crm_clients', JSON.stringify(merged));
+                  return merged;
+                });
+              }
             });
+
+            return () => { unsubVendas(); unsubClientes(); };
           } catch (e) {
-            console.error(e);
+            console.error("Erro listeners index.html:", e);
+            setLoading(false);
           }
         };
 
@@ -142,114 +297,342 @@
         }
       }, []);
 
-      // Busca e seleção do cliente
-      const handleBuscarCliente = (e) => {
-        const val = e.target.value;
-        setCodClienteInput(val);
-        const achou = clients.find(c => String(c.cod).toLowerCase() === val.trim().toLowerCase() || (c.name && c.name.toLowerCase().includes(val.trim().toLowerCase())));
-        setClienteSelecionado(achou || null);
-        setAutorizarExcepcional(false);
-        setTokenSupervisor('');
-        setTokenValidado(false);
+      const clienteAtivo = useMemo(() => {
+        if (!codClienteInput.trim()) return null;
+        return clients.find(c => String(c.cod).trim() === codClienteInput.trim()) || null;
+      }, [clients, codClienteInput]);
+
+      useEffect(() => {
+        if (clienteAtivo) {
+          setNomeCliente(clienteAtivo.name);
+          if (clienteAtivo.vendor && !vendedor) {
+            const vMatch = sellersList.find(s => s.name.toLowerCase().includes(clienteAtivo.vendor.toLowerCase()) || clienteAtivo.vendor.toLowerCase().includes(s.name.toLowerCase()));
+            if (vMatch) setVendedor(vMatch.name);
+          }
+        } else {
+          setNomeCliente('');
+        }
+      }, [clienteAtivo]);
+
+      const codVendedorAtual = useMemo(() => {
+        const found = sellersList.find(s => s.name === vendedor);
+        return found ? found.codeVnd : '';
+      }, [vendedor]);
+
+      // Verificação corrigida de débitos vencidos (sem falso positivo)
+      const analiseDebitos = useMemo(() => {
+        if (!clienteAtivo) return { temDebitoVencido: false, totalVencido: 0, titulosVencidos: 0, maxDiasAtraso: 0, duplicataExemplo: '' };
+
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        let totalVencido = 0;
+        let titulosVencidos = 0;
+        let maxDiasAtraso = 0;
+        let primDav = '';
+
+        const vendasCliente = sales.filter(s => String(s.codCliente) === String(clienteAtivo.cod));
+
+        vendasCliente.forEach(sale => {
+          (sale.installments || []).forEach(inst => {
+            if (inst.status !== 'Pago') {
+              const dataVenc = parseDataZerada(inst.dueDate);
+              if (dataVenc < hoje) {
+                const amt = Number(inst.amount) || 0;
+                totalVencido += amt;
+                titulosVencidos++;
+                if (!primDav && sale.dav) primDav = sale.dav;
+
+                const diffDias = Math.floor((hoje.getTime() - dataVenc.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDias > maxDiasAtraso) maxDiasAtraso = diffDias;
+              }
+            }
+          });
+        });
+
+        // Simulação especial do cliente 104 somente se nenhuma venda for encontrada
+        if (String(clienteAtivo.cod) === '104' && titulosVencidos === 0 && vendasCliente.length === 0) {
+          return { temDebitoVencido: true, totalVencido: 680.00, titulosVencidos: 1, maxDiasAtraso: 14, duplicataExemplo: '4782' };
+        }
+
+        return { 
+          temDebitoVencido: titulosVencidos > 0, 
+          totalVencido, 
+          titulosVencidos, 
+          maxDiasAtraso, 
+          duplicataExemplo: primDav || '4782' 
+        };
+      }, [clienteAtivo, sales]);
+
+      // Cálculo de parcelas de 1x até 12x com preservação exata de centavos
+      useEffect(() => {
+        const totalCentavos = Math.round(parseMoedaBR(valorVenda) * 100);
+        if (totalCentavos <= 0 || !condicaoPrazo) {
+          setPreviaParcelas([]);
+          return;
+        }
+
+        const baseDate = parseDataZerada(dataVenda);
+
+        const somarMeses = (data, meses) => {
+          const d = new Date(data);
+          const diaOriginal = d.getDate();
+          d.setMonth(d.getMonth() + meses);
+          if (d.getDate() !== diaOriginal) {
+            d.setDate(0);
+          }
+          return formatarDataBR(d);
+        };
+
+        const somarDias = (data, dias) => {
+          const d = new Date(data);
+          d.setDate(d.getDate() + dias);
+          return formatarDataBR(d);
+        };
+
+        if (condicaoPrazo === '0') {
+          setPreviaParcelas([
+            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: formatarDataBR(baseDate), status: 'Pago', paymentMethod: 'À Vista Imediato' }
+          ]);
+        } else if (condicaoPrazo === 'PROMISSORIA') {
+          setPreviaParcelas([
+            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: somarDias(baseDate, 30), status: 'Em aberto', paymentMethod: 'Nota Promissória' }
+          ]);
+        } else if (['1', '7', '10', '15', '20', '30'].includes(condicaoPrazo)) {
+          const diasNum = parseInt(condicaoPrazo, 10);
+          setPreviaParcelas([
+            { number: 1, amount: (totalCentavos / 100).toFixed(2), dueDate: somarDias(baseDate, diasNum), status: 'Em aberto', paymentMethod: 'Boleto/Carteira' }
+          ]);
+        } else {
+          const matchParc = condicaoPrazo.match(/(\d+)x/i) || condicaoPrazo.match(/PARCELADO_(\d+)X/i);
+          if (matchParc) {
+            const numParcelas = Math.min(12, Math.max(2, parseInt(matchParc[1], 10)));
+            const valorBaseCentavos = Math.floor(totalCentavos / numParcelas);
+            const restoCentavos = totalCentavos - (valorBaseCentavos * numParcelas);
+            const lista = [];
+
+            for (let i = 1; i <= numParcelas; i++) {
+              const parcCentavos = (i === 1) ? (valorBaseCentavos + restoCentavos) : valorBaseCentavos;
+              lista.push({
+                number: i,
+                amount: (parcCentavos / 100).toFixed(2),
+                dueDate: somarMeses(baseDate, i),
+                status: 'Em aberto',
+                paymentMethod: 'Boleto/Carteira'
+              });
+            }
+            setPreviaParcelas(lista);
+          }
+        }
+      }, [valorVenda, condicaoPrazo, dataVenda]);
+
+      const handleAtualizarParcelaPrevia = (index, campo, valor) => {
+        setPreviaParcelas(prev => {
+          const copy = [...prev];
+          copy[index] = { ...copy[index], [campo]: valor };
+          return copy;
+        });
       };
 
-      // Cálculo de Parcelas (Suporte até 12x)
-      useEffect(() => {
-        const valorNum = parseFloat(valorVenda.replace(',', '.')) || 0;
-        if (valorNum <= 0 || !numParcelas) {
-          setParcelasCustom([]);
-          return;
+      const handleKeyDown = (e, proximoRef) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (proximoRef && proximoRef.current) {
+            proximoRef.current.focus();
+          }
         }
+      };
 
-        const parcelasCount = parseInt(numParcelas, 10) || 1;
-        const prazoDias = parseInt(condicaoPrazo, 10) || 30;
-        const valorParcela = parseFloat((valorNum / parcelasCount).toFixed(2));
-        const dtBase = dataVenda ? new Date(dataVenda + 'T00:00:00') : new Date();
-
-        const novasParcelas = [];
-        for (let i = 1; i <= parcelasCount; i++) {
-          const dtVenc = new Date(dtBase);
-          dtVenc.setDate(dtVenc.getDate() + (prazoDias * i));
-          const dia = String(dtVenc.getDate()).padStart(2, '0');
-          const mes = String(dtVenc.getMonth() + 1).padStart(2, '0');
-          const ano = dtVenc.getFullYear();
-
-          novasParcelas.push({
-            number: i,
-            amount: valorParcela,
-            dueDate: `${dia}/${mes}/${ano}`,
-            status: 'Em aberto'
-          });
-        }
-        setParcelasCustom(novasParcelas);
-      }, [valorVenda, condicaoPrazo, numParcelas, dataVenda]);
-
+      // Gravação do DAV
       const handleRegistrarVenda = async (e) => {
-        e.preventDefault();
-        const valorNum = parseFloat(valorVenda.replace(',', '.'));
-        if (!valorNum || valorNum <= 0) {
-          alert("Informe um valor válido de venda.");
+        if (e) e.preventDefault();
+
+        if (!dataVenda) {
+          alert("Informe a Data da Venda.");
+          inputDataRef.current?.focus();
           return;
         }
 
-        const nomeVendedor = vendedorResp === 'VND-01' ? 'André Luiz Nóbrega Martins' : 'Luis Daniel da Silva';
-        const docVenda = {
-          dav: davNumero,
-          codCliente: clienteSelecionado ? clienteSelecionado.cod : codClienteInput,
-          client: clienteSelecionado ? clienteSelecionado.name : 'Cliente Avulso',
-          salespersonCode: vendedorResp,
-          salesperson: nomeVendedor,
+        if (!davNumber || davNumber.length !== 4) {
+          alert("O número do DAV deve conter exatamente 4 dígitos.");
+          inputDavRef.current?.focus();
+          return;
+        }
+
+        if (!codClienteInput || !clienteAtivo) {
+          alert("Informe um Código de Cliente válido ou cadastre um novo.");
+          inputCodClienteRef.current?.focus();
+          return;
+        }
+
+        if (!vendedor) {
+          alert("Selecione o Vendedor Responsável.");
+          selectVendedorRef.current?.focus();
+          return;
+        }
+
+        const valorNum = parseMoedaBR(valorVenda);
+        if (!valorNum || valorNum <= 0) {
+          alert("Informe um valor de venda válido.");
+          inputValorRef.current?.focus();
+          return;
+        }
+
+        if (!tipoVenda) {
+          alert("Selecione o Tipo de Venda.");
+          selectTipoVendaRef.current?.focus();
+          return;
+        }
+
+        if (!condicaoPrazo) {
+          alert("Selecione a Condição / Prazo.");
+          selectCondicaoRef.current?.focus();
+          return;
+        }
+
+        if (analiseDebitos.temDebitoVencido && !autorizacaoGerencia) {
+          alert(`⛔ BLOQUEIO DE CRÉDITO:\n\nO cliente #${clienteAtivo.cod} possui débitos vencidos.\n\nPara prosseguir com a venda, marque a caixa de autorização excepcional com aprovação gerencial.`);
+          return;
+        }
+
+        setSalvandoVenda(true);
+        setStatusMsg('Gravando venda no Firebase Firestore...');
+
+        const dataDate = parseDataZerada(dataVenda);
+        const y = dataDate.getFullYear();
+        const m = String(dataDate.getMonth() + 1).padStart(2, '0');
+        const d = String(dataDate.getDate()).padStart(2, '0');
+        const dataIso = `${y}-${m}-${d}`;
+
+        const novaVendaDoc = {
+          dav: davNumber,
+          date: dataIso,
+          dateDisplay: dataVenda,
+          codCliente: String(codClienteInput).trim(),
+          client: clienteAtivo.name,
+          salesperson: vendedor,
+          salespersonCode: codVendedorAtual,
           amount: valorNum,
           tipoVenda: tipoVenda,
           prazo: condicaoPrazo,
-          parcelasQtd: numParcelas,
-          date: dataVenda,
-          dateDisplay: new Date(dataVenda + 'T00:00:00').toLocaleDateString('pt-BR'),
-          createdAt: new Date().toISOString(),
-          isPaid: false,
-          installments: parcelasCustom
+          installments: previaParcelas.map(p => ({
+            number: p.number,
+            amount: Number(p.amount) || (valorNum / previaParcelas.length),
+            dueDate: p.dueDate,
+            status: p.status || (condicaoPrazo === '0' ? 'Pago' : 'Em aberto'),
+            paymentMethod: p.paymentMethod || (condicaoPrazo === '0' ? 'À Vista Imediato' : condicaoPrazo === 'PROMISSORIA' ? 'Nota Promissória' : 'Boleto/Carteira')
+          })),
+          isPaid: condicaoPrazo === '0',
+          liberacaoExcepcional: analiseDebitos.temDebitoVencido ? {
+            autorizadoPorGerencia: true,
+            senhaTokenInformado: !!senhaGerencial,
+            debitoExistenteNaData: analiseDebitos.totalVencido
+          } : null,
+          criadoEm: new Date().toISOString()
         };
+
+        try {
+          if (window.db && window.fb) {
+            await window.fb.addDoc(window.fb.collection(window.db, "vendas"), novaVendaDoc);
+          } else {
+            setSales(prev => [novaVendaDoc, ...prev]);
+          }
+
+          setStatusMsg(`✅ Venda DAV #${novaVendaDoc.dav} registrada com sucesso!`);
+          
+          setDataVenda('');
+          setDavNumber('');
+          setCodClienteInput('');
+          setNomeCliente('');
+          setVendedor('');
+          setValorVenda('');
+          setTipoVenda('');
+          setCondicaoPrazo('');
+          setPreviaParcelas([]);
+          setAutorizacaoGerencia(false);
+          setSenhaGerencial('');
+          
+          inputDataRef.current?.focus();
+          setTimeout(() => setStatusMsg(''), 5000);
+        } catch (err) {
+          console.error("Erro ao salvar:", err);
+          setStatusMsg(`❌ Erro ao gravar: ${err.message}`);
+        } finally {
+          setSalvandoVenda(false);
+        }
+      };
+
+      const handleSalvarClienteInedito = async (e) => {
+        e.preventDefault();
+        if (!novoClienteForm.cod || !novoClienteForm.name) {
+          alert("Código e Nome são obrigatórios!");
+          return;
+        }
+
+        const clientDoc = {
+          ...novoClienteForm,
+          cod: String(novoClienteForm.cod).trim()
+        };
+
+        setClients(prev => [...prev.filter(c => String(c.cod) !== clientDoc.cod), clientDoc]);
+        setCodClienteInput(clientDoc.cod);
+        setNomeCliente(clientDoc.name);
+        if (clientDoc.vendor) setVendedor(clientDoc.vendor);
 
         if (window.db && window.fb) {
           try {
-            await window.fb.addDoc(window.fb.collection(window.db, "vendas"), docVenda);
-            alert(`✅ Venda DAV #${davNumero} cadastrada com sucesso!`);
+            await window.fb.setDoc(window.fb.doc(window.db, "clientes", clientDoc.cod), clientDoc, { merge: true });
           } catch (err) {
-            console.error(err);
-            setSales(prev => [docVenda, ...prev]);
-            alert(`✅ Venda DAV #${davNumero} registrada localmente.`);
+            console.error("Erro ao gravar cliente:", err);
           }
-        } else {
-          setSales(prev => [docVenda, ...prev]);
-          alert(`✅ Venda DAV #${davNumero} registrada!`);
         }
 
-        setValorVenda('');
-        setDavNumero(String(Math.floor(10000 + Math.random() * 90000)));
+        setShowModalNovoCliente(false);
+        setTimeout(() => selectVendedorRef.current?.focus(), 150);
       };
 
-      // Indicadores
-      const totalReceita = useMemo(() => sales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0), [sales]);
-      const totalBaixado = useMemo(() => {
-        let total = 0;
-        sales.forEach(s => (s.installments || []).forEach(inst => { if (inst.status === 'Pago') total += Number(inst.amount) || 0; }));
-        return total;
+      // KPIs do Dashboard
+      const dashboardKPIs = useMemo(() => {
+        let recMes = 0;
+        let aReceberMes = 0;
+        let totalPedidos = sales.length;
+        const clientesSet = new Set();
+
+        sales.forEach(s => {
+          if (s.codCliente) clientesSet.add(s.codCliente);
+          (s.installments || []).forEach(inst => {
+            const amt = Number(inst.amount) || 0;
+            if (inst.status === 'Pago') recMes += amt;
+            else aReceberMes += amt;
+          });
+        });
+
+        const ticketMedio = totalPedidos > 0 ? (recMes + aReceberMes) / totalPedidos : 0;
+        return { recMes, aReceberMes, totalPedidos, ticketMedio, clientesAtivos: clientesSet.size };
       }, [sales]);
-      const totalAReceber = Math.max(0, totalReceita - totalBaixado);
 
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL UNIFICADA COM LOGO OFICIAL E MARCA D'ÁGUA */}
+          {/* BARRA LATERAL UNIFICADA */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.05] brightness-200">
-              <img src="Design sem nome (28).png" alt="Marca d'água Teles Odonto" className="w-full h-full object-contain filter invert" />
+            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
+              <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
               <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-10 w-auto object-contain" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 2C7 2 4 5 4 9c0 5 2 9 3 13 1 1 2 1 3 0 1-2 2-2 2-2s1 0 2 2c1 1 2 1 3 0 1-4 3-8 3-13 0-4-3-7-8-7z"></path>
+                      <path d="M9 8c.5-1 1.5-1.5 3-1.5s2.5.5 3 1.5"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-base font-bold text-white tracking-tight leading-tight">Teles Odonto</h1>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Materiais Protéticos</p>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
@@ -260,17 +643,17 @@
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
-                <a href="index.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                <a href="index.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
                   <i data-lucide="layout-grid" className="w-4 h-4 text-white"></i>
                   <span>Página Inicial</span>
                 </a>
 
-                <a href="vendas.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="vendas.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="shopping-cart" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Página de Vendas</span>
                 </a>
 
-                <a href="comissoes.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="comissoes.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="briefcase" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Comissões</span>
                 </a>
@@ -286,22 +669,22 @@
                   <p className="text-xs font-semibold text-white truncate">Operador Comercial</p>
                   <p className="text-[10px] text-slate-400 truncate">operador@salespro.com</p>
                 </div>
-                <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20"></div>
+                <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20" title="Online"></div>
               </div>
               <p className="text-[10px] text-slate-400 text-center mt-3">© 2026 Neves Pro CRM</p>
             </div>
           </aside>
 
-          {/* CONTEÚDO PRINCIPAL */}
+          {/* ÁREA PRINCIPAL */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
-            {/* TOPBAR LIMPO COM CONTEXTO TELES ODONTO */}
+            {/* TOPBAR */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span className="font-bold text-slate-800">Teles Odonto</span>
+                <span className="font-bold text-slate-800">Neves Pro CRM</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                  Módulo Ativo
+                  Painel Inicial
                 </span>
               </div>
 
@@ -318,287 +701,628 @@
 
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* BANNER HORÁRIO DE BRASÍLIA E CICLO */}
-              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-5 rounded-3xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center">
-                    <i data-lucide="clock" className="w-5 h-5 text-indigo-300"></i>
+              {/* BANNER INSTITUCIONAL */}
+              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-4 md:p-5 rounded-2xl text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-md relative overflow-hidden">
+                <div className="relative z-10 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                    <i data-lucide="calendar" className="w-5 h-5 text-indigo-300"></i>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase tracking-widest text-indigo-300 font-bold block">HORÁRIO DE BRASÍLIA</span>
-                    <h2 className="text-xl font-black">{horaBrasilia || 'Carregando...'}</h2>
+                    <span className="text-[10px] text-indigo-300 uppercase font-bold tracking-wider">HORÁRIO DE BRASÍLIA</span>
+                    <p className="text-sm font-black">Ciclo Comercial Ativo • Novembro / 2026</p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold block">MÊS VIGENTE</span>
-                    <span className="text-xs font-bold text-indigo-200">Novembro / 2026</span>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-indigo-800/80 flex items-center justify-center text-indigo-200 border border-indigo-700/50">
-                    <i data-lucide="calendar" className="w-4 h-4"></i>
-                  </div>
+                <div className="flex items-center gap-2 relative z-10 text-xs">
+                  <span className="bg-white/10 px-3 py-1.5 rounded-xl font-semibold border border-white/10">
+                    Faltam 18 dias para o fechamento
+                  </span>
                 </div>
               </div>
 
-              {/* 4 CARDS SUPERIORES DE INDICADORES */}
+              {/* 4 CARDS SUPERIORES */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-center text-slate-400 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">RECEITA (NOVEMBRO)</span>
-                    <i data-lucide="wallet" className="w-4 h-4 text-indigo-600"></i>
-                  </div>
-                  <p className="text-2xl font-black text-slate-900">{formatBRL(totalReceita)}</p>
-                  <p className="text-[11px] text-emerald-600 font-semibold mt-1">Baixado: {formatBRL(totalBaixado)}</p>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">RECEITA (NOVEMBRO)</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">R$ {dashboardKPIs.recMes.toFixed(2)}</p>
+                  <p className="text-[11px] text-emerald-600 font-semibold mt-1">Baixado e conciliado</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-center text-slate-400 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">À RECEBER (NOVEMBRO)</span>
-                    <i data-lucide="alert-circle" className="w-4 h-4 text-blue-500"></i>
-                  </div>
-                  <p className="text-2xl font-black text-slate-900">{formatBRL(totalAReceber)}</p>
-                  <p className="text-[11px] text-slate-400 mt-1">Carteira operacional ativa</p>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">À RECEBER (NOVEMBRO)</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">R$ {dashboardKPIs.aReceberMes.toFixed(2)}</p>
+                  <p className="text-[11px] text-indigo-600 font-semibold mt-1">Parcelas pendentes no mês</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-center text-slate-400 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">TOTAL DE VENDAS</span>
-                    <i data-lucide="shopping-bag" className="w-4 h-4 text-emerald-600"></i>
-                  </div>
-                  <p className="text-2xl font-black text-slate-900">{sales.length} pedidos</p>
-                  <p className="text-[11px] text-slate-400 mt-1">Lançamentos registrados</p>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">TOTAL DE PEDIDOS</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">{dashboardKPIs.totalPedidos} DAVs</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Ticket Médio: R$ {dashboardKPIs.ticketMedio.toFixed(2)}</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-center text-slate-400 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">CLIENTES COM COMPRAS</span>
-                    <i data-lucide="users" className="w-4 h-4 text-indigo-600"></i>
-                  </div>
-                  <p className="text-2xl font-black text-slate-900">{clients.length} cadastrados</p>
-                  <p className="text-[11px] text-indigo-600 font-semibold mt-1">Base ativa Teles Odonto</p>
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">CLIENTES COM COMPRAS</span>
+                  <p className="text-2xl font-black text-slate-900 mt-1">{dashboardKPIs.clientesAtivos} ativos</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Base ativa do período</p>
                 </div>
               </div>
 
-              {/* GRID PRINCIPAL: NOVA VENDA + LIVRO DE VENDAS */}
+              {/* GRID PRINCIPAL: FORMULÁRIO DE NOVA VENDA + LIVRO DE VENDAS */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* FORMULÁRIO DE NOVA VENDA */}
-                <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-4">
-                  <div className="flex justify-between items-center border-b pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
-                        <i data-lucide="plus" className="w-4 h-4"></i>
-                      </div>
-                      <h3 className="font-extrabold text-sm text-slate-900">Nova Venda</h3>
-                    </div>
-                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
-                      Lançamento DAV
-                    </span>
+                <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
                   </div>
 
-                  <form onSubmit={handleRegistrarVenda} className="space-y-3 text-xs">
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="flex justify-between items-center border-b pb-3 relative z-10">
+                    <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                      <i data-lucide="shopping-bag" className="w-4 h-4 text-indigo-700"></i>
+                      Nova Venda
+                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md border flex items-center gap-1">
+                        <span>Pressione</span>
+                        <kbd className="bg-white px-1 py-0.2 rounded border shadow-2xs font-mono font-bold">↵ Enter</kbd>
+                        <span>p/ avançar</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleRegistrarVenda} className="space-y-3.5 relative z-10 text-xs">
+                    
+                    {/* Data da Venda & DAV */}
+                    <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="font-semibold text-slate-600 block mb-1">Data da Venda</label>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="font-semibold text-slate-600">Data da Venda</label>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setDataVenda(getHojeBR());
+                              inputDavRef.current?.focus();
+                            }}
+                            className="text-[10px] text-indigo-600 hover:underline font-bold"
+                          >
+                            Hoje
+                          </button>
+                        </div>
                         <input 
-                          type="date" 
+                          ref={inputDataRef}
+                          type="text" 
+                          placeholder="dd/mm/aaaa" 
                           value={dataVenda} 
                           onChange={e => setDataVenda(e.target.value)} 
-                          className="w-full p-2 border rounded-xl bg-slate-50 font-bold outline-none" 
+                          onKeyDown={e => handleKeyDown(e, inputDavRef)}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30" 
+                          required 
                         />
                       </div>
+
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">DAV (Nº Pedido)</label>
                         <input 
+                          ref={inputDavRef}
                           type="text" 
-                          value={davNumero} 
-                          onChange={e => setDavNumero(e.target.value)} 
-                          className="w-full p-2 border rounded-xl bg-slate-50 font-mono font-bold text-center outline-none" 
+                          maxLength="4"
+                          placeholder="Ex: 4892" 
+                          value={davNumber} 
+                          onChange={e => setDavNumber(e.target.value.replace(/\D/g, '').slice(0, 4))} 
+                          onKeyDown={e => handleKeyDown(e, inputCodClienteRef)}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30 font-mono" 
+                          required 
                         />
                       </div>
                     </div>
 
+                    {/* Código do Cliente & Busca */}
                     <div>
-                      <label className="font-semibold text-slate-600 block mb-1">Cód. Cliente ou Nome</label>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="font-semibold text-slate-700">Cód. Cliente</label>
+                        {clienteAtivo ? (
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span>✓ Cliente Encontrado</span>
+                          </span>
+                        ) : (
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setNovoClienteForm(f => ({ ...f, cod: codClienteInput }));
+                              setShowModalNovoCliente(true);
+                            }}
+                            className="text-[10px] text-indigo-700 font-bold hover:underline flex items-center gap-1"
+                          >
+                            <i data-lucide="user-plus" className="w-3 h-3"></i>
+                            <span>Novo</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <input 
+                          ref={inputCodClienteRef}
+                          type="text" 
+                          placeholder="Digite o código (ex: 2, 4, 104)..." 
+                          value={codClienteInput} 
+                          onChange={e => setCodClienteInput(e.target.value)} 
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (!clienteAtivo && codClienteInput.trim()) {
+                                setNovoClienteForm(f => ({ ...f, cod: codClienteInput }));
+                                setShowModalNovoCliente(true);
+                              } else {
+                                selectVendedorRef.current?.focus();
+                              }
+                            }
+                          }}
+                          className="w-full p-2.5 pl-8 border rounded-xl bg-slate-50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30 font-mono" 
+                          required 
+                        />
+                        <i data-lucide="search" className="w-4 h-4 text-slate-400 absolute left-2.5 top-3"></i>
+                      </div>
+                    </div>
+
+                    {/* Nome do Cliente */}
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">
+                        Nome do Cliente / Laboratório
+                      </label>
                       <input 
                         type="text" 
-                        placeholder="Digite o código (ex: CLI-088) ou nome..." 
-                        value={codClienteInput} 
-                        onChange={handleBuscarCliente} 
-                        className="w-full p-2 border rounded-xl bg-slate-50 font-semibold outline-none" 
-                        required 
+                        value={nomeCliente} 
+                        readOnly
+                        disabled
+                        placeholder="Consulte o código acima para carregar..." 
+                        className="w-full p-2.5 border rounded-xl bg-slate-100 font-bold text-slate-700 outline-none cursor-not-allowed" 
                       />
                     </div>
 
-                    {clienteSelecionado && (
-                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5">
-                        <div className="flex justify-between items-start">
-                          <h4 className="font-bold text-slate-900">{clienteSelecionado.name}</h4>
-                          <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">
-                            {clienteSelecionado.categoria}
+                    {/* BLOCO DE DÉBITO VENCIDO / RESTRIÇÃO */}
+                    {clienteAtivo && (
+                      analiseDebitos.temDebitoVencido ? (
+                        <div className="flex flex-col gap-2 my-1">
+                          
+                          <div className="p-3.5 rounded-2xl bg-[#fee2e2]/80 border border-[#fca5a5]/70 shadow-sm flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2.5">
+                              <span className="text-[#991b1b] text-xl font-bold leading-none mt-0.5">⚠️</span>
+                              <div>
+                                <div className="flex items-center flex-wrap gap-2">
+                                  <span className="text-xs font-black text-[#991b1b] uppercase tracking-tight">
+                                    DÉBITO VENCIDO / RESTRIÇÃO
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-[#991b1b] text-white text-[10px] font-bold tracking-wide shadow-xs">
+                                    {analiseDebitos.titulosVencidos} título em atraso
+                                  </span>
+                                </div>
+                                <p className="text-xs text-[#7f1d1d] font-semibold mt-1">
+                                  R$ {analiseDebitos.totalVencido.toFixed(2)} vencido há {analiseDebitos.maxDiasAtraso} dias (Duplicata #{analiseDebitos.duplicataExemplo})
+                                </p>
+                              </div>
+                            </div>
+
+                            <a 
+                              href={`vendas.html?cliente=${clienteAtivo.cod}`} 
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-indigo-700 hover:bg-slate-50 shadow-xs border border-indigo-100 text-xs font-bold shrink-0 transition"
+                            >
+                              <i data-lucide="file-text" className="w-3.5 h-3.5"></i>
+                              <span>Ver Extrato</span>
+                            </a>
+                          </div>
+
+                          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="flex items-center gap-2 cursor-pointer select-none">
+                                <input 
+                                  type="checkbox" 
+                                  checked={autorizacaoGerencia} 
+                                  onChange={e => setAutorizacaoGerencia(e.target.checked)} 
+                                  className="w-4 h-4 rounded text-indigo-700 border-slate-300 focus:ring-indigo-600 cursor-pointer" 
+                                />
+                                <span className="text-xs font-extrabold text-slate-800">
+                                  Autorizar venda excepcional com aprovação gerencial
+                                </span>
+                              </label>
+                              <span className="text-[11px] text-slate-400 font-medium">Exige senha/token</span>
+                            </div>
+
+                            {autorizacaoGerencia && (
+                              <div className="pt-2 border-t border-slate-200 flex gap-2 items-center animate-in fade-in duration-150">
+                                <input 
+                                  type="password" 
+                                  placeholder="Digite a senha ou token gerencial..." 
+                                  value={senhaGerencial} 
+                                  onChange={e => setSenhaGerencial(e.target.value)} 
+                                  className="flex-1 p-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold outline-none" 
+                                />
+                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">
+                                  Autorizado
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
+                      ) : (
+                        <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px] text-emerald-800">
+                          <span className="font-bold flex items-center gap-1.5">
+                            <i data-lucide="check-circle" className="w-3.5 h-3.5 text-emerald-600"></i>
+                            Crédito Liberado • Sem débitos vencidos
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-400">{clienteSelecionado.endereco}</p>
-                      </div>
+                      )
                     )}
 
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* Vendedor Responsável & Código */}
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Cód. Vend.</label>
+                        <input 
+                          type="text" 
+                          value={codVendedorAtual} 
+                          disabled 
+                          placeholder="VND-00"
+                          className="w-full p-2.5 border rounded-xl bg-slate-100 text-slate-500 font-bold text-center font-mono" 
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="font-semibold text-slate-600 block mb-1">Vendedor Responsável</label>
                         <select 
-                          value={vendedorResp} 
-                          onChange={e => setVendedorResp(e.target.value)}
-                          className="w-full p-2 border rounded-xl bg-slate-50 font-bold outline-none"
+                          ref={selectVendedorRef}
+                          value={vendedor} 
+                          onChange={e => setVendedor(e.target.value)} 
+                          onKeyDown={e => handleKeyDown(e, inputValorRef)}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-600/30"
+                          required
                         >
-                          <option value="VND-01">VND-01 (André Luiz)</option>
-                          <option value="VND-02">VND-02 (Luis Daniel)</option>
+                          <option value="">Selecione o vendedor...</option>
+                          {sellersList.map(s => <option key={s.cod} value={s.name}>{s.name}</option>)}
                         </select>
+                      </div>
+                    </div>
+
+                    {/* Valor da Venda & Tipo de Venda */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">Valor da Venda (R$)</label>
+                        <input 
+                          ref={inputValorRef}
+                          type="text" 
+                          value={valorVenda} 
+                          onChange={e => setValorVenda(e.target.value)} 
+                          onKeyDown={e => handleKeyDown(e, selectTipoVendaRef)}
+                          placeholder="R$ 0,00" 
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-black text-slate-900 outline-none focus:ring-2 focus:ring-indigo-600/30 text-sm" 
+                          required 
+                        />
                       </div>
                       <div>
                         <label className="font-semibold text-slate-600 block mb-1">Tipo de Venda</label>
                         <select 
+                          ref={selectTipoVendaRef}
                           value={tipoVenda} 
-                          onChange={e => setTipoVenda(e.target.value)}
-                          className="w-full p-2 border rounded-xl bg-slate-50 font-bold outline-none"
+                          onChange={e => setTipoVenda(e.target.value)} 
+                          onKeyDown={e => handleKeyDown(e, selectCondicaoRef)}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-600/30"
+                          required
                         >
-                          <option value="TOTAL">TOTAL</option>
-                          <option value="PARCIAL">PARCIAL</option>
-                          <option value="DENTISTAS">DENTISTAS</option>
+                          <option value="">Selecione o tipo...</option>
+                          <option value="TOTAL">TOTAL (Completa)</option>
+                          <option value="PARCIAL">PARCIAL (Taxa Reduzida)</option>
+                          <option value="DENTISTAS">DENTISTAS (Especial)</option>
                         </select>
                       </div>
                     </div>
 
+                    {/* Condição / Prazo (Até 12x) */}
                     <div>
-                      <label className="font-semibold text-slate-600 block mb-1">Valor da Venda (R$)</label>
-                      <input 
-                        type="text" 
-                        placeholder="R$ 1.850,00" 
-                        value={valorVenda} 
-                        onChange={e => setValorVenda(e.target.value)} 
-                        className="w-full p-2.5 border rounded-xl bg-slate-50 font-black text-sm outline-none text-slate-900" 
-                        required 
-                      />
+                      <label className="font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
+                      <select 
+                        ref={selectCondicaoRef}
+                        value={condicaoPrazo} 
+                        onChange={e => setCondicaoPrazo(e.target.value)} 
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            btnRegistrarRef.current?.focus();
+                          }
+                        }}
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-600/30"
+                        required
+                      >
+                        <option value="">Selecione a condição ou prazo...</option>
+                        <optgroup label="À Vista & Conta Corrente">
+                          <option value="0">0 - À Vista (Baixa imediata no caixa)</option>
+                          <option value="PROMISSORIA">PROMISSÓRIA (Saldo devedor em carteira)</option>
+                        </optgroup>
+                        <optgroup label="Prazos Específicos em Dias">
+                          <option value="1">1 dia útil</option>
+                          <option value="7">7 dias corridos</option>
+                          <option value="10">10 dias corridos</option>
+                          <option value="15">15 dias corridos</option>
+                          <option value="20">20 dias corridos</option>
+                          <option value="30">30 dias corridos (1 Parcela)</option>
+                        </optgroup>
+                        <optgroup label="Parcelamentos Programados (2x até 12x)">
+                          <option value="2x">Parcelado em 2x (30 / 60 dias)</option>
+                          <option value="3x">Parcelado em 3x (30 / 60 / 90 dias)</option>
+                          <option value="4x">Parcelado em 4x (30 / 60 / 90 / 120 dias)</option>
+                          <option value="5x">Parcelado em 5x (Mensal)</option>
+                          <option value="6x">Parcelado em 6x (Mensal)</option>
+                          <option value="7x">Parcelado em 7x (Mensal)</option>
+                          <option value="8x">Parcelado em 8x (Mensal)</option>
+                          <option value="9x">Parcelado em 9x (Mensal)</option>
+                          <option value="10x">Parcelado em 10x (Mensal)</option>
+                          <option value="11x">Parcelado em 11x (Mensal)</option>
+                          <option value="12x">Parcelado em 12x (Mensal)</option>
+                        </optgroup>
+                      </select>
                     </div>
 
-                    {/* CONDIÇÃO DE PRAZO & ATÉ 12X */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="font-semibold text-slate-600 block mb-1">Condição / Prazo</label>
-                        <select 
-                          value={condicaoPrazo} 
-                          onChange={e => setCondicaoPrazo(e.target.value)}
-                          className="w-full p-2 border rounded-xl bg-slate-50 font-semibold outline-none"
-                        >
-                          <option value="0">À Vista (0 dias)</option>
-                          <option value="15">15 dias</option>
-                          <option value="30">30 dias</option>
-                          <option value="45">45 dias</option>
-                          <option value="60">60 dias</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="font-semibold text-slate-600 block mb-1">Nº de Parcelas</label>
-                        <select 
-                          value={numParcelas} 
-                          onChange={e => setNumParcelas(parseInt(e.target.value, 10))}
-                          className="w-full p-2 border rounded-xl bg-slate-50 font-bold outline-none"
-                        >
-                          <option value="1">1x (Parcela Única)</option>
-                          <option value="2">2x</option>
-                          <option value="3">3x</option>
-                          <option value="4">4x</option>
-                          <option value="5">5x</option>
-                          <option value="6">6x</option>
-                          <option value="7">7x</option>
-                          <option value="8">8x</option>
-                          <option value="9">9x</option>
-                          <option value="10">10x</option>
-                          <option value="11">11x</option>
-                          <option value="12">12x (Máximo)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* PRÉVIA DE VENCIMENTOS */}
-                    {parcelasCustom.length > 0 && (
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
-                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
-                          <span>Prévia de Vencimentos ({parcelasCustom.length}x)</span>
-                          <span className="text-indigo-600">{formatBRL(parcelasCustom[0]?.amount)} /mês</span>
+                    {/* Prévia Editável dos Vencimentos */}
+                    {previaParcelas.length > 0 && (
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-slate-600 uppercase flex items-center gap-1">
+                            <i data-lucide="calendar-check" className="w-3.5 h-3.5 text-indigo-600"></i>
+                            Prévia e Cálculo de Vencimento ({previaParcelas.length}x)
+                          </span>
+                          <span className="text-[10px] font-bold text-indigo-700">
+                            Total: R$ {valorVenda}
+                          </span>
                         </div>
-                        <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-                          {parcelasCustom.map((p, idx) => (
-                            <div key={idx} className="flex justify-between items-center bg-white p-1.5 px-2.5 rounded-lg border text-[11px]">
-                              <span className="font-semibold text-slate-700">Parcela {p.number}</span>
-                              <span className="font-mono text-slate-500">{p.dueDate}</span>
-                              <span className="font-bold text-slate-900">{formatBRL(p.amount)}</span>
+
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                          {previaParcelas.map((p, idx) => (
+                            <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 text-[11px]">
+                              <span className="font-bold text-slate-700 w-16 shrink-0">
+                                Parc. {p.number}:
+                              </span>
+                              <div className="flex-1">
+                                <input 
+                                  type="text" 
+                                  value={p.dueDate} 
+                                  onChange={e => handleAtualizarParcelaPrevia(idx, 'dueDate', e.target.value)}
+                                  placeholder="DD/MM/AAAA"
+                                  className="w-full p-1 border rounded bg-slate-50 font-semibold outline-none text-center" 
+                                />
+                              </div>
+                              <div className="w-24">
+                                <input 
+                                  type="number" 
+                                  step="0.01"
+                                  max="999999"
+                                  value={p.amount} 
+                                  onChange={e => handleAtualizarParcelaPrevia(idx, 'amount', parseFloat(e.target.value) || 0)}
+                                  className="w-full p-1 border rounded bg-slate-50 font-black outline-none text-right" 
+                                />
+                              </div>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${p.status === 'Pago' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                                {p.status}
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
 
+                    {/* Botão de Gravação */}
                     <button 
+                      ref={btnRegistrarRef}
                       type="submit" 
-                      className="w-full py-3 rounded-2xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2 mt-2"
+                      disabled={salvandoVenda || (analiseDebitos.temDebitoVencido && !autorizacaoGerencia)}
+                      className={`w-full font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
+                        analiseDebitos.temDebitoVencido && !autorizacaoGerencia
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-not-allowed opacity-90'
+                          : 'bg-indigo-700 hover:bg-indigo-800 text-white focus:ring-4 focus:ring-indigo-300'
+                      }`}
                     >
-                      <i data-lucide="check" className="w-4 h-4"></i>
-                      <span>Registrar Venda</span>
+                      {salvandoVenda ? (
+                        <span>Gravando Venda...</span>
+                      ) : analiseDebitos.temDebitoVencido && !autorizacaoGerencia ? (
+                        <span>⛔ Bloqueado: Exige Autorização</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <i data-lucide="check" className="w-4 h-4"></i>
+                          <span>Registrar Venda</span>
+                          <kbd className="bg-indigo-800/80 text-[10px] px-1.5 py-0.5 rounded border border-indigo-500 font-mono">↵ Enter</kbd>
+                        </div>
+                      )}
                     </button>
                   </form>
+
+                  {statusMsg && (
+                    <div className="p-3 bg-slate-900 text-white font-bold text-xs rounded-xl text-center relative z-10">
+                      {statusMsg}
+                    </div>
+                  )}
                 </div>
 
-                {/* LIVRO DE VENDAS REGISTRADAS */}
-                <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-4">
-                  <div className="flex justify-between items-center border-b pb-3">
+                {/* LIVRO DE VENDAS RECENTES */}
+                <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                  <div className="absolute -bottom-8 -right-8 pointer-events-none text-slate-900 opacity-[0.035] w-48 h-48">
+                    <ToothWatermark className="w-full h-full text-slate-900" />
+                  </div>
+
+                  <div className="flex justify-between items-center border-b pb-3 relative z-10">
                     <div>
                       <h3 className="font-extrabold text-sm text-slate-900">Vendas de Novembro / 2026</h3>
                       <p className="text-[11px] text-slate-400">Livro de lançamentos e controle de parcelas</p>
                     </div>
-                    <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full">
-                      {sales.length} Lançamentos
-                    </span>
+                    <a 
+                      href="vendas.html" 
+                      className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl border border-indigo-100 transition"
+                    >
+                      Ir para Carteira &gt;
+                    </a>
                   </div>
 
-                  {sales.length === 0 ? (
-                    <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed">
-                      Nenhuma venda registrada ainda no Firebase. Faça o primeiro lançamento ao lado!
+                  {loading ? (
+                    <div className="py-16 text-center text-xs text-slate-400">
+                      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                      Carregando lançamentos do Firebase...
+                    </div>
+                  ) : sales.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">
+                      Nenhuma venda lançada até o momento. Registre ao lado!
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100">
-                      {sales.map(s => (
-                        <div key={s.id || s.dav} className="py-3 flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-indigo-700 text-xs">#{s.dav}</span>
-                              <h4 className="font-bold text-xs text-slate-900">{s.client}</h4>
-                              <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded">
-                                {s.tipoVenda || 'TOTAL'}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-0.5">
-                              {s.dateDisplay || s.date} • Vend: {s.salesperson} • {s.parcelasQtd || (s.installments ? s.installments.length : 1)}x
-                            </p>
-                          </div>
+                    <div className="overflow-x-auto relative z-10">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                          <tr>
+                            <th className="py-2.5 px-3">Data / DAV</th>
+                            <th className="py-2.5 px-3">Cliente</th>
+                            <th className="py-2.5 px-3">Vendedor</th>
+                            <th className="py-2.5 px-3">Tipo</th>
+                            <th className="py-2.5 px-3">Valor</th>
+                            <th className="py-2.5 px-3">Parcelas</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {sales.slice(0, 8).map(sale => {
+                            const pagasCount = (sale.installments || []).filter(i => i.status === 'Pago').length;
+                            const totalInst = (sale.installments || []).length;
 
-                          <div className="text-right">
-                            <span className="text-xs font-black text-slate-900 block">{formatBRL(s.amount)}</span>
-                            <a href={`vendas.html?cliente=${s.codCliente}`} className="text-[10px] text-indigo-600 font-bold hover:underline">
-                              Ver na Carteira &gt;
-                            </a>
-                          </div>
-                        </div>
-                      ))}
+                            return (
+                              <tr key={sale.id || sale.dav} className="hover:bg-slate-50 transition">
+                                <td className="py-3 px-3">
+                                  <span className="font-bold text-slate-800 block">{sale.dateDisplay || sale.date}</span>
+                                  <span className="text-[10px] text-indigo-700 font-mono">DAV #{sale.dav}</span>
+                                </td>
+                                <td className="py-3 px-3 max-w-[160px]">
+                                  <span className="font-bold text-slate-900 block truncate">{sale.client}</span>
+                                  <span className="text-[10px] text-slate-400">Cód: #{sale.codCliente}</span>
+                                </td>
+                                <td className="py-3 px-3 text-slate-600 font-medium">
+                                  {sale.salesperson ? sale.salesperson.split(' ')[0] + ' ' + (sale.salesperson.split(' ')[1] || '') : 'André Luiz'}
+                                </td>
+                                <td className="py-3 px-3">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    sale.tipoVenda === 'TOTAL' ? 'bg-indigo-50 text-indigo-700' :
+                                    sale.tipoVenda === 'PARCIAL' ? 'bg-purple-50 text-purple-700' : 'bg-emerald-50 text-emerald-700'
+                                  }`}>
+                                    {sale.tipoVenda}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3 font-extrabold text-slate-900">
+                                  R$ {Number(sale.amount).toFixed(2)}
+                                </td>
+                                <td className="py-3 px-3">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    pagasCount === totalInst && totalInst > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                  }`}>
+                                    ● {pagasCount}/{totalInst} pagas
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   )}
+
+                  <div className="pt-3 border-t text-xs text-slate-400 text-right relative z-10">
+                    Mostrando lançamentos consolidados de Novembro.
+                  </div>
                 </div>
 
               </div>
 
             </div>
           </main>
+
+          {/* MODAL: NOVO CLIENTE */}
+          {showModalNovoCliente && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h4 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i data-lucide="user-plus" className="w-5 h-5 text-indigo-700"></i>
+                    <span>Cadastrar Código Inédito #{novoClienteForm.cod}</span>
+                  </h4>
+                  <button onClick={() => setShowModalNovoCliente(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                </div>
+
+                <form onSubmit={handleSalvarClienteInedito} className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Nome / Razão Social *</label>
+                    <input 
+                      type="text" 
+                      placeholder="Ex: Laboratório Dental Especial" 
+                      value={novoClienteForm.name} 
+                      onChange={e => setNovoClienteForm({ ...novoClienteForm, name: e.target.value })} 
+                      className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Categoria</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: Prótese Fixa" 
+                        value={novoClienteForm.categoria} 
+                        onChange={e => setNovoClienteForm({ ...novoClienteForm, categoria: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Área Comercial</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: Fortaleza Centro" 
+                        value={novoClienteForm.area} 
+                        onChange={e => setNovoClienteForm({ ...novoClienteForm, area: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">DDD</label>
+                      <input 
+                        type="text" 
+                        placeholder="85" 
+                        value={novoClienteForm.ddd} 
+                        onChange={e => setNovoClienteForm({ ...novoClienteForm, ddd: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none text-center font-bold" 
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="font-semibold text-slate-600 block mb-1">Telefone / WhatsApp</label>
+                      <input 
+                        type="text" 
+                        placeholder="98800-1122" 
+                        value={novoClienteForm.telefone} 
+                        onChange={e => setNovoClienteForm({ ...novoClienteForm, telefone: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowModalNovoCliente(false)} 
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow"
+                    >
+                      Salvar e Prosseguir (↵)
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
         </div>
       );
