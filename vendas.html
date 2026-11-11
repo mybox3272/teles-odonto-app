@@ -2,16 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teles Odonto - Carteira de Vendas & Inadimplência</title>
-
+  <title>Teles Odonto - Página de Vendas & Carteira</title>
+  
   <!-- Tipografia Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS & Lucide Icons -->
+  
+  <!-- CDN Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -21,19 +20,13 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #faf8ff; color: #1e1b4b; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f2f3ff; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #c5c6d0; border-radius: 4px; }
-    .watermark-bg {
-      background-image: url('Design sem nome (28).png');
-      background-repeat: no-repeat;
-      background-position: right -20px bottom -20px;
-      background-size: 240px;
-    }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 
-  <!-- Firebase Firestore com Busca Única Protegida (Anti-Loop) -->
+  <!-- Inicialização do Firebase Firestore v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
@@ -44,7 +37,7 @@
       addDoc, 
       updateDoc, 
       deleteDoc, 
-      getDocs, 
+      onSnapshot, 
       query, 
       orderBy 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -61,204 +54,184 @@
 
     try {
       const app = initializeApp(firebaseConfig);
-      window.db = getFirestore(app);
-      window.fb = { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy };
+      const db = getFirestore(app);
+      window.db = db;
+      window.fb = { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado com busca protegida no vendas.html!");
+      console.log("🔥 Firebase conectado em vendas.html sem mocks fictícios e com vendedores auditados!");
     } catch (err) {
-      console.warn("Aviso na inicialização do Firebase no vendas.html:", err);
+      console.error("Erro ao inicializar Firebase em vendas.html:", err);
     }
   </script>
 </head>
-<body class="min-h-screen bg-[#faf8ff] antialiased text-[#1e1b4b]">
-  <div id="root">
-    <!-- Fallback seguro para evitar tela em branco -->
-    <div class="flex items-center justify-center min-h-screen p-8 text-center text-slate-500">
-      <div class="space-y-3">
-        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="font-bold text-sm text-slate-800">Carregando Carteira de Vendas Teles Odonto...</p>
-        <p class="text-xs text-slate-400">Conciliando clientes e parcelas financeiras.</p>
-      </div>
-    </div>
-  </div>
+<body class="min-h-screen bg-slate-50 antialiased text-slate-800">
+  <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef } = React;
+    const { useState, useEffect, useMemo } = React;
 
     const formatBRL = (val) => {
       const n = Number(val) || 0;
       return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    // Base auditada de clientes da Teles Odonto com dados cadastrais e histórico
+    // Verificação de datas sem falso positivo de atraso
+    const verificarStatusParcela = (dueDateStr, statusAtual) => {
+      if (statusAtual === 'Pago') {
+        return { status: 'Pago', diasAtraso: 0, isVencido: false };
+      }
+
+      if (!dueDateStr) {
+        return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
+      }
+
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      let dataVenc;
+      if (typeof dueDateStr === 'string' && dueDateStr.includes('/')) {
+        const parts = dueDateStr.split('/').map(Number);
+        if (parts.length === 3) {
+          dataVenc = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+        }
+      } else if (typeof dueDateStr === 'string' && dueDateStr.includes('-')) {
+        const parts = dueDateStr.split('-').map(Number);
+        if (parts.length === 3) {
+          dataVenc = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
+      }
+
+      if (!dataVenc || isNaN(dataVenc.getTime())) {
+        dataVenc = new Date(dueDateStr);
+        dataVenc.setHours(0, 0, 0, 0);
+      }
+
+      if (isNaN(dataVenc.getTime())) {
+        return { status: statusAtual || 'Em aberto', diasAtraso: 0, isVencido: false };
+      }
+
+      if (dataVenc >= hoje) {
+        const diffMs = dataVenc.getTime() - hoje.getTime();
+        const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        return {
+          status: 'À Vencer',
+          diasAtraso: 0,
+          diasParaVencer: diffDias,
+          isVencido: false
+        };
+      }
+
+      const atrasoMs = hoje.getTime() - dataVenc.getTime();
+      const atrasoDias = Math.floor(atrasoMs / (1000 * 60 * 60 * 24));
+      return {
+        status: 'Vencido',
+        diasAtraso: atrasoDias > 0 ? atrasoDias : 1,
+        diasParaVencer: 0,
+        isVencido: true
+      };
+    };
+
+    // Base inicial de clientes vinculados exclusivamente aos vendedores cadastrados
     const initialClientsSeed = [
       { 
-        cod: "CLI-104", 
-        codNum: "4",
-        name: "Clínica OdontoPrime Dr. Valter", 
-        categoria: "Prótese Fixa & Reabilitação", 
-        area: "SP - CAPITAL / CENTRO",
-        telefone: "(11) 98765-4321", 
-        whatsapp: "5511987654321",
-        cnpj: "12.345.678/0001-90", 
-        endereco: "Av. Paulista, 1000 - Cj. 42, Bela Vista",
-        cidade: "São Paulo / SP",
-        vendor: "André Luiz Nóbrega Martins", 
-        vendorCode: "VND-01",
-        temDebito: true, 
-        debitoValor: 680.00, 
-        debitoDias: 14, 
-        debitoDoc: "Duplicata #4782"
-      },
-      { 
-        cod: "CLI-088", 
-        codNum: "88",
-        name: "Laboratório Dental Sorriso", 
-        categoria: "Prótese Total e Parcial", 
-        area: "SP - ZONA SUL",
-        telefone: "(11) 97123-4567", 
-        whatsapp: "5511971234567",
-        cnpj: "98.765.432/0001-10", 
-        endereco: "Rua Domingos de Morais, 1500 - Vila Mariana",
-        cidade: "São Paulo / SP",
-        vendor: "André Luiz Nóbrega Martins", 
-        vendorCode: "VND-01",
-        temDebito: false
-      },
-      { 
-        cod: "CLI-093", 
-        codNum: "93",
-        name: "Implantes & Próteses Vitória", 
-        categoria: "Implantodontia", 
-        area: "SP - ABC PAULISTA",
-        telefone: "(11) 96321-7890", 
-        whatsapp: "5511963217890",
-        cnpj: "45.678.901/0001-23", 
-        endereco: "Rua das Figueiras, 450 - Bairro Jardim",
-        cidade: "Santo André / SP",
-        vendor: "Luis Daniel da Silva", 
-        vendorCode: "VND-02",
-        temDebito: false
-      },
-      { 
-        cod: "CLI-112", 
-        codNum: "112",
-        name: "Consultório Dr. Marcelo Ramos", 
-        categoria: "Clínico Geral / Dentistas", 
-        area: "SP - ZONA OESTE",
-        telefone: "(11) 95544-3322", 
-        whatsapp: "5511955443322",
-        cnpj: "23.456.789/0001-67", 
-        endereco: "Rua Teodoro Sampaio, 800 - Pinheiros",
-        cidade: "São Paulo / SP",
-        vendor: "André Luiz Nóbrega Martins", 
-        vendorCode: "VND-01",
-        temDebito: false
-      },
-      { 
-        cod: "CLI-002", 
-        codNum: "2",
+        cod: "2", 
         name: "JOÃO PESSOA MEDEIROS COSTA", 
+        cpf_cnpj: "021.***.***-34",
         categoria: "Prótese Fixa", 
-        area: "CE - CAPITAL",
-        telefone: "(85) 99122-3344", 
-        whatsapp: "5585991223344",
-        cnpj: "02.145.890/0001-34", 
-        endereco: "Rua Monsenhor Tabosa, 450 - Praia de Iracema",
-        cidade: "Fortaleza / CE",
-        vendor: "André Luiz Nóbrega Martins", 
-        vendorCode: "VND-01",
-        temDebito: false
-      }
-    ];
-
-    // Lançamentos originais da carteira
-    const initialSalesSeed = [
-      {
-        id: "seed-1",
-        dav: "48911",
-        codCliente: "CLI-088",
-        client: "Laboratório Dental Sorriso",
-        category: "Prótese Total e Parcial",
-        salesperson: "André Luiz Nóbrega Martins",
-        salespersonCode: "VND-01",
-        amount: 1600.00,
-        tipoVenda: "TOTAL",
-        date: "2026-11-04",
-        dateDisplay: "04/11/2026",
-        status: "Pago",
-        isPaid: true,
-        installments: [
-          { number: 1, dueDate: "04/11/2026", amount: 1600.00, status: "Pago", paidAt: "04/11/2026" }
-        ]
+        logradouro: "Rua", 
+        endereco: "Monsenhor Tabosa", 
+        numero: "450", 
+        bairro: "Praia de Iracema", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99122-3344", 
+        area: "Fortaleza Centro-Leste",
+        vendor: "André Luiz Nóbrega Martins"
       },
-      {
-        id: "seed-2",
-        dav: "48919",
-        codCliente: "CLI-093",
-        client: "Implantes & Próteses Vitória",
-        category: "Implantodontia",
-        salesperson: "Luis Daniel da Silva",
-        salespersonCode: "VND-02",
-        amount: 3100.00,
-        tipoVenda: "PARCIAL",
-        date: "2026-11-09",
-        dateDisplay: "09/11/2026",
-        status: "Em aberto",
-        isPaid: false,
-        installments: [
-          { number: 1, dueDate: "09/12/2026", amount: 1550.00, status: "Em aberto" },
-          { number: 2, dueDate: "09/01/2027", amount: 1550.00, status: "Em aberto" }
-        ]
+      { 
+        cod: "4", 
+        name: "LEONARDO AMORIM DE FRANCA E SOUSA", 
+        cpf_cnpj: "043.***.***-89",
+        categoria: "Prótese Total e Parcial", 
+        logradouro: "Av.", 
+        endereco: "Santos Dumont", 
+        numero: "1200", 
+        bairro: "Aldeota", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "98844-1234", 
+        area: "Fortaleza Metropolitana",
+        vendor: "Luis Daniel da Silva"
       },
-      {
-        id: "seed-3",
-        dav: "48921",
-        codCliente: "CLI-112",
-        client: "Consultório Dr. Marcelo Ramos",
-        category: "Clínico Geral / Dentistas",
-        salesperson: "André Luiz Nóbrega Martins",
-        salespersonCode: "VND-01",
-        amount: 940.00,
-        tipoVenda: "DENTISTAS",
-        date: "2026-11-11",
-        dateDisplay: "11/11/2026",
-        status: "Em aberto",
-        isPaid: false,
-        installments: [
-          { number: 1, dueDate: "11/12/2026", amount: 940.00, status: "Em aberto" }
-        ]
+      { 
+        cod: "5", 
+        name: "IMPRESSIONE LABORATÓRIO DE PROTESE LTDA", 
+        cpf_cnpj: "12.345.678/0001-90",
+        categoria: "Ortodontia & Fixa", 
+        logradouro: "Av.", 
+        endereco: "Dom Luís", 
+        numero: "800", 
+        bairro: "Aldeota", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "98711-2233", 
+        area: "Fortaleza Leste",
+        vendor: "André Luiz Nóbrega Martins"
       },
-      {
-        id: "seed-4",
-        dav: "4782",
-        codCliente: "CLI-104",
-        client: "Clínica OdontoPrime Dr. Valter",
-        category: "Prótese Fixa & Reabilitação",
-        salesperson: "André Luiz Nóbrega Martins",
-        salespersonCode: "VND-01",
-        amount: 1100.00,
-        tipoVenda: "TOTAL",
-        date: "2026-10-15",
-        dateDisplay: "15/10/2026",
-        status: "Em aberto",
-        isPaid: false,
-        installments: [
-          { number: 1, dueDate: "29/10/2026", amount: 680.00, status: "Em aberto" },
-          { number: 2, dueDate: "28/11/2026", amount: 420.00, status: "Em aberto" }
-        ]
+      { 
+        cod: "7", 
+        name: "DAVI DA CUNHA GONCALVES", 
+        cpf_cnpj: "019.***.***-12",
+        categoria: "Implantodontia", 
+        logradouro: "Rua", 
+        endereco: "Barão de Studart", 
+        numero: "1550", 
+        bairro: "Dionísio Torres", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99655-4433", 
+        area: "Fortaleza Sul",
+        vendor: "André Luiz Nóbrega Martins"
+      },
+      { 
+        cod: "8", 
+        name: "LEONARDO DA SILVA SOUZA", 
+        cpf_cnpj: "055.***.***-01",
+        categoria: "Ortodontia Digital", 
+        logradouro: "Rua", 
+        endereco: "Coronel Mont Alverne", 
+        numero: "210", 
+        bairro: "Centro", 
+        cidade: "Sobral", 
+        uf: "CE", 
+        ddd: "88", 
+        telefone: "98122-9988", 
+        area: "Zona Norte - Sobral",
+        vendor: "Luis Daniel da Silva"
+      },
+      { 
+        cod: "14", 
+        name: "CLINICA ODONTOLOGICA JORIO DA ESCOSSIA LTDA", 
+        cpf_cnpj: "07.891.234/0001-45",
+        categoria: "Próteses Múltiplas", 
+        logradouro: "Av.", 
+        endereco: "Pontes Vieira", 
+        numero: "2500", 
+        bairro: "Dionísio Torres", 
+        cidade: "Fortaleza", 
+        uf: "CE", 
+        ddd: "85", 
+        telefone: "99455-1100", 
+        area: "Fortaleza Sul",
+        vendor: "André Luiz Nóbrega Martins"
       }
     ];
 
     function App() {
-      const [sales, setSales] = useState(() => {
-        try {
-          const cached = localStorage.getItem('neves_crm_sales_cache');
-          return cached ? JSON.parse(cached) : initialSalesSeed;
-        } catch {
-          return initialSalesSeed;
-        }
-      });
       const [clients, setClients] = useState(() => {
         try {
           const saved = localStorage.getItem('neves_crm_clients');
@@ -268,273 +241,394 @@
         }
       });
 
-      const [loading, setLoading] = useState(false);
-      const [refreshing, setRefreshing] = useState(false);
+      const [sales, setSales] = useState([]);
+      const [loading, setLoading] = useState(true);
       const [filtroTexto, setFiltroTexto] = useState('');
-      const [filtroStatus, setFiltroStatus] = useState('TODOS');
-      const [clienteSelecionadoCod, setClienteSelecionadoCod] = useState("CLI-104");
+      const [abaFiltro, setAbaFiltro] = useState('TODOS');
+      const [selectedClientCod, setSelectedClientCod] = useState("4");
 
-      const carregouRef = useRef(false);
+      // Estado de Amortização: Padrão VND-01 (André Luiz Nóbrega Martins)
+      const [valorAmortizacao, setValorAmortizacao] = useState('');
+      const [vendedorAmortizacao, setVendedorAmortizacao] = useState('VND-01');
 
-      const renderIcons = () => {
-        try {
-          if (window.lucide && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
-          }
-        } catch (e) {}
-      };
+      // Modais
+      const [showModalEditarCliente, setShowModalEditarCliente] = useState(false);
+      const [clienteEditando, setClienteEditando] = useState(null);
+
+      const [showModalImportar, setShowModalImportar] = useState(false);
+      const [textoImportacao, setTextoImportacao] = useState('');
 
       useEffect(() => {
-        renderIcons();
+        if (window.lucide) window.lucide.createIcons();
       });
 
-      // Ler cliente passado por URL (?cliente=CLI-104)
+      // Leitura de parâmetro da URL ?cliente=
       useEffect(() => {
         try {
           const params = new URLSearchParams(window.location.search);
-          const cliParam = params.get('cliente');
-          if (cliParam) {
-            setClienteSelecionadoCod(cliParam);
-          }
-        } catch (e) {}
-      }, []);
-
-      // Busca única no Firebase Firestore via getDocs (Anti-Loop protegido)
-      const buscarDadosUmaVez = async (isManual = false) => {
-        if (!window.db || !window.fb) return;
-
-        try {
-          if (isManual) setRefreshing(true);
-          else setLoading(true);
-
-          // 1. Busca ÚNICA de Vendas
-          const qVendas = window.fb.query(
-            window.fb.collection(window.db, "vendas"),
-            window.fb.orderBy("date", "desc")
-          );
-          const snapVendas = await window.fb.getDocs(qVendas);
-          if (!snapVendas.empty) {
-            const listaVendas = snapVendas.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setSales(listaVendas);
-            try {
-              localStorage.setItem('neves_crm_sales_cache', JSON.stringify(listaVendas));
-            } catch (e) {}
-          }
-
-          // 2. Busca ÚNICA de Clientes
-          const snapClientes = await window.fb.getDocs(window.fb.collection(window.db, "clientes"));
-          if (!snapClientes.empty) {
-            const firestoreClients = snapClientes.docs.map(doc => ({ cod: doc.id, ...doc.data() }));
-            setClients(prev => {
-              const map = {};
-              prev.forEach(c => map[String(c.cod)] = c);
-              firestoreClients.forEach(c => map[String(c.cod)] = { ...map[String(c.cod)], ...c });
-              const merged = Object.values(map);
-              try {
-                localStorage.setItem('neves_crm_clients', JSON.stringify(merged));
-              } catch (e) {}
-              return merged;
-            });
+          const clienteParam = params.get('cliente');
+          if (clienteParam) {
+            setSelectedClientCod(String(clienteParam).trim());
           }
         } catch (e) {
-          console.warn("Aviso na leitura única do vendas.html:", e);
-        } finally {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      };
-
-      // Dispara estritamente 1 vez no carregamento
-      useEffect(() => {
-        if (carregouRef.current) return;
-        carregouRef.current = true;
-
-        if (window.db && window.fb) {
-          buscarDadosUmaVez();
-        } else {
-          window.addEventListener("firebase-ready", () => buscarDadosUmaVez(), { once: true });
+          console.error("Erro leitura query param:", e);
         }
       }, []);
 
-      // Dar baixa ou estornar parcela com gravação pontual no Firestore
-      const handleToggleParcela = async (vendaId, parcelaNum) => {
-        const venda = sales.find(s => s.id === vendaId || s.dav === vendaId);
-        if (!venda) return;
+      // Sincronização em tempo real com Firebase Firestore
+      useEffect(() => {
+        const startListeners = () => {
+          if (!window.db || !window.fb) return;
 
-        const updatedInstallments = (venda.installments || []).map(inst => {
-          if (inst.number === parcelaNum) {
-            const novoStatus = inst.status === 'Pago' ? 'Em aberto' : 'Pago';
-            return {
-              ...inst,
-              status: novoStatus,
-              paidAt: novoStatus === 'Pago' ? new Date().toISOString() : null
-            };
+          try {
+            const vendasCol = window.fb.collection(window.db, "vendas");
+            const qVendas = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
+            const unsubVendas = window.fb.onSnapshot(qVendas, (snapshot) => {
+              const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              setSales(list);
+              setLoading(false);
+            }, () => setLoading(false));
+
+            const clientesCol = window.fb.collection(window.db, "clientes");
+            const unsubClientes = window.fb.onSnapshot(clientesCol, (snapshot) => {
+              if (!snapshot.empty) {
+                const firestoreClients = snapshot.docs.map(doc => ({ cod: doc.id, ...doc.data() }));
+                setClients(prev => {
+                  const map = {};
+                  prev.forEach(c => map[String(c.cod)] = c);
+                  firestoreClients.forEach(c => map[String(c.cod)] = { ...map[String(c.cod)], ...c });
+                  const merged = Object.values(map);
+                  localStorage.setItem('neves_crm_clients', JSON.stringify(merged));
+                  return merged;
+                });
+              }
+            });
+
+            return () => { unsubVendas(); unsubClientes(); };
+          } catch (e) {
+            console.error("Erro listeners vendas.html:", e);
+            setLoading(false);
+          }
+        };
+
+        if (window.db && window.fb) {
+          startListeners();
+        } else {
+          window.addEventListener("firebase-ready", startListeners);
+          return () => window.removeEventListener("firebase-ready", startListeners);
+        }
+      }, []);
+
+      // Consolidação financeira real por cliente
+      const dadosFinanceirosPorCliente = useMemo(() => {
+        const map = {};
+
+        clients.forEach(c => {
+          map[String(c.cod)] = {
+            totalComprado: 0,
+            totalPago: 0,
+            totalEmAberto: 0,
+            totalVencido: 0,
+            pedidosCount: 0,
+            temVencido: false,
+            temAReceber: false
+          };
+        });
+
+        sales.forEach(sale => {
+          const cod = String(sale.codCliente);
+          if (!map[cod]) {
+            map[cod] = { totalComprado: 0, totalPago: 0, totalEmAberto: 0, totalVencido: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
+          }
+
+          map[cod].pedidosCount += 1;
+          map[cod].totalComprado += Number(sale.amount) || 0;
+
+          (sale.installments || []).forEach(inst => {
+            const amt = Number(inst.amount) || 0;
+            if (inst.status === 'Pago') {
+              map[cod].totalPago += amt;
+            } else {
+              map[cod].totalEmAberto += amt;
+              map[cod].temAReceber = true;
+              
+              const st = verificarStatusParcela(inst.dueDate, inst.status);
+              if (st.isVencido) {
+                map[cod].totalVencido += amt;
+                map[cod].temVencido = true;
+              }
+            }
+          });
+        });
+
+        return map;
+      }, [clients, sales]);
+
+      // Filtragem da carteira de clientes
+      const clientesFiltrados = useMemo(() => {
+        return clients.filter(c => {
+          const cod = String(c.cod);
+          const fin = dadosFinanceirosPorCliente[cod] || { pedidosCount: 0, temVencido: false, temAReceber: false };
+
+          if (abaFiltro === 'COM_COMPRAS' && fin.pedidosCount === 0) return false;
+          if (abaFiltro === 'INADIMPLENTES' && !fin.temVencido) return false;
+          if (abaFiltro === 'A_RECEBER' && !fin.temAReceber) return false;
+
+          if (filtroTexto.trim()) {
+            const termo = filtroTexto.toLowerCase();
+            const bateNome = c.name && c.name.toLowerCase().includes(termo);
+            const bateCod = cod.includes(termo);
+            const bateCidade = c.cidade && c.cidade.toLowerCase().includes(termo);
+            return bateNome || bateCod || bateCidade;
+          }
+
+          return true;
+        });
+      }, [clients, dadosFinanceirosPorCliente, abaFiltro, filtroTexto]);
+
+      const clienteSelecionado = useMemo(() => {
+        return clients.find(c => String(c.cod) === String(selectedClientCod)) || clients[0] || null;
+      }, [clients, selectedClientCod]);
+
+      // Vendas reais do cliente selecionado
+      const vendasDoCliente = useMemo(() => {
+        if (!clienteSelecionado) return [];
+        return sales.filter(s => String(s.codCliente) === String(clienteSelecionado.cod));
+      }, [sales, clienteSelecionado]);
+
+      const resumoFinanceiroCliente = useMemo(() => {
+        if (!clienteSelecionado) return { comprado: 0, pago: 0, emAberto: 0 };
+        const fin = dadosFinanceirosPorCliente[String(clienteSelecionado.cod)];
+        if (fin) {
+          return { comprado: fin.totalComprado, pago: fin.totalPago, emAberto: fin.totalEmAberto };
+        }
+        return { comprado: 0, pago: 0, emAberto: 0 };
+      }, [clienteSelecionado, dadosFinanceirosPorCliente]);
+
+      // Métricas gerais consolidadas
+      const metricasGerais = useMemo(() => {
+        let vencendoHojeValor = 0;
+        let vencendoHojeCount = 0;
+        let vencendoMesValor = 0;
+        let vencendoMesCount = 0;
+
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const mesAtual = hoje.getMonth();
+        const anoAtual = hoje.getFullYear();
+
+        sales.forEach(sale => {
+          (sale.installments || []).forEach(inst => {
+            if (inst.status !== 'Pago') {
+              const valorParc = Number(inst.amount) || 0;
+              let dataVenc;
+
+              if (typeof inst.dueDate === 'string' && inst.dueDate.includes('/')) {
+                const parts = inst.dueDate.split('/').map(Number);
+                if (parts.length === 3) dataVenc = new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0, 0);
+              } else if (typeof inst.dueDate === 'string' && inst.dueDate.includes('-')) {
+                const parts = inst.dueDate.split('-').map(Number);
+                if (parts.length === 3) dataVenc = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+              }
+
+              if (dataVenc && !isNaN(dataVenc.getTime())) {
+                if (dataVenc.getTime() === hoje.getTime()) {
+                  vencendoHojeValor += valorParc;
+                  vencendoHojeCount++;
+                }
+                if (dataVenc.getMonth() === mesAtual && dataVenc.getFullYear() === anoAtual) {
+                  vencendoMesValor += valorParc;
+                  vencendoMesCount++;
+                }
+              }
+            }
+          });
+        });
+
+        return { vencendoHojeValor, vencendoHojeCount, vencendoMesValor, vencendoMesCount };
+      }, [sales]);
+
+      // Amortização Inteligente (Regra FIFO)
+      const handleAmortizarSaldo = async () => {
+        const valorNum = parseFloat(valorAmortizacao.replace(',', '.'));
+        if (!valorNum || valorNum <= 0) {
+          alert("Informe um valor de amortização válido.");
+          return;
+        }
+
+        if (vendasDoCliente.length === 0) {
+          alert("O cliente não possui vendas registradas para amortizar.");
+          return;
+        }
+
+        let saldoRestante = valorNum;
+
+        for (const venda of vendasDoCliente) {
+          if (saldoRestante <= 0) break;
+
+          let mudou = false;
+          const novosInst = (venda.installments || []).map(inst => {
+            if (inst.status !== 'Pago' && saldoRestante > 0) {
+              const valorParc = Number(inst.amount) || 0;
+              if (saldoRestante >= valorParc) {
+                saldoRestante -= valorParc;
+                mudou = true;
+                return { ...inst, status: 'Pago', paidAt: new Date().toISOString() };
+              } else {
+                const novoValor = parseFloat((valorParc - saldoRestante).toFixed(2));
+                saldoRestante = 0;
+                mudou = true;
+                return { ...inst, amount: novoValor, note: `Abatido parcialmente` };
+              }
+            }
+            return inst;
+          });
+
+          if (mudou) {
+            const todasPagas = novosInst.every(i => i.status === 'Pago');
+            if (window.db && window.fb && venda.id) {
+              try {
+                await window.fb.updateDoc(window.fb.doc(window.db, "vendas", venda.id), {
+                  installments: novosInst,
+                  isPaid: todasPagas
+                });
+              } catch (e) {
+                console.error("Erro ao atualizar venda:", e);
+              }
+            } else {
+              setSales(prev => prev.map(s => s.id === venda.id ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
+            }
+          }
+        }
+
+        alert(`✅ Amortização de R$ ${valorNum.toFixed(2)} aplicada com sucesso!`);
+        setValorAmortizacao('');
+      };
+
+      // Dar baixa direta em parcela
+      const handleDarBaixaParcela = async (vendaId, numeroParcela) => {
+        const vendaAlvo = sales.find(s => s.id === vendaId) || vendasDoCliente.find(s => s.id === vendaId);
+        if (!vendaAlvo) return;
+
+        const novosInst = (vendaAlvo.installments || []).map(inst => {
+          if (inst.number === numeroParcela) {
+            return { ...inst, status: 'Pago', paidAt: new Date().toISOString() };
           }
           return inst;
         });
 
-        const allPaid = updatedInstallments.every(i => i.status === 'Pago');
-        const updatedStatus = allPaid ? 'Pago' : 'Em aberto';
+        const todasPagas = novosInst.every(i => i.status === 'Pago');
 
-        // Atualização instantânea na tela
-        setSales(prev => {
-          const atualizados = prev.map(s => {
-            if ((s.id && s.id === vendaId) || s.dav === vendaId) {
-              return { ...s, installments: updatedInstallments, status: updatedStatus, isPaid: allPaid };
-            }
-            return s;
+        if (window.db && window.fb && vendaAlvo.id) {
+          await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
+            installments: novosInst,
+            isPaid: todasPagas
           });
-          try {
-            localStorage.setItem('neves_crm_sales_cache', JSON.stringify(atualizados));
-          } catch (e) {}
-          return atualizados;
-        });
-
-        // Gravação direta no Firestore apenas do documento específico
-        if (window.db && window.fb && venda.id) {
-          try {
-            const docRef = window.fb.doc(window.db, "vendas", venda.id);
-            await window.fb.updateDoc(docRef, {
-              installments: updatedInstallments,
-              status: updatedStatus,
-              isPaid: allPaid
-            });
-          } catch (e) {
-            console.error("Erro ao atualizar parcela no Firestore:", e);
-          }
+        } else {
+          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
         }
+
+        alert(`✅ Parcela ${numeroParcela} baixada com sucesso!`);
       };
 
-      // Excluir DAV de teste
-      const handleExcluirVenda = async (vendaId, davNum) => {
-        if (!confirm(`Deseja realmente excluir o DAV #${davNum}? Esta ação não pode ser desfeita.`)) return;
+      // Abatimento parcial de parcela
+      const handleAbaterParcial = async (vendaId, numeroParcela) => {
+        const valorStr = prompt("Informe o valor a abater desta parcela (R$):");
+        if (!valorStr) return;
+        const abater = parseFloat(valorStr.replace(',', '.'));
+        if (!abater || abater <= 0) {
+          alert("Valor inválido.");
+          return;
+        }
 
-        setSales(prev => {
-          const filtrados = prev.filter(s => s.id !== vendaId && s.dav !== davNum);
-          try {
-            localStorage.setItem('neves_crm_sales_cache', JSON.stringify(filtrados));
-          } catch (e) {}
-          return filtrados;
+        const vendaAlvo = sales.find(s => s.id === vendaId) || vendasDoCliente.find(s => s.id === vendaId);
+        if (!vendaAlvo) return;
+
+        const novosInst = (vendaAlvo.installments || []).map(inst => {
+          if (inst.number === numeroParcela) {
+            const valAtual = Number(inst.amount) || 0;
+            if (abater >= valAtual) {
+              return { ...inst, status: 'Pago', paidAt: new Date().toISOString() };
+            } else {
+              return { ...inst, amount: parseFloat((valAtual - abater).toFixed(2)) };
+            }
+          }
+          return inst;
         });
+
+        const todasPagas = novosInst.every(i => i.status === 'Pago');
+
+        if (window.db && window.fb && vendaAlvo.id) {
+          await window.fb.updateDoc(window.fb.doc(window.db, "vendas", vendaAlvo.id), {
+            installments: novosInst,
+            isPaid: todasPagas
+          });
+        } else {
+          setSales(prev => prev.map(s => s.id === vendaId ? { ...s, installments: novosInst, isPaid: todasPagas } : s));
+        }
+
+        alert(`✅ Abatimento de R$ ${abater.toFixed(2)} registrado!`);
+      };
+
+      // Exclusão de DAV no Firebase Firestore
+      const handleExcluirDAV = async (vendaId, davNum) => {
+        if (!confirm(`Deseja realmente excluir o DAV #${davNum}? Esta ação não pode ser desfeita.`)) {
+          return;
+        }
 
         if (window.db && window.fb && vendaId) {
           try {
             await window.fb.deleteDoc(window.fb.doc(window.db, "vendas", vendaId));
-            alert(`DAV #${davNum} excluído com sucesso!`);
           } catch (e) {
-            console.error("Erro ao excluir venda no Firestore:", e);
+            console.error("Erro ao excluir DAV:", e);
           }
+        } else {
+          setSales(prev => prev.filter(s => s.id !== vendaId));
         }
+
+        alert(`🗑️ DAV #${davNum} excluído com sucesso!`);
       };
 
-      // Carteira Consolidada de Clientes com cálculo preciso de datas de atraso
-      const carteiraClientes = useMemo(() => {
-        return clients.map(cli => {
-          const vendasDoCliente = sales.filter(s => 
-            String(s.codCliente).toLowerCase() === String(cli.cod).toLowerCase() ||
-            (cli.codNum && String(s.codCliente).toLowerCase() === String(cli.codNum).toLowerCase()) ||
-            (s.client && s.client.toLowerCase() === cli.name.toLowerCase())
-          );
+      // Salvar edição cadastral do cliente
+      const handleSalvarEdicaoCliente = async (e) => {
+        e.preventDefault();
+        if (!clienteEditando) return;
 
-          let totalComprado = 0;
-          let totalBaixado = 0;
-          let totalEmAberto = 0;
-          let totalVencido = 0;
-          let parcelasPendentes = 0;
+        setClients(prev => prev.map(c => String(c.cod) === String(clienteEditando.cod) ? clienteEditando : c));
+        localStorage.setItem('neves_crm_clients', JSON.stringify(clients));
 
-          const hoje = new Date(2026, 10, 12); // Data base de referência: 12/11/2026
-          hoje.setHours(0, 0, 0, 0);
-
-          vendasDoCliente.forEach(v => {
-            totalComprado += Number(v.amount) || 0;
-            (v.installments || []).forEach(inst => {
-              const amt = Number(inst.amount) || 0;
-              if (inst.status === 'Pago') {
-                totalBaixado += amt;
-              } else {
-                totalEmAberto += amt;
-                parcelasPendentes++;
-
-                if (inst.dueDate) {
-                  const partes = inst.dueDate.split('/');
-                  if (partes.length === 3) {
-                    const dtVenc = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
-                    if (dtVenc < hoje) {
-                      totalVencido += amt;
-                    }
-                  }
-                }
-              }
-            });
-          });
-
-          // Se tiver débito cadastral direto prévio
-          if (cli.temDebito && totalVencido === 0) {
-            totalVencido = cli.debitoValor || 680.00;
-            totalEmAberto += totalVencido;
+        if (window.db && window.fb) {
+          try {
+            await window.fb.setDoc(window.fb.doc(window.db, "clientes", String(clienteEditando.cod)), clienteEditando, { merge: true });
+          } catch (err) {
+            console.error("Erro ao atualizar cliente:", err);
           }
+        }
 
-          return {
-            ...cli,
-            vendasCount: vendasDoCliente.length,
-            vendas: vendasDoCliente,
-            totalComprado,
-            totalBaixado,
-            totalEmAberto,
-            totalVencido,
-            parcelasPendentes,
-            statusFinanceiro: totalVencido > 0 ? 'INADIMPLENTE' : totalEmAberto > 0 ? 'EM_DIA' : 'QUITADO'
-          };
-        });
-      }, [clients, sales]);
-
-      // Filtragem da lista Master
-      const clientesFiltrados = useMemo(() => {
-        return carteiraClientes.filter(cli => {
-          const matchTexto = 
-            cli.name.toLowerCase().includes(filtroTexto.toLowerCase()) ||
-            String(cli.cod).toLowerCase().includes(filtroTexto.toLowerCase()) ||
-            (cli.cidade && cli.cidade.toLowerCase().includes(filtroTexto.toLowerCase()));
-
-          if (!matchTexto) return false;
-
-          if (filtroStatus === 'INADIMPLENTES') return cli.totalVencido > 0;
-          if (filtroStatus === 'EM_ABERTO') return cli.totalEmAberto > 0;
-          if (filtroStatus === 'QUITADOS') return cli.totalEmAberto === 0;
-
-          return true;
-        });
-      }, [carteiraClientes, filtroTexto, filtroStatus]);
-
-      // Cliente Ativo selecionado para o Detail
-      const clienteAtivo = useMemo(() => {
-        return carteiraClientes.find(c => String(c.cod) === String(clienteSelecionadoCod)) || carteiraClientes[0];
-      }, [carteiraClientes, clienteSelecionadoCod]);
+        setShowModalEditarCliente(false);
+        alert("✅ Dados do cliente atualizados com sucesso!");
+      };
 
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL INSTITUCIONAL OFICIAL (NAV ESQUERDA) */}
+          {/* BARRA LATERAL UNIFICADA COM LOGO OFICIAL E MARCA D'ÁGUA TELES ODONTO */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            
-            {/* MARCA D'ÁGUA SUAVE NO FUNDO DA SIDEBAR */}
-            <div className="absolute -bottom-8 -right-8 w-56 h-56 pointer-events-none opacity-[0.045] brightness-200">
+            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.05] brightness-200">
               <img src="Design sem nome (28).png" alt="Marca d'água Teles Odonto" className="w-full h-full object-contain filter invert" />
             </div>
 
             <div className="relative z-10">
-              {/* LOGOMARCA PRINCIPAL OFICIAL */}
               <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-9 w-auto object-contain" />
+                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-10 w-auto object-contain" />
                 </div>
-                <div className="flex items-center justify-between mt-1 px-2 py-0.5 rounded bg-slate-800/60 border border-slate-700/50">
+                <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Módulo Ativo</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6 Audited</span>
                 </div>
               </div>
 
-              {/* LINKS DE NAVEGAÇÃO */}
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
@@ -555,7 +649,6 @@
               </div>
             </div>
 
-            {/* OPERADOR COMERCIAL NO RODAPÉ */}
             <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
               <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
                 <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
@@ -567,11 +660,11 @@
                 </div>
                 <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20"></div>
               </div>
-              <p className="text-[10px] text-slate-500 text-center mt-3">© 2026 Neves Pro CRM</p>
+              <p className="text-[10px] text-slate-400 text-center mt-3">© 2026 Neves Pro CRM</p>
             </div>
           </aside>
 
-          {/* ÁREA CENTRAL DE CONTEÚDO */}
+          {/* CONTEÚDO PRINCIPAL (MASTER-DETAIL) */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
             {/* TOPBAR LIMPO */}
@@ -580,320 +673,695 @@
                 <span className="font-bold text-slate-800">Teles Odonto</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                  Carteira de Vendas & Inadimplência
+                  Carteira e Cobrança
                 </span>
               </div>
 
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => buscarDadosUmaVez(true)}
-                  disabled={refreshing || loading}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
-                  title="Atualizar dados do Firebase sob demanda"
-                >
-                  <i data-lucide="refresh-cw" className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-600' : ''}`}></i>
-                  <span>{refreshing ? 'Atualizando...' : 'Atualizar Dados'}</span>
-                </button>
-
+              <div className="flex items-center gap-3">
                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   ● SISTEMA ONLINE
                 </span>
-                
                 <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   OP
                 </div>
               </div>
             </header>
 
-            {/* CONTAINER DAS SEÇÕES */}
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* ESTRUTURA MASTER-DETAIL */}
+              {/* CABEÇALHO */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">
+                    MÓDULO FINANCEIRO • CARTEIRA ATIVA • Exercício Fiscal 2026
+                  </span>
+                  <h2 className="text-2xl font-black text-slate-900 mt-1">Carteira de Clientes e Vendas</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Consulte os {clients.length} clientes cadastrados, filtre inadimplentes ou parcelas à receber e dê baixa.
+                  </p>
+                </div>
+
+                <div className="flex items-center flex-wrap gap-2">
+                  <button 
+                    onClick={() => setShowModalImportar(true)}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-xs"
+                  >
+                    <i data-lucide="file-spreadsheet" className="w-4 h-4 text-slate-500"></i>
+                    <span>Importar Clientes</span>
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      const novoCod = String(clients.length + 1);
+                      setClienteEditando({ cod: novoCod, name: '', categoria: 'Geral', logradouro: 'Rua', endereco: '', numero: '', bairro: '', cidade: 'Fortaleza', uf: 'CE', ddd: '85', telefone: '', area: '', vendor: 'André Luiz Nóbrega Martins' });
+                      setShowModalEditarCliente(true);
+                    }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 shadow-xs"
+                  >
+                    <i data-lucide="user-plus" className="w-4 h-4 text-slate-500"></i>
+                    <span>Novo Cliente</span>
+                  </button>
+
+                  <a 
+                    href="index.html" 
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-700 text-white text-xs font-black hover:bg-indigo-800 shadow-md shadow-indigo-600/20"
+                  >
+                    <i data-lucide="plus-circle" className="w-4 h-4"></i>
+                    <span>Novo Pedido / DAV</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* 2 CARDS SUPERIORES DINÂMICOS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-5 rounded-2xl border-l-4 border-l-indigo-600 border border-slate-200/80 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <i data-lucide="calendar" className="w-4 h-4"></i>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">Vencendo Hoje</span>
+                        <span className="text-[11px] text-slate-400">Liquidações com vencimento programado para o dia corrente</span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                      {metricasGerais.vencendoHojeCount} parcela(s)
+                    </span>
+                  </div>
+                  <div className="mt-4 flex justify-between items-baseline">
+                    <span className="text-2xl font-black text-slate-900">{formatBRL(metricasGerais.vencendoHojeValor)}</span>
+                    <span className="text-[11px] font-semibold text-indigo-600">Posição em tempo real</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border-l-4 border-l-blue-500 border border-slate-200/80 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                        <i data-lucide="trending-up" className="w-4 h-4"></i>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">Vencendo no Mês Atual (Novembro/2026)</span>
+                        <span className="text-[11px] text-slate-400">Projeção total de recebimento para o calendário operacional</span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                      {metricasGerais.vencendoMesCount} parcela(s)
+                    </span>
+                  </div>
+                  <div className="mt-4 flex justify-between items-baseline">
+                    <span className="text-2xl font-black text-slate-900">{formatBRL(metricasGerais.vencendoMesValor)}</span>
+                    <span className="text-[11px] font-semibold text-slate-400">Carteira Ativa</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* FILTROS TÁTICOS E BUSCA */}
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                  <button 
+                    onClick={() => setAbaFiltro('TODOS')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                      abaFiltro === 'TODOS' ? 'bg-indigo-700 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    👥 Todos os Clientes ({clients.length})
+                  </button>
+
+                  <button 
+                    onClick={() => setAbaFiltro('COM_COMPRAS')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                      abaFiltro === 'COM_COMPRAS' ? 'bg-indigo-700 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    ● Com compras ({Object.values(dadosFinanceirosPorCliente).filter(f => f.pedidosCount > 0).length})
+                  </button>
+
+                  <button 
+                    onClick={() => setAbaFiltro('INADIMPLENTES')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                      abaFiltro === 'INADIMPLENTES' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                    }`}
+                  >
+                    ● Inadimplentes ({Object.values(dadosFinanceirosPorCliente).filter(f => f.temVencido).length})
+                  </button>
+
+                  <button 
+                    onClick={() => setAbaFiltro('A_RECEBER')}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition whitespace-nowrap ${
+                      abaFiltro === 'A_RECEBER' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    }`}
+                  >
+                    ● À receber ({Object.values(dadosFinanceirosPorCliente).filter(f => f.temAReceber).length})
+                  </button>
+                </div>
+
+                <div className="relative min-w-[260px]">
+                  <input 
+                    type="text" 
+                    placeholder="Buscar por código ou nome..." 
+                    value={filtroTexto} 
+                    onChange={e => setFiltroTexto(e.target.value)} 
+                    className="w-full pl-9 pr-4 py-2 border rounded-xl bg-white text-xs font-semibold outline-none focus:ring-2 focus:ring-indigo-600/30"
+                  />
+                  <i data-lucide="search" className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                </div>
+              </div>
+
+              {/* MASTER-DETAIL */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                {/* COLUNA ESQUERDA: LISTA DA CARTEIRA DE CLIENTES (MASTER) */}
-                <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col h-[740px]">
-                  
-                  <div className="p-4 border-b border-slate-100 bg-slate-50/50 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <i data-lucide="users" className="w-4 h-4 text-indigo-600"></i>
-                        <h3 className="font-extrabold text-sm text-slate-900">Carteira de Clientes</h3>
-                      </div>
-                      <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                        {clientesFiltrados.length} cadastrados
-                      </span>
+                {/* LISTAGEM DA CARTEIRA (MASTER) */}
+                <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800">Listagem da Carteira</span>
+                      <span className="text-[11px] text-slate-400 ml-2">{clientesFiltrados.length} listados</span>
                     </div>
-
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        placeholder="Buscar por nome, cód ou cidade..." 
-                        value={filtroTexto} 
-                        onChange={e => setFiltroTexto(e.target.value)} 
-                        className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-600/30" 
-                      />
-                      <i data-lucide="search" className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3"></i>
-                    </div>
-
-                    {/* ABAS DE FILTRO RÁPIDO */}
-                    <div className="flex gap-1.5 p-1 bg-slate-200/60 rounded-xl text-[10px] font-bold">
-                      <button 
-                        onClick={() => setFiltroStatus('TODOS')} 
-                        className={`flex-1 py-1 rounded-lg transition ${filtroStatus === 'TODOS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                      >
-                        Todos
-                      </button>
-                      <button 
-                        onClick={() => setFiltroStatus('INADIMPLENTES')} 
-                        className={`flex-1 py-1 rounded-lg transition ${filtroStatus === 'INADIMPLENTES' ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                      >
-                        Inadimplentes
-                      </button>
-                      <button 
-                        onClick={() => setFiltroStatus('EM_ABERTO')} 
-                        className={`flex-1 py-1 rounded-lg transition ${filtroStatus === 'EM_ABERTO' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                      >
-                        Em Aberto
-                      </button>
-                    </div>
+                    <span className="text-[10px] text-slate-500 font-medium">Clique para abrir a ficha</span>
                   </div>
 
-                  {loading ? (
-                    <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                      <i data-lucide="loader-2" className="w-4 h-4 animate-spin text-indigo-600"></i>
-                      <span>Carregando carteira de clientes...</span>
+                  {clientesFiltrados.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      Nenhum cliente corresponde ao filtro selecionado.
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100 overflow-y-auto custom-scrollbar flex-1">
-                      {clientesFiltrados.map(cli => {
-                        const isSelected = clienteAtivo && String(clienteAtivo.cod) === String(cli.cod);
+                    <div className="divide-y divide-slate-100">
+                      {clientesFiltrados.map(c => {
+                        const cod = String(c.cod);
+                        const isSelected = String(selectedClientCod) === cod;
+                        const fin = dadosFinanceirosPorCliente[cod] || { totalComprado: 0, pedidosCount: 0, temVencido: false, temAReceber: false };
+
                         return (
                           <div 
-                            key={cli.cod} 
-                            onClick={() => setClienteSelecionadoCod(cli.cod)}
-                            className={`p-3.5 cursor-pointer transition flex items-center justify-between ${
-                              isSelected ? 'bg-indigo-50/80 border-l-4 border-indigo-600' : 'hover:bg-slate-50'
+                            key={cod} 
+                            onClick={() => setSelectedClientCod(cod)}
+                            className={`p-4 flex items-center justify-between cursor-pointer transition ${
+                              isSelected ? 'bg-indigo-50/60 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50'
                             }`}
                           >
-                            <div className="min-w-0 pr-2">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-mono font-bold text-slate-400">{cli.cod}</span>
-                                <h4 className="text-xs font-extrabold text-slate-900 truncate">{cli.name}</h4>
-                              </div>
-                              <p className="text-[10px] text-slate-400 mt-0.5 truncate">{cli.cidade || 'São Paulo / SP'}</p>
-                              
-                              <div className="mt-1 flex items-center gap-2">
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                  cli.statusFinanceiro === 'INADIMPLENTE' ? 'bg-rose-100 text-rose-800' :
-                                  cli.statusFinanceiro === 'EM_DIA' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                                }`}>
-                                  {cli.statusFinanceiro === 'INADIMPLENTE' ? 'Inadimplente' : cli.statusFinanceiro === 'EM_DIA' ? 'Em aberto' : 'Quitado'}
-                                </span>
-                                <span className="text-[10px] text-slate-500 font-semibold">
-                                  {cli.vendasCount} DAV(s)
-                                </span>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-8 text-xs font-mono font-bold text-indigo-700">#{cod}</span>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs font-bold text-slate-900 truncate">{c.name}</h4>
+                                  {c.vendor && (
+                                    <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded uppercase">
+                                      {c.vendor.split(' ')[0]}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-400 truncate">
+                                  {c.categoria} • {c.cidade} - {c.uf}
+                                </p>
                               </div>
                             </div>
 
-                            <div className="text-right shrink-0">
-                              <span className="text-xs font-black text-slate-900 block">{formatBRL(cli.totalEmAberto)}</span>
-                              {cli.totalVencido > 0 && (
-                                <span className="text-[10px] font-bold text-rose-600 block">
-                                  Atraso: {formatBRL(cli.totalVencido)}
+                            <div className="text-right shrink-0 ml-4 flex items-center gap-4">
+                              <div>
+                                <span className="text-xs font-black text-slate-900 block">
+                                  {formatBRL(fin.totalComprado)}
                                 </span>
-                              )}
+                                <span className="text-[10px] text-slate-400">
+                                  {fin.pedidosCount} pedido(s)
+                                </span>
+                              </div>
+
+                              <div>
+                                {fin.temVencido ? (
+                                  <span className="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
+                                    ● Vencido
+                                  </span>
+                                ) : fin.temAReceber ? (
+                                  <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                    ● À vencer
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                                    Sem débitos
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
-
                 </div>
 
-                {/* COLUNA DIREITA: FICHA FINANCEIRA DETALHADA DO CLIENTE (DETAIL) COM MARCA D'ÁGUA */}
-                <div className="lg:col-span-7 space-y-6">
-                  
-                  {clienteAtivo ? (
-                    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-6 watermark-bg relative">
+                {/* FICHA DETALHADA DO CLIENTE SELECIONADO (DETAIL) */}
+                <div className="lg:col-span-5 space-y-4">
+                  {clienteSelecionado ? (
+                    <div className="space-y-4">
                       
-                      {/* CABEÇALHO DO CLIENTE */}
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200">
-                              {clienteAtivo.cod}
-                            </span>
-                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full uppercase border border-indigo-100">
-                              {clienteAtivo.categoria || 'Geral'}
-                            </span>
+                      {/* CARD DO CLIENTE */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 relative overflow-hidden">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-700 text-white font-black text-sm flex items-center justify-center shrink-0 shadow">
+                              #{clienteSelecionado.cod}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
+                                  Vendedor: {clienteSelecionado.vendor ? clienteSelecionado.vendor : 'André Luiz Nóbrega Martins'}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  CPF/CNPJ: {clienteSelecionado.cpf_cnpj || 'Não informado'}
+                                </span>
+                              </div>
+                              <h3 className="text-sm font-black text-slate-900 mt-1">{clienteSelecionado.name}</h3>
+                              <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                                <i data-lucide="map-pin" className="w-3 h-3 text-slate-400"></i>
+                                {clienteSelecionado.logradouro} {clienteSelecionado.endereco}, {clienteSelecionado.numero} - {clienteSelecionado.bairro}, {clienteSelecionado.cidade} - {clienteSelecionado.uf}
+                              </p>
+                            </div>
                           </div>
-                          <h2 className="text-base font-black text-slate-900 mt-1">{clienteAtivo.name}</h2>
-                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                            <span>{clienteAtivo.telefone}</span>
-                            <span>•</span>
-                            <span className="font-mono text-slate-400">CNPJ: {clienteAtivo.cnpj || 'Não inf.'}</span>
-                          </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            📍 {clienteAtivo.endereco} - {clienteAtivo.cidade}
-                          </p>
-                          
-                          {/* VENDEDOR TITULAR AUDITADO */}
-                          <div className="mt-2 text-xs">
-                            <span className="text-slate-400">Vendedor Titular Responsável: </span>
-                            <strong className="text-indigo-700 font-bold bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                              {clienteAtivo.vendor || 'André Luiz Nóbrega Martins'}
-                            </strong>
-                          </div>
+
+                          <button 
+                            onClick={() => {
+                              setClienteEditando(clienteSelecionado);
+                              setShowModalEditarCliente(true);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shrink-0"
+                          >
+                            <i data-lucide="edit-3" className="w-3.5 h-3.5 text-slate-500"></i>
+                            <span>Editar</span>
+                          </button>
                         </div>
 
-                        {/* BADGE DE SITUAÇÃO FINANCEIRA */}
-                        <div className={`p-3 rounded-2xl border text-right ${
-                          clienteAtivo.totalVencido > 0 
-                            ? 'bg-rose-50 border-rose-200 text-rose-800' 
-                            : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        }`}>
-                          <span className="text-[10px] font-bold uppercase tracking-wider block">Situação Financeira</span>
-                          <strong className="text-sm font-black block mt-0.5">
-                            {clienteAtivo.totalVencido > 0 ? 'Restrição Ativa' : 'Em Dia'}
-                          </strong>
-                          {clienteAtivo.totalVencido > 0 && (
-                            <span className="text-[10px] font-bold text-rose-600 block mt-0.5">
-                              {formatBRL(clienteAtivo.totalVencido)} vencido
+                        {/* SALDOS REAIS */}
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t text-center">
+                          <div className="bg-slate-50 p-2.5 rounded-xl">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL COMPRADO</span>
+                            <span className="text-xs font-black text-slate-900 mt-0.5 block">
+                              {formatBRL(resumoFinanceiroCliente.comprado)}
                             </span>
-                          )}
+                          </div>
+
+                          <div className="bg-slate-50 p-2.5 rounded-xl">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL PAGO</span>
+                            <span className="text-xs font-black text-emerald-600 mt-0.5 block">
+                              {formatBRL(resumoFinanceiroCliente.pago)}
+                            </span>
+                          </div>
+
+                          <div className="bg-slate-50 p-2.5 rounded-xl">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">EM ABERTO</span>
+                            <span className="text-xs font-black text-indigo-700 mt-0.5 block">
+                              {formatBRL(resumoFinanceiroCliente.emAberto)}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* RESUMO DE SALDOS FINANCEIROS */}
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Histórico Total</span>
-                          <strong className="text-base font-black text-slate-900 mt-1 block">{formatBRL(clienteAtivo.totalComprado)}</strong>
-                        </div>
-                        <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100">
-                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Total Pago</span>
-                          <strong className="text-base font-black text-emerald-700 mt-1 block">{formatBRL(clienteAtivo.totalBaixado)}</strong>
-                        </div>
-                        <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100">
-                          <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Saldo Devedor</span>
-                          <strong className="text-base font-black text-indigo-800 mt-1 block">{formatBRL(clienteAtivo.totalEmAberto)}</strong>
-                        </div>
-                      </div>
-
-                      {/* LISTA DE PEDIDOS DAV E PARCELAS */}
-                      <div className="space-y-4">
+                      {/* AMORTIZAÇÃO FIFO - SELETOR COM VENDEDORES CADASTRADOS */}
+                      <div className="bg-indigo-900 text-white p-5 rounded-2xl shadow-md space-y-3 relative overflow-hidden">
                         <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <i data-lucide="receipt" className="w-4 h-4 text-indigo-600"></i>
-                            <h4 className="font-extrabold text-sm text-slate-900">Histórico de Pedidos DAV</h4>
+                          <span className="text-xs font-bold flex items-center gap-2 text-indigo-200">
+                            <i data-lucide="credit-card" className="w-4 h-4"></i>
+                            Promissória & Amortização de Débito
+                          </span>
+                          <span className="text-[9px] font-black bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded uppercase">
+                            Regra FIFO
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-indigo-200/80 leading-relaxed">
+                          Digite o valor arrecadado para amortizar automaticamente nas parcelas mais antigas deste cliente.
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-indigo-300 font-semibold block mb-1">Valor Recebido (R$)</label>
+                            <input 
+                              type="text" 
+                              placeholder="R$ 800,00" 
+                              value={valorAmortizacao} 
+                              onChange={e => setValorAmortizacao(e.target.value)} 
+                              className="w-full p-2 rounded-xl bg-white text-slate-900 font-black text-xs outline-none" 
+                            />
                           </div>
-                          <span className="text-xs text-slate-400 font-semibold">{clienteAtivo.vendas.length} lançamento(s)</span>
+
+                          <div>
+                            <label className="text-[10px] text-indigo-300 font-semibold block mb-1">Vendedor / Responsável</label>
+                            <select 
+                              value={vendedorAmortizacao} 
+                              onChange={e => setVendedorAmortizacao(e.target.value)} 
+                              className="w-full p-2 rounded-xl bg-white text-slate-900 font-semibold text-xs outline-none"
+                            >
+                              <option value="VND-01">André Luiz Nóbrega Martins (VND-01)</option>
+                              <option value="VND-02">Luis Daniel da Silva (VND-02)</option>
+                            </select>
+                          </div>
                         </div>
 
-                        {clienteAtivo.vendas.length === 0 ? (
-                          <div className="p-8 text-center text-xs text-slate-400 border border-slate-200 rounded-2xl bg-slate-50">
-                            Nenhum pedido DAV registrado para este cliente.
+                        <button 
+                          onClick={handleAmortizarSaldo}
+                          className="w-full py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs transition shadow flex items-center justify-center gap-2"
+                        >
+                          <i data-lucide="check-check" className="w-4 h-4"></i>
+                          <span>Abater no Saldo</span>
+                        </button>
+                      </div>
+
+                      {/* HISTÓRICO DE TÍTULOS E VENDAS REAIS */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                        <div className="flex justify-between items-center border-b pb-3">
+                          <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="receipt" className="w-4 h-4 text-indigo-600"></i>
+                            Histórico de Vendas & Títulos
+                          </h4>
+                          <span className="text-[11px] text-slate-400">{vendasDoCliente.length} DAV(s)</span>
+                        </div>
+
+                        {vendasDoCliente.length === 0 ? (
+                          <div className="py-8 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed">
+                            Nenhum título em aberto ou histórico de compra para este cliente.
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {clienteAtivo.vendas.map(venda => (
-                              <div key={venda.id || venda.dav} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-3">
+                            {vendasDoCliente.map(venda => (
+                              <div key={venda.id || venda.dav} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
                                 
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200/60 pb-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono font-bold text-xs bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-xl">
-                                      DAV #{venda.dav}
-                                    </span>
-                                    <span className="text-xs font-semibold text-slate-600">
-                                      {venda.dateDisplay || venda.date}
-                                    </span>
-                                    <span className="text-[9px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
-                                      {venda.tipoVenda || 'TOTAL'}
-                                    </span>
+                                <div className="flex justify-between items-start">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-9 h-9 rounded-xl bg-indigo-700 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                      #{venda.dav}
+                                    </div>
+                                    <div>
+                                      <h5 className="text-xs font-bold text-slate-900">
+                                        {venda.description || `Pedido ${venda.client || 'Teles Odonto'}`}
+                                      </h5>
+                                      <p className="text-[10px] text-slate-400">
+                                        Emitido em {venda.dateDisplay || venda.date} • {venda.tipoVenda || 'TOTAL'} • Vend: {venda.salesperson || 'André Luiz Nóbrega Martins'}
+                                      </p>
+                                    </div>
                                   </div>
 
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-xs font-black text-slate-900">{formatBRL(venda.amount)}</span>
-                                    
-                                    {/* BOTÃO PARA EXCLUIR DAV DE TESTE */}
+                                  <div className="flex items-center gap-2">
+                                    <div className="text-right">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase block">TOTAL</span>
+                                      <span className="text-xs font-black text-slate-900">
+                                        {formatBRL(venda.amount)}
+                                      </span>
+                                    </div>
+
                                     <button 
-                                      onClick={() => handleExcluirVenda(venda.id, venda.dav)}
-                                      className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold underline p-1"
-                                      title="Excluir este DAV"
+                                      onClick={() => handleExcluirDAV(venda.id, venda.dav)}
+                                      title="Excluir DAV"
+                                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition ml-1"
                                     >
-                                      Excluir DAV
+                                      <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
                                     </button>
                                   </div>
                                 </div>
 
-                                {/* GRADE DE PARCELAS */}
-                                <div className="space-y-1.5">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                      Parcelas (Clique para dar Baixa / Estornar)
-                                    </span>
-                                    <span className="text-[9px] text-slate-400">Liquidação manual direta</span>
-                                  </div>
+                                {/* LISTAGEM DE PARCELAS */}
+                                <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                                  {(venda.installments || []).map((inst, i) => {
+                                    const infoStatus = verificarStatusParcela(inst.dueDate, inst.status);
 
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {(venda.installments || []).map(inst => {
-                                      const isPago = inst.status === 'Pago';
-                                      return (
-                                        <div 
-                                          key={inst.number} 
-                                          onClick={() => handleToggleParcela(venda.id || venda.dav, inst.number)}
-                                          className={`p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between text-xs ${
-                                            isPago 
-                                              ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
-                                              : 'bg-white border-slate-200 text-slate-800 hover:border-indigo-300'
-                                          }`}
-                                        >
-                                          <div>
-                                            <div className="flex items-center gap-1.5">
-                                              <span className="font-bold">Parcela {inst.number}</span>
-                                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                                                isPago ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-700'
-                                              }`}>
-                                                {isPago ? '✓ Pago' : 'Pendente'}
-                                              </span>
-                                            </div>
-                                            <span className="text-[10px] text-slate-400 block mt-0.5">
-                                              Vencimento: {inst.dueDate}
-                                            </span>
-                                          </div>
-
-                                          <span className="font-black text-xs">
-                                            {formatBRL(inst.amount)}
+                                    return (
+                                      <div key={i} className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2.5">
+                                          <span className="text-xs font-mono font-bold text-slate-400">
+                                            {inst.number || i + 1}/{(venda.installments || []).length}
                                           </span>
+                                          <div>
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs font-extrabold text-slate-900">
+                                                Parcela {inst.number || i + 1} • {formatBRL(inst.amount)}
+                                              </span>
+                                              
+                                              {infoStatus.status === 'Pago' ? (
+                                                <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                                                  ✓ Quitado
+                                                </span>
+                                              ) : infoStatus.status === 'Vencido' ? (
+                                                <span className="text-[9px] font-black bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full">
+                                                  ⚠️ Vencido ({infoStatus.diasAtraso}d)
+                                                </span>
+                                              ) : (
+                                                <span className="text-[9px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                                  ● À Vencer ({infoStatus.diasParaVencer || 0}d)
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">
+                                              Vencimento: <strong className="text-slate-700">{inst.dueDate}</strong>
+                                            </p>
+                                          </div>
                                         </div>
-                                      );
-                                    })}
-                                  </div>
+
+                                        {infoStatus.status !== 'Pago' && (
+                                          <div className="flex items-center gap-1.5 shrink-0">
+                                            <button 
+                                              onClick={() => handleAbaterParcial(venda.id, inst.number || i + 1)}
+                                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold transition"
+                                            >
+                                              Abater Parcial
+                                            </button>
+                                            <button 
+                                              onClick={() => handleDarBaixaParcela(venda.id, inst.number || i + 1)}
+                                              className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 transition"
+                                            >
+                                              Dar Baixa
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
 
                               </div>
                             ))}
                           </div>
                         )}
-
                       </div>
 
                     </div>
                   ) : (
-                    <div className="p-12 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200">
-                      Selecione um cliente na carteira à esquerda para visualizar a ficha financeira.
+                    <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-2xl border">
+                      Selecione um cliente ao lado para ver a ficha detalhada.
                     </div>
                   )}
-
                 </div>
 
               </div>
 
             </div>
           </main>
+
+          {/* MODAL: EDITAR CLIENTE */}
+          {showModalEditarCliente && clienteEditando && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h4 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i data-lucide="user-check" className="w-5 h-5 text-indigo-700"></i>
+                    <span>Editar Cadastro #{clienteEditando.cod}</span>
+                  </h4>
+                  <button onClick={() => setShowModalEditarCliente(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                </div>
+
+                <form onSubmit={handleSalvarEdicaoCliente} className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Nome / Razão Social *</label>
+                    <input 
+                      type="text" 
+                      value={clienteEditando.name} 
+                      onChange={e => setClienteEditando({ ...clienteEditando, name: e.target.value })} 
+                      className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold outline-none" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">CPF ou CNPJ</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.cpf_cnpj || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, cpf_cnpj: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Categoria</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.categoria || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, categoria: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-600 block mb-1">Vendedor Responsável</label>
+                    <select
+                      value={clienteEditando.vendor || 'André Luiz Nóbrega Martins'}
+                      onChange={e => setClienteEditando({ ...clienteEditando, vendor: e.target.value })}
+                      className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold outline-none"
+                    >
+                      <option value="André Luiz Nóbrega Martins">André Luiz Nóbrega Martins (VND-01)</option>
+                      <option value="Luis Daniel da Silva">Luis Daniel da Silva (VND-02)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Logradouro</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.logradouro || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, logradouro: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="font-semibold text-slate-600 block mb-1">Endereço</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.endereco || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, endereco: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Número</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.numero || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, numero: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none text-center font-bold" 
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="font-semibold text-slate-600 block mb-1">Bairro</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.bairro || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, bairro: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Cidade</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.cidade || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, cidade: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">UF</label>
+                      <input 
+                        type="text" 
+                        value={clienteEditando.uf || ''} 
+                        onChange={e => setClienteEditando({ ...clienteEditando, uf: e.target.value })} 
+                        className="w-full p-2.5 border rounded-xl bg-slate-50 outline-none text-center font-bold" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowModalEditarCliente(false)} 
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow"
+                    >
+                      Salvar Alterações
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL: IMPORTAR CLIENTES */}
+          {showModalImportar && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <h4 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" className="w-5 h-5 text-indigo-700"></i>
+                    <span>Importar Lista em Lote (Excel / CSV)</span>
+                  </h4>
+                  <button onClick={() => setShowModalImportar(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Cole as linhas da sua planilha (Código, Nome, Categoria, Cidade, Telefone) separadas por ponto-e-vírgula ou tabulação:
+                </p>
+
+                <textarea 
+                  rows="6"
+                  placeholder="2; JOÃO PESSOA MEDEIROS COSTA; Prótese Fixa; Fortaleza; 85 99122-3344"
+                  value={textoImportacao}
+                  onChange={e => setTextoImportacao(e.target.value)}
+                  className="w-full p-3 border rounded-2xl bg-slate-50 font-mono text-xs outline-none focus:ring-2 focus:ring-indigo-600/30"
+                ></textarea>
+
+                <div className="flex justify-end gap-2 pt-2 border-t">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowModalImportar(false)} 
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                  >
+                    Fechar
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (!textoImportacao.trim()) return;
+                      const linhas = textoImportacao.split('\n');
+                      const novos = [];
+                      linhas.forEach(linha => {
+                        const parts = linha.includes(';') ? linha.split(';') : linha.includes('\t') ? linha.split('\t') : linha.split(',');
+                        if (parts.length >= 2) {
+                          novos.push({
+                            cod: parts[0].trim(),
+                            name: parts[1].trim(),
+                            categoria: parts[2] ? parts[2].trim() : 'Geral',
+                            cidade: parts[3] ? parts[3].trim() : 'Fortaleza',
+                            uf: 'CE',
+                            telefone: parts[4] ? parts[4].trim() : '',
+                            vendor: 'André Luiz Nóbrega Martins'
+                          });
+                        }
+                      });
+                      if (novos.length > 0) {
+                        setClients(prev => [...prev, ...novos]);
+                        alert(`✅ ${novos.length} clientes adicionados à carteira!`);
+                        setShowModalImportar(false);
+                      }
+                    }}
+                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 shadow"
+                  >
+                    Processar e Adicionar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
         </div>
       );
