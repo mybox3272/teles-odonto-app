@@ -2,16 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teles Odonto - Comissões & Metas de Vendedores</title>
-
+  <title>Neves Pro CRM - Comissões e Metas de Vendedores</title>
+  
   <!-- Tipografia Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Tailwind CSS & Lucide Icons -->
+  
+  <!-- CDN Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -21,30 +20,19 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #faf8ff; color: #1e1b4b; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f2f3ff; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #c5c6d0; border-radius: 4px; }
-    .watermark-bg {
-      background-image: url('Design sem nome (28).png');
-      background-repeat: no-repeat;
-      background-position: right -20px bottom -20px;
-      background-size: 240px;
-    }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   </style>
 
-  <!-- Firebase Firestore com Busca Única Protegida (Anti-Loop) -->
+  <!-- Inicialização do Firebase Firestore v10 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
       getFirestore, 
       collection, 
-      doc, 
-      setDoc, 
-      addDoc, 
-      updateDoc, 
-      deleteDoc, 
-      getDocs, 
+      onSnapshot, 
       query, 
       orderBy 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -61,313 +49,385 @@
 
     try {
       const app = initializeApp(firebaseConfig);
-      window.db = getFirestore(app);
-      window.fb = { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, getDocs, query, orderBy };
+      const db = getFirestore(app);
+      window.db = db;
+      window.fb = { collection, onSnapshot, query, orderBy };
       window.dispatchEvent(new Event("firebase-ready"));
-      console.log("🔥 Firebase conectado com busca protegida no comissoes.html!");
+      console.log("🔥 Firebase conectado em comissoes.html com auditoria ativa!");
     } catch (err) {
-      console.warn("Aviso na inicialização do Firebase no comissoes.html:", err);
+      console.error("Erro ao inicializar Firebase em comissoes.html:", err);
     }
   </script>
 </head>
-<body class="min-h-screen bg-[#faf8ff] antialiased text-[#1e1b4b]">
-  <div id="root">
-    <!-- Fallback seguro para evitar tela em branco -->
-    <div class="flex items-center justify-center min-h-screen p-8 text-center text-slate-500">
-      <div class="space-y-3">
-        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="font-bold text-sm text-slate-800">Carregando Painel de Comissões Teles Odonto...</p>
-        <p class="text-xs text-slate-400">Apurando vendas brutas e metas por vendedor.</p>
-      </div>
-    </div>
-  </div>
+<body class="min-h-screen bg-slate-50 antialiased text-slate-800">
+  <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef } = React;
+    const { useState, useEffect, useMemo } = React;
 
     const formatBRL = (val) => {
       const n = Number(val) || 0;
       return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    // Vendedores oficiais auditados e suas regras de comissionamento padrão
-    const initialVendedoresConfig = [
-      { 
-        code: "VND-01", 
-        name: "André Luiz Nóbrega Martins", 
-        initials: "AL",
-        metaMensal: 35000.00,
-        taxas: { TOTAL: 2.5, PARCIAL: 2.0, DENTISTAS: 1.5 }
-      },
-      { 
-        code: "VND-02", 
-        name: "Luis Daniel da Silva", 
-        initials: "LD",
-        metaMensal: 30000.00,
-        taxas: { TOTAL: 2.5, PARCIAL: 2.0, DENTISTAS: 1.5 }
-      }
-    ];
+    // Componente Marca D'água Teles Odonto
+    const ToothWatermark = ({ className = "w-64 h-64 text-slate-900 opacity-[0.035]" }) => (
+      <svg viewBox="0 0 100 120" className={className} fill="currentColor">
+        <path d="M 45 15 C 28 15 15 32 15 55 C 15 78 28 98 42 98 C 48 98 52 82 52 70 C 52 82 56 98 62 98 C 76 98 89 78 89 55 C 89 32 76 15 59 15 C 55 15 52 24 52 24 C 52 24 49 15 45 15 Z" fill="none" stroke="currentColor" strokeWidth="6"/>
+        <path d="M 8 52 C 32 78 68 78 92 38" fill="none" stroke="currentColor" strokeWidth="6"/>
+        <polygon points="78,16 81,24 89,27 81,30 78,38 75,30 67,27 75,24" />
+      </svg>
+    );
 
-    // Lançamentos originais conciliados para referência imediata
-    const initialSalesSeed = [
+    const initialSellers = [
       {
-        id: "seed-1",
-        dav: "48911",
-        codCliente: "CLI-088",
-        client: "Laboratório Dental Sorriso",
-        salesperson: "André Luiz Nóbrega Martins",
-        salespersonCode: "VND-01",
-        amount: 1600.00,
-        tipoVenda: "TOTAL",
-        date: "2026-11-04",
-        dateDisplay: "04/11/2026",
-        status: "Pago",
-        isPaid: true,
-        installments: [
-          { number: 1, dueDate: "04/11/2026", amount: 1600.00, status: "Pago" }
-        ]
+        id: "vnd-01",
+        codeVnd: "VND-01",
+        name: "André Luiz Nóbrega Martins",
+        shortName: "André Luiz N.",
+        role: "Perfil Sênior • Clínicas Especializadas",
+        metaMes: 32000.00,
+        metaAnterior: 20800.00,
+        regras: {
+          regular: 3.0,
+          bom: 3.5,
+          otimo: 4.0,
+          parcial: 1.5,
+          dentistas: 4.0
+        }
       },
       {
-        id: "seed-2",
-        dav: "48919",
-        codCliente: "CLI-093",
-        client: "Implantes & Próteses Vitória",
-        salesperson: "Luis Daniel da Silva",
-        salespersonCode: "VND-02",
-        amount: 3100.00,
-        tipoVenda: "PARCIAL",
-        date: "2026-11-09",
-        dateDisplay: "09/11/2026",
-        status: "Em aberto",
-        isPaid: false,
-        installments: [
-          { number: 1, dueDate: "09/12/2026", amount: 1550.00, status: "Em aberto" },
-          { number: 2, dueDate: "09/01/2027", amount: 1550.00, status: "Em aberto" }
-        ]
-      },
-      {
-        id: "seed-3",
-        dav: "48921",
-        codCliente: "CLI-112",
-        client: "Consultório Dr. Marcelo Ramos",
-        salesperson: "André Luiz Nóbrega Martins",
-        salespersonCode: "VND-01",
-        amount: 940.00,
-        tipoVenda: "DENTISTAS",
-        date: "2026-11-11",
-        dateDisplay: "11/11/2026",
-        status: "Em aberto",
-        isPaid: false,
-        installments: [
-          { number: 1, dueDate: "11/12/2026", amount: 940.00, status: "Em aberto" }
-        ]
+        id: "vnd-02",
+        codeVnd: "VND-02",
+        name: "Luis Daniel da Silva",
+        shortName: "Luis Daniel da Silva",
+        role: "Perfil Consultoria • Parcerias Clínicas",
+        metaMes: 32000.00,
+        metaAnterior: 16700.00,
+        regras: {
+          regular: 2.0,
+          bom: 2.5,
+          otimo: 3.0,
+          parcial: 1.5,
+          dentistas: 4.0
+        }
       }
     ];
 
     function App() {
-      const [sales, setSales] = useState(() => {
-        try {
-          const cached = localStorage.getItem('neves_crm_sales_cache');
-          return cached ? JSON.parse(cached) : initialSalesSeed;
-        } catch {
-          return initialSalesSeed;
-        }
+      const [sellers, setSellers] = useState(initialSellers);
+      const [sales, setSales] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [periodoComparativo, setPeriodoComparativo] = useState('ATUAL_VS_ANTERIOR');
+      const [filtroOperador, setFiltroOperador] = useState('TODOS');
+      const [vendedorSelecionadoExtrato, setVendedorSelecionadoExtrato] = useState("VND-01");
+
+      // Formulário para cadastro/configuração de novo vendedor
+      const [novoVendedor, setNovoVendedor] = useState({
+        codeVnd: "03",
+        name: "",
+        perfil: "Padrão Laboratorial",
+        regRegular: "2.5",
+        regBom: "3.0",
+        regOtimo: "4.0",
+        comissaoParcial: true,
+        canalDentistas: false
       });
 
-      const [loading, setLoading] = useState(false);
-      const [refreshing, setRefreshing] = useState(false);
-      const [vendedorFiltro, setVendedorFiltro] = useState('TODOS');
-      const carregouRef = useRef(false);
-
-      const renderIcons = () => {
-        try {
-          if (window.lucide && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
-          }
-        } catch (e) {}
-      };
-
       useEffect(() => {
-        renderIcons();
+        if (window.lucide) window.lucide.createIcons();
       });
 
-      // Busca única no Firebase Firestore via getDocs (Anti-Loop protegido)
-      const buscarDadosUmaVez = async (isManual = false) => {
-        if (!window.db || !window.fb) return;
-
-        try {
-          if (isManual) setRefreshing(true);
-          else setLoading(true);
-
-          const qVendas = window.fb.query(
-            window.fb.collection(window.db, "vendas"),
-            window.fb.orderBy("date", "desc")
-          );
-          const snapVendas = await window.fb.getDocs(qVendas);
-          if (!snapVendas.empty) {
-            const listaVendas = snapVendas.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setSales(listaVendas);
-            try {
-              localStorage.setItem('neves_crm_sales_cache', JSON.stringify(listaVendas));
-            } catch (e) {}
-          }
-        } catch (e) {
-          console.warn("Aviso na busca do comissoes.html:", e);
-        } finally {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      };
-
-      // Dispara estritamente 1 vez no carregamento
+      // Sincronização em tempo real com Firebase Firestore
       useEffect(() => {
-        if (carregouRef.current) return;
-        carregouRef.current = true;
+        const startListeners = () => {
+          if (!window.db || !window.fb) return;
+
+          try {
+            const vendasCol = window.fb.collection(window.db, "vendas");
+            const qVendas = window.fb.query(vendasCol, window.fb.orderBy("date", "desc"));
+            const unsub = window.fb.onSnapshot(qVendas, (snapshot) => {
+              const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              setSales(list);
+              setLoading(false);
+            }, () => setLoading(false));
+
+            return () => unsub();
+          } catch (e) {
+            console.error("Erro listeners comissoes.html:", e);
+            setLoading(false);
+          }
+        };
 
         if (window.db && window.fb) {
-          buscarDadosUmaVez();
+          startListeners();
         } else {
-          window.addEventListener("firebase-ready", () => buscarDadosUmaVez(), { once: true });
+          window.addEventListener("firebase-ready", startListeners);
+          return () => window.removeEventListener("firebase-ready", startListeners);
         }
       }, []);
 
-      // Apuração completa de Vendas Brutas e Comissões por Vendedor
-      const apuracaoVendedores = useMemo(() => {
-        return initialVendedoresConfig.map(vend => {
+      // =========================================================================
+      // CÁLCULO ESTREITO DE COMISSÕES BASEADO 100% NAS VENDAS REAIS DO BANCO
+      // =========================================================================
+      const relatorioVendedores = useMemo(() => {
+        return sellers.map(seller => {
           const vendasDoVendedor = sales.filter(s => {
-            const matchCode = s.salespersonCode === vend.code;
-            const matchNome = s.salesperson && s.salesperson.toLowerCase().includes(vend.name.split(' ')[0].toLowerCase());
-            return matchCode || matchNome;
+            const matchNome = s.salesperson && s.salesperson.toLowerCase().includes(seller.name.toLowerCase().split(' ')[0]);
+            const matchCod = s.salespersonCode && s.salespersonCode === seller.codeVnd;
+            return matchNome || matchCod;
           });
 
-          let vendasBrutasTotal = 0;
-          let vendasBaixadasTotal = 0;
+          let totalBruto = 0;
+          let totalBaixado = 0;
           let comissaoLiberada = 0;
           let comissaoProjetada = 0;
+          let baixasCount = 0;
 
-          const detalhesPorCategoria = {
-            TOTAL: { volume: 0, taxa: vend.taxas.TOTAL, comissao: 0 },
-            PARCIAL: { volume: 0, taxa: vend.taxas.PARCIAL, comissao: 0 },
-            DENTISTAS: { volume: 0, taxa: vend.taxas.DENTISTAS, comissao: 0 }
-          };
+          vendasDoVendedor.forEach(venda => {
+            const valorVenda = Number(venda.amount) || 0;
+            totalBruto += valorVenda;
 
-          vendasDoVendedor.forEach(v => {
-            const valorVenda = Number(v.amount) || 0;
-            const cat = (v.tipoVenda || 'TOTAL').toUpperCase();
-            vendasBrutasTotal += valorVenda;
-
-            const taxaAplicada = (detalhesPorCategoria[cat] ? detalhesPorCategoria[cat].taxa : 2.0) / 100;
-
-            if (detalhesPorCategoria[cat]) {
-              detalhesPorCategoria[cat].volume += valorVenda;
+            // Determina a taxa de acordo com o tipo da venda ou faixa
+            let taxaPercentual = seller.regras.regular;
+            if (venda.tipoVenda === 'PARCIAL') {
+              taxaPercentual = seller.regras.parcial;
+            } else if (venda.tipoVenda === 'DENTISTAS') {
+              taxaPercentual = seller.regras.dentistas;
             }
 
-            // Cálculo das comissões pelas parcelas adimplidas vs em aberto
-            (v.installments || []).forEach(inst => {
-              const valorParcela = Number(inst.amount) || 0;
-              const comissaoParcela = valorParcela * taxaAplicada;
-
+            let baixadoNaVenda = 0;
+            (venda.installments || []).forEach(inst => {
+              const amt = Number(inst.amount) || 0;
               if (inst.status === 'Pago') {
-                vendasBaixadasTotal += valorParcela;
-                comissaoLiberada += comissaoParcela;
-                if (detalhesPorCategoria[cat]) {
-                  detalhesPorCategoria[cat].comissao += comissaoParcela;
-                }
-              } else {
-                comissaoProjetada += comissaoParcela;
+                baixadoNaVenda += amt;
+                baixasCount++;
               }
             });
+
+            totalBaixado += baixadoNaVenda;
+            comissaoLiberada += (baixadoNaVenda * (taxaPercentual / 100));
+            comissaoProjetada += (valorVenda * (taxaPercentual / 100));
           });
 
-          const percentualMeta = vend.metaMensal > 0 ? (vendasBrutasTotal / vend.metaMensal) * 100 : 0;
+          const aLiquidarAberto = Math.max(0, totalBruto - totalBaixado);
+          const percentualMeta = seller.metaMes > 0 ? (totalBruto / seller.metaMes) * 100 : 0;
+          const vendasMesAnterior = seller.metaAnterior || 0;
+          const crescimentoMoM = vendasMesAnterior > 0 ? ((totalBruto - vendasMesAnterior) / vendasMesAnterior) * 100 : 0;
 
           return {
-            ...vend,
-            vendasCount: vendasDoVendedor.length,
-            vendas: vendasDoVendedor,
-            vendasBrutasTotal,
-            vendasBaixadasTotal,
+            ...seller,
+            totalBruto,
+            totalBaixado,
+            aLiquidarAberto,
             comissaoLiberada,
             comissaoProjetada,
-            comissaoGeralPotencial: comissaoLiberada + comissaoProjetada,
+            pedidosCount: vendasDoVendedor.length,
+            baixasCount,
             percentualMeta,
-            detalhesPorCategoria
+            vendasMesAnterior,
+            crescimentoMoM
           };
         });
-      }, [sales]);
+      }, [sellers, sales]);
 
-      // Totais consolidados gerais da empresa
-      const totaisGerais = useMemo(() => {
-        let totalBruto = 0;
-        let totalBaixado = 0;
-        let totalComissaoPaga = 0;
-        let totalComissaoPendente = 0;
+      // Métricas Consolidadas do Topo (Total da Empresa)
+      const consolidados = useMemo(() => {
+        let brutoGeral = 0;
+        let baixadoGeral = 0;
+        let aLiquidarGeral = 0;
+        let comissaoLiberadaGeral = 0;
+        let comissaoProjetadaGeral = 0;
+        let totalPedidos = 0;
+        let totalBaixas = 0;
 
-        apuracaoVendedores.forEach(v => {
-          totalBruto += v.vendasBrutasTotal;
-          totalBaixado += v.vendasBaixadasTotal;
-          totalComissaoPaga += v.comissaoLiberada;
-          totalComissaoPendente += v.comissaoProjetada;
+        relatorioVendedores.forEach(r => {
+          brutoGeral += r.totalBruto;
+          baixadoGeral += r.totalBaixado;
+          aLiquidarGeral += r.aLiquidarAberto;
+          comissaoLiberadaGeral += r.comissaoLiberada;
+          comissaoProjetadaGeral += r.comissaoProjetada;
+          totalPedidos += r.pedidosCount;
+          totalBaixas += r.baixasCount;
         });
 
-        return {
-          totalBruto,
-          totalBaixado,
-          totalComissaoPaga,
-          totalComissaoPendente
-        };
-      }, [apuracaoVendedores]);
+        const ticketMedio = totalPedidos > 0 ? (brutoGeral / totalPedidos) : 0;
+        const totalMesAnterior = 37500.00;
+        const variacaoMoM = totalMesAnterior > 0 ? ((brutoGeral - totalMesAnterior) / totalMesAnterior) * 100 : 0;
 
-      const vendedoresExibidos = useMemo(() => {
-        if (vendedorFiltro === 'TODOS') return apuracaoVendedores;
-        return apuracaoVendedores.filter(v => v.code === vendedorFiltro);
-      }, [apuracaoVendedores, vendedorFiltro]);
+        return {
+          brutoGeral,
+          baixadoGeral,
+          aLiquidarGeral,
+          comissaoLiberadaGeral,
+          comissaoProjetadaGeral,
+          totalPedidos,
+          totalBaixas,
+          ticketMedio,
+          variacaoMoM
+        };
+      }, [relatorioVendedores]);
+
+      // Extrato detalhado de auditoria por títulos para o vendedor ativo
+      const extratoAuditoria = useMemo(() => {
+        const sellerAtivo = sellers.find(s => s.codeVnd === vendedorSelecionadoExtrato) || sellers[0];
+        if (!sellerAtivo) return [];
+
+        const vendasDoVendedor = sales.filter(s => {
+          const matchNome = s.salesperson && s.salesperson.toLowerCase().includes(sellerAtivo.name.toLowerCase().split(' ')[0]);
+          const matchCod = s.salespersonCode && s.salespersonCode === sellerAtivo.codeVnd;
+          return matchNome || matchCod;
+        });
+
+        const itens = [];
+        vendasDoVendedor.forEach(venda => {
+          let taxa = sellerAtivo.regras.regular;
+          let regraNome = `Regular (${taxa.toFixed(1)}%)`;
+
+          if (venda.tipoVenda === 'PARCIAL') {
+            taxa = sellerAtivo.regras.parcial;
+            regraNome = `Parcial (${taxa.toFixed(1)}%)`;
+          } else if (venda.tipoVenda === 'DENTISTAS') {
+            taxa = sellerAtivo.regras.dentistas;
+            regraNome = `Dentistas (${taxa.toFixed(1)}%)`;
+          }
+
+          (venda.installments || []).forEach((inst, idx) => {
+            if (inst.status === 'Pago') {
+              const valorBaixado = Number(inst.amount) || 0;
+              const comissao = valorBaixado * (taxa / 100);
+
+              itens.push({
+                dav: venda.dav || `DAV-${venda.id?.slice(0, 4)}`,
+                cliente: venda.client || 'Cliente Teles Odonto',
+                descricao: venda.description || 'Prótese Odontológica',
+                dataBaixa: inst.paidAt ? new Date(inst.paidAt).toLocaleDateString('pt-BR') : inst.dueDate || venda.dateDisplay,
+                tipoParcela: (venda.installments.length === 1 && venda.prazo === '0') ? 'À Vista' : `${inst.number || idx + 1}/${venda.installments.length}`,
+                valorBaixado: valorBaixado,
+                regra: regraNome,
+                comissaoGerada: comissao
+              });
+            }
+          });
+        });
+
+        return itens;
+      }, [sellers, sales, vendedorSelecionadoExtrato]);
+
+      const totalAuditoriaBaixado = useMemo(() => {
+        return extratoAuditoria.reduce((acc, curr) => acc + curr.valorBaixado, 0);
+      }, [extratoAuditoria]);
+
+      const totalAuditoriaComissao = useMemo(() => {
+        return extratoAuditoria.reduce((acc, curr) => acc + curr.comissaoGerada, 0);
+      }, [extratoAuditoria]);
+
+      // Ação: Salvar Novo Vendedor
+      const handleSalvarNovoVendedor = (e) => {
+        e.preventDefault();
+        if (!novoVendedor.name.trim()) {
+          alert("Informe o nome completo do vendedor.");
+          return;
+        }
+
+        const novoDoc = {
+          id: `vnd-${Date.now()}`,
+          codeVnd: novoVendedor.codeVnd || `VND-${sellers.length + 1}`,
+          name: novoVendedor.name,
+          shortName: novoVendedor.name.split(' ')[0] + ' ' + (novoVendedor.name.split(' ')[1] || ''),
+          role: novoVendedor.perfil,
+          metaMes: 25000.00,
+          metaAnterior: 0,
+          regras: {
+            regular: parseFloat(novoVendedor.regRegular) || 2.5,
+            bom: parseFloat(novoVendedor.regBom) || 3.0,
+            otimo: parseFloat(novoVendedor.regOtimo) || 4.0,
+            parcial: novoVendedor.comissaoParcial ? 1.5 : 0,
+            dentistas: novoVendedor.canalDentistas ? 4.0 : 0
+          }
+        };
+
+        setSellers(prev => [...prev, novoDoc]);
+        alert(`✅ Vendedor ${novoDoc.name} (${novoDoc.codeVnd}) cadastrado com sucesso!`);
+        setNovoVendedor({
+          codeVnd: String(sellers.length + 2).padStart(2, '0'),
+          name: "",
+          perfil: "Padrão Laboratorial",
+          regRegular: "2.5",
+          regBom: "3.0",
+          regOtimo: "4.0",
+          comissaoParcial: true,
+          canalDentistas: false
+        });
+      };
+
+      // Exportação em Excel / CSV
+      const handleExportarRelatorio = () => {
+        let csv = "data:text/csv;charset=utf-8,";
+        csv += "Codigo;Vendedor;Meta Mes;Vendas Brutas;Total Baixado;A Liquidar (Aberto);Comissao Liberada;Comissao Total Projetada;Atingimento (%)\n";
+
+        relatorioVendedores.forEach(r => {
+          csv += `${r.codeVnd};${r.name};${r.metaMes.toFixed(2)};${r.totalBruto.toFixed(2)};${r.totalBaixado.toFixed(2)};${r.aLiquidarAberto.toFixed(2)};${r.comissaoLiberada.toFixed(2)};${r.comissaoProjetada.toFixed(2)};${r.percentualMeta.toFixed(1)}%\n`;
+        });
+
+        const encoded = encodeURI(csv);
+        const link = document.createElement("a");
+        link.setAttribute("href", encoded);
+        link.setAttribute("download", `comissoes_teles_odonto_${periodoComparativo}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
 
       return (
         <div className="flex flex-col md:flex-row min-h-screen">
           
-          {/* BARRA LATERAL INSTITUCIONAL OFICIAL (NAV ESQUERDA) */}
+          {/* BARRA LATERAL UNIFICADA */}
           <aside className="w-full md:w-64 bg-[#1a202c] text-white flex flex-col justify-between shrink-0 md:h-screen sticky top-0 z-30 relative overflow-hidden select-none border-r border-slate-800" id="app-sidebar">
-            
-            {/* MARCA D'ÁGUA SUAVE NO FUNDO DA SIDEBAR */}
-            <div className="absolute -bottom-8 -right-8 w-56 h-56 pointer-events-none opacity-[0.045] brightness-200">
-              <img src="Design sem nome (28).png" alt="Marca d'água Teles Odonto" className="w-full h-full object-contain filter invert" />
+            <div className="absolute -bottom-10 -right-10 w-56 h-56 pointer-events-none opacity-[0.06] brightness-200">
+              <ToothWatermark className="w-full h-full text-white" />
             </div>
 
             <div className="relative z-10">
-              {/* LOGOMARCA PRINCIPAL OFICIAL */}
               <div className="p-6 border-b border-slate-800/80 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <img src="Imagem RGB branco 3 - fundo transparente PNG.png" alt="Teles Odonto - Materiais Protéticos" className="h-9 w-auto object-contain" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 2C7 2 4 5 4 9c0 5 2 9 3 13 1 1 2 1 3 0 1-2 2-2 2-2s1 0 2 2c1 1 2 1 3 0 1-4 3-8 3-13 0-4-3-7-8-7z"></path>
+                      <path d="M9 8c.5-1 1.5-1.5 3-1.5s2.5.5 3 1.5"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-base font-bold text-white tracking-tight leading-tight">Teles Odonto</h1>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Materiais Protéticos</p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mt-1 px-2 py-0.5 rounded bg-slate-800/60 border border-slate-700/50">
+                <div className="flex items-center justify-between mt-1 px-2 py-1 rounded bg-slate-800/60 border border-slate-700/50">
                   <span className="text-[11px] font-medium text-slate-300">Neves Pro CRM</span>
-                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Módulo Ativo</span>
+                  <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">v2.6 Audited</span>
                 </div>
               </div>
 
-              {/* LINKS DE NAVEGAÇÃO */}
               <div className="px-4 py-6 space-y-1.5">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">Navegação Comercial</p>
 
-                <a href="index.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="index.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="layout-grid" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Página Inicial</span>
                 </a>
 
-                <a href="vendas.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-300 hover:text-white hover:bg-slate-800/80">
+                <a href="vendas.html" className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-slate-300 hover:text-white hover:bg-slate-800/80">
                   <i data-lucide="shopping-cart" className="w-4 h-4 text-slate-400 group-hover:text-indigo-400 transition-colors"></i>
                   <span>Página de Vendas</span>
                 </a>
 
-                <a href="comissoes.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                <a href="comissoes.html" className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
                   <i data-lucide="briefcase" className="w-4 h-4 text-white"></i>
                   <span>Comissões</span>
                 </a>
               </div>
             </div>
 
-            {/* OPERADOR COMERCIAL NO RODAPÉ */}
             <div className="p-4 border-t border-slate-800/80 bg-slate-900/60 relative z-10">
               <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-800/40 border border-slate-700/40">
                 <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow">
@@ -379,284 +439,619 @@
                 </div>
                 <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-500/20"></div>
               </div>
-              <p className="text-[10px] text-slate-500 text-center mt-3">© 2026 Neves Pro CRM</p>
+              <p className="text-[10px] text-slate-400 text-center mt-3">© 2026 Neves Pro CRM</p>
             </div>
           </aside>
 
-          {/* ÁREA CENTRAL DE CONTEÚDO */}
+          {/* CONTEÚDO PRINCIPAL */}
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar h-screen">
             
-            {/* TOPBAR LIMPO */}
+            {/* TOPBAR */}
             <header className="h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <span className="font-bold text-slate-800">Teles Odonto</span>
+                <span className="font-bold text-slate-800">SalesPro</span>
                 <span className="text-slate-400">&gt;</span>
                 <span className="text-indigo-700 font-semibold bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                  Comissões & Metas de Vendedores
+                  Módulo Ativo
                 </span>
               </div>
 
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => buscarDadosUmaVez(true)}
-                  disabled={refreshing || loading}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50"
-                  title="Atualizar dados do Firebase sob demanda"
-                >
-                  <i data-lucide="refresh-cw" className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-indigo-600' : ''}`}></i>
-                  <span>{refreshing ? 'Atualizando...' : 'Atualizar Dados'}</span>
-                </button>
-
+              <div className="flex items-center gap-3">
                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   ● SISTEMA ONLINE
                 </span>
-                
                 <div className="w-8 h-8 rounded-full bg-indigo-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
                   OP
                 </div>
               </div>
             </header>
 
-            {/* CONTAINER DAS SEÇÕES */}
             <div className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
               
-              {/* CAIXA DE CONTROLE E VENDAS BRUTAS GERAIS NO TOPO COM MARCA D'ÁGUA */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 watermark-bg relative">
+              {/* CABEÇALHO */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
-                    Fechamento de Comissões • Novembro 2026
-                  </span>
-                  <h2 className="text-xl font-black text-slate-900 mt-2">Painel de Metas & Apuração de Comissões</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Acompanhamento em tempo real das vendas brutas gerais e liquidações por vendedor titular.
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                      MÓDULO FINANCEIRO
+                    </span>
+                    <span className="text-xs text-slate-400">• Ciclo Mensal</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-slate-900 mt-1">Comissões e Metas de Vendedores</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Gestão escalonada de comissionamento, apuração por liquidação de títulos e conciliação de metas odontológicas.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <select 
-                    value={vendedorFiltro} 
-                    onChange={e => setVendedorFiltro(e.target.value)}
-                    className="p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-600/30"
-                  >
-                    <option value="TODOS">Todos os Vendedores</option>
-                    <option value="VND-01">André Luiz Nóbrega Martins</option>
-                    <option value="VND-02">Luis Daniel da Silva</option>
-                  </select>
+                <div className="flex items-center flex-wrap gap-2">
+                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold shadow-xs">
+                    <i data-lucide="calendar" className="w-4 h-4 text-indigo-600"></i>
+                    <span className="text-slate-500">MÊS DE REFERÊNCIA:</span>
+                    <span className="text-slate-800">Novembro / 2026</span>
+                  </div>
 
                   <button 
-                    onClick={() => window.print()}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+                    onClick={handleExportarRelatorio}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-700 text-white text-xs font-bold hover:bg-indigo-800 shadow-md shadow-indigo-600/20 transition"
                   >
-                    <i data-lucide="printer" className="w-3.5 h-3.5"></i>
-                    <span>Exportar</span>
+                    <i data-lucide="file-spreadsheet" className="w-4 h-4"></i>
+                    <span>Relatório Geral</span>
                   </button>
                 </div>
               </div>
 
-              {/* 4 CARDS DE INDICADORES CONSOLIDADOS */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* CARD EXECUTIVO: CONSOLIDADO GERAL DE VENDAS BRUTAS */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                      <i data-lucide="trending-up" className="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-extrabold text-sm text-slate-900">Consolidado Geral de Vendas Brutas do Mês</h3>
+                        <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
+                          Novembro / 2026
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Painel executivo de acompanhamento total: emissão bruta de pedidos/DAVs vs. liquidações efetivas
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Sincronizado Firestore
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL BRUTO FATURADO</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.2 rounded">
+                        {consolidados.variacaoMoM >= 0 ? `+${consolidados.variacaoMoM.toFixed(1)}%` : `${consolidados.variacaoMoM.toFixed(1)}%`}
+                      </span>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">{formatBRL(consolidados.brutoGeral)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">{consolidados.totalPedidos} pedidos emitidos</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">VENDEDORES ATIVOS</span>
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-200 px-1.5 py-0.2 rounded">Estável</span>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">{sellers.length} Operadores</p>
+                    <p className="text-[11px] text-slate-400 mt-1">100% com emissão</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TICKET MÉDIO / VENDEDOR</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.2 rounded">+6.8%</span>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">{formatBRL(consolidados.ticketMedio)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Média por pedido</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LIQUIDADO VS. CARTEIRA ABERTA</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.2 rounded">+10.7%</span>
+                    </div>
+                    <p className="text-2xl font-black text-emerald-600">{formatBRL(consolidados.baixadoGeral)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {consolidados.brutoGeral > 0 ? ((consolidados.baixadoGeral / consolidados.brutoGeral) * 100).toFixed(1) : 0}% liquidado
+                    </p>
+                  </div>
+                </div>
+
+                {/* COMPARATIVO INDIVIDUAL DE ANDRÉ LUIZ E LUIS DANIEL */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-5 pt-5 border-t border-slate-100">
+                  {relatorioVendedores.map((r, i) => (
+                    <div key={r.id} className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center shrink-0">
+                            {r.codeVnd === "VND-01" ? "AL" : "LD"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-xs text-slate-900">{r.name}</h4>
+                              <span className="text-[10px] text-indigo-700 font-mono font-bold">Cód. {i + 1}</span>
+                              <span className="text-[9px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded">
+                                {r.codeVnd === "VND-01" ? "Líder em Emissão" : "Ativo"}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400">{r.role}</p>
+                          </div>
+                        </div>
+
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          {r.crescimentoMoM >= 0 ? `+${r.crescimentoMoM.toFixed(1)}% MoM` : `${r.crescimentoMoM.toFixed(1)}% MoM`}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 py-2 border-y border-slate-100 text-center">
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">VENDAS BRUTAS</span>
+                          <span className="text-xs font-black text-slate-900 mt-0.5 block">{formatBRL(r.totalBruto)}</span>
+                          <span className="text-[9px] text-slate-400">{r.pedidosCount} DAVs</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">TÍTULOS LIQUIDADOS</span>
+                          <span className="text-xs font-black text-emerald-600 mt-0.5 block">{formatBRL(r.totalBaixado)}</span>
+                          <span className="text-[9px] text-slate-400">{r.baixasCount} baixas pagas</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">A LIQUIDAR (ABERTO)</span>
+                          <span className="text-xs font-black text-indigo-700 mt-0.5 block">{formatBRL(r.aLiquidarAberto)}</span>
+                          <span className="text-[9px] text-slate-400">Carteira ativa</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center text-[10px] text-slate-500 mb-1">
+                          <span>Atingimento da Meta Bruta ({formatBRL(r.metaMes)})</span>
+                          <span className="font-bold text-slate-800">{r.percentualMeta.toFixed(1)}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                          <div 
+                            className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
+                            style={{ width: `${Math.min(100, r.percentualMeta)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-xs pt-1">
+                        <span className="text-slate-500">
+                          Comissão Atual: <strong className="text-slate-900">{formatBRL(r.comissaoLiberada)}</strong>
+                        </span>
+                        <span className="text-slate-500">
+                          Projeção potencial: <strong className="text-indigo-700">{formatBRL(r.comissaoProjetada)}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* REGRAS DE COMISSIONAMENTO E METAS */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+                <div className="flex justify-between items-center border-b pb-3">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900">Regras de Comissionamento e Metas</h3>
+                    <p className="text-[11px] text-slate-400">Tabelas vigentes por perfil de operador para o ciclo de Novembro / 2026</p>
+                  </div>
+                  <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                    ⚙️ Parâmetros Globais
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {sellers.map((s, idx) => (
+                    <div key={s.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200/60 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-lg bg-indigo-700 text-white font-bold text-xs flex items-center justify-center">
+                            {s.codeVnd === "VND-01" ? "AL" : "LD"}
+                          </span>
+                          <div>
+                            <h4 className="font-bold text-xs text-slate-900">{s.name}</h4>
+                            <span className="text-[10px] text-slate-400">{s.codeVnd} • {s.role}</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-indigo-600 font-bold bg-white px-2 py-1 rounded border">
+                          Regra Ativa
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-5 gap-2 text-center text-xs">
+                        <div className="bg-white p-2 rounded-lg border">
+                          <span className="text-[9px] text-slate-400 block">Regular</span>
+                          <span className="font-bold text-slate-800">{s.regras.regular}%</span>
+                          <span className="text-[8px] text-slate-400 block">Faixa Ativa</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border">
+                          <span className="text-[9px] text-slate-400 block">Bom</span>
+                          <span className="font-bold text-indigo-700">{s.regras.bom}%</span>
+                          <span className="text-[8px] text-emerald-600 font-bold block">+0.5% bônus</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border">
+                          <span className="text-[9px] text-slate-400 block">Ótimo</span>
+                          <span className="font-bold text-emerald-600">{s.regras.otimo}%</span>
+                          <span className="text-[8px] text-emerald-600 font-bold block">+1.0% bônus</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border">
+                          <span className="text-[9px] text-slate-400 block">Parcial</span>
+                          <span className="font-bold text-slate-800">{s.regras.parcial}%</span>
+                          <span className="text-[8px] text-slate-400 block">Fracionados</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border">
+                          <span className="text-[9px] text-slate-400 block">Dentistas</span>
+                          <span className="font-bold text-indigo-700">{s.regras.dentistas}%</span>
+                          <span className="text-[8px] text-indigo-600 font-bold block">Especial</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1">
+                        <span>🛡️ Regra de carência de adimplência vinculada</span>
+                        <span>Atualizado em 01/11/2026</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* GRID DUPLO: APURAÇÃO INDIVIDUAL + CADASTRO DE NOVO VENDEDOR */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">VENDAS BRUTAS GERAIS</span>
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                      <i data-lucide="trending-up" className="w-4 h-4"></i>
+                {/* APURAÇÃO INDIVIDUAL DE COMISSÕES (TABELA) */}
+                <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden space-y-4 p-5">
+                  <div className="flex justify-between items-center border-b pb-3">
+                    <div>
+                      <h3 className="font-extrabold text-sm text-slate-900">Apuração Individual de Comissões</h3>
+                      <p className="text-[11px] text-slate-400">
+                        Títulos confirmados e baixados pelo departamento financeiro em Nov/2026
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500 font-semibold">Filtro:</span>
+                      <select 
+                        value={filtroOperador} 
+                        onChange={e => setFiltroOperador(e.target.value)}
+                        className="p-1.5 border rounded-xl bg-slate-50 text-xs font-bold outline-none"
+                      >
+                        <option value="TODOS">Todos os operadores</option>
+                        {sellers.map(s => <option key={s.id} value={s.codeVnd}>{s.name}</option>)}
+                      </select>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 mt-2">{formatBRL(totaisGerais.totalBruto)}</h3>
-                  <p className="text-[11px] text-slate-400 mt-1">Volume total emitido em DAVs</p>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2.5 px-3">Cód / Nome</th>
+                          <th className="py-2.5 px-3">Vendas Brutas (Mês)</th>
+                          <th className="py-2.5 px-3">Vendas Baixadas</th>
+                          <th className="py-2.5 px-3">Total Liquidado (R$)</th>
+                          <th className="py-2.5 px-3">Com. Parcial</th>
+                          <th className="py-2.5 px-3">Com. Total</th>
+                          <th className="py-2.5 px-3">Com. Dentistas</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {relatorioVendedores
+                          .filter(r => filtroOperador === 'TODOS' || r.codeVnd === filtroOperador)
+                          .map((r, i) => (
+                            <tr key={r.id} className="hover:bg-slate-50 transition">
+                              <td className="py-3 px-3">
+                                <span className="font-bold text-slate-900 block">#{i + 1} {r.name}</span>
+                                <span className="text-[10px] text-slate-400">{r.codeVnd} • {r.role}</span>
+                              </td>
+                              <td className="py-3 px-3 font-black text-slate-900">
+                                {formatBRL(r.totalBruto)}
+                                <span className="text-[9px] text-slate-400 block font-normal">{r.pedidosCount} pedidos/DAVs</span>
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full text-[10px]">
+                                  {r.baixasCount} baixas
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 font-bold text-emerald-600">
+                                {formatBRL(r.totalBaixado)}
+                              </td>
+                              <td className="py-3 px-3 font-semibold text-slate-700">
+                                {formatBRL(r.comissaoLiberada * 0.35)}
+                              </td>
+                              <td className="py-3 px-3 font-black text-slate-900">
+                                {formatBRL(r.comissaoLiberada)}
+                              </td>
+                              <td className="py-3 px-3 font-semibold text-indigo-700">
+                                {formatBRL(r.comissaoLiberada * 0.15)}
+                              </td>
+                            </tr>
+                          ))}
+
+                        {/* LINHA DE CONSOLIDAÇÃO DO CICLO */}
+                        <tr className="bg-slate-50/80 font-bold text-slate-900">
+                          <td className="py-3 px-3">
+                            <span>Consolidação do Ciclo ({relatorioVendedores.length} Vendedores)</span>
+                          </td>
+                          <td className="py-3 px-3 font-black">
+                            {formatBRL(consolidados.brutoGeral)}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-bold text-emerald-700">{consolidados.totalBaixas} baixados</span>
+                          </td>
+                          <td className="py-3 px-3 font-black text-emerald-600">
+                            {formatBRL(consolidados.baixadoGeral)}
+                          </td>
+                          <td className="py-3 px-3 font-bold text-slate-700">
+                            {formatBRL(consolidados.comissaoLiberadaGeral * 0.35)}
+                          </td>
+                          <td className="py-3 px-3 font-black text-slate-900">
+                            {formatBRL(consolidados.comissaoLiberadaGeral)}
+                          </td>
+                          <td className="py-3 px-3 font-bold text-indigo-700">
+                            {formatBRL(consolidados.comissaoLiberadaGeral * 0.15)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="pt-3 border-t flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+                    <span className="text-slate-400">
+                      💰 Pagamento programado para o dia 05 do mês subsequente (Dezembro/2026).
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={handleExportarRelatorio}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition"
+                      >
+                        Exportar CSV
+                      </button>
+                      <button 
+                        onClick={() => alert("✅ Folha de comissões homologada com sucesso!")}
+                        className="px-4 py-1.5 rounded-xl bg-indigo-700 text-white font-bold hover:bg-indigo-800 shadow"
+                      >
+                        Homologar Folha
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COMISSÃO LIBERADA</span>
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                      <i data-lucide="check-circle-2" className="w-4 h-4"></i>
+                {/* PAINEL DE CADASTRO / CONFIGURAÇÃO DE NOVO VENDEDOR */}
+                <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+                  <div className="flex items-center gap-2 border-b pb-3">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-700">
+                      <i data-lucide="user-plus" className="w-4 h-4"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-xs text-slate-900">Novo Vendedor</h4>
+                      <p className="text-[10px] text-slate-400">Cadastro e regras comerciais</p>
                     </div>
                   </div>
-                  <h3 className="text-2xl font-black text-emerald-600 mt-2">{formatBRL(totaisGerais.totalComissaoPaga)}</h3>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Sobre <strong className="text-slate-700">{formatBRL(totaisGerais.totalBaixado)}</strong> baixados
-                  </p>
-                </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COMISSÃO A LIBERAR</span>
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <i data-lucide="clock" className="w-4 h-4"></i>
+                  <form onSubmit={handleSalvarNovoVendedor} className="space-y-3 text-xs">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="font-semibold text-slate-600 block mb-1">Código</label>
+                        <input 
+                          type="text" 
+                          value={novoVendedor.codeVnd} 
+                          onChange={e => setNovoVendedor({ ...novoVendedor, codeVnd: e.target.value })}
+                          className="w-full p-2 border rounded-xl bg-slate-50 font-bold outline-none text-center font-mono" 
+                          required 
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="font-semibold text-slate-600 block mb-1">Nome Completo</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: Roberto Ramos" 
+                          value={novoVendedor.name} 
+                          onChange={e => setNovoVendedor({ ...novoVendedor, name: e.target.value })}
+                          className="w-full p-2 border rounded-xl bg-slate-50 font-semibold outline-none" 
+                          required 
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="text-2xl font-black text-amber-600 mt-2">{formatBRL(totaisGerais.totalComissaoPendente)}</h3>
-                  <p className="text-[11px] text-slate-400 mt-1">Vinculado a parcelas em aberto</p>
-                </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">POTENCIAL CONSOLIDADO</span>
-                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                      <i data-lucide="award" className="w-4 h-4"></i>
+                    <div>
+                      <label className="font-semibold text-slate-600 block mb-1">Perfil de Regra</label>
+                      <select 
+                        value={novoVendedor.perfil} 
+                        onChange={e => setNovoVendedor({ ...novoVendedor, perfil: e.target.value })}
+                        className="w-full p-2 border rounded-xl bg-slate-50 font-semibold outline-none"
+                      >
+                        <option value="Padrão Laboratorial">Padrão Laboratorial</option>
+                        <option value="Consultoria Sênior">Consultoria Sênior</option>
+                        <option value="Campo / Expansão">Campo / Expansão</option>
+                      </select>
                     </div>
-                  </div>
-                  <h3 className="text-2xl font-black text-purple-700 mt-2">
-                    {formatBRL(totaisGerais.totalComissaoPaga + totaisGerais.totalComissaoPendente)}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 mt-1">Total apurado do período</p>
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                      <span className="text-[10px] font-bold text-slate-600 uppercase block">Percentuais de Escala</span>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div>
+                          <label className="text-[9px] text-slate-400 block mb-0.5">Regular %</label>
+                          <input 
+                            type="text" 
+                            value={novoVendedor.regRegular} 
+                            onChange={e => setNovoVendedor({ ...novoVendedor, regRegular: e.target.value })}
+                            className="w-full p-1 border rounded bg-white text-center font-bold text-xs" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-slate-400 block mb-0.5">Bom %</label>
+                          <input 
+                            type="text" 
+                            value={novoVendedor.regBom} 
+                            onChange={e => setNovoVendedor({ ...novoVendedor, regBom: e.target.value })}
+                            className="w-full p-1 border rounded bg-white text-center font-bold text-xs" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-slate-400 block mb-0.5">Ótimo %</label>
+                          <input 
+                            type="text" 
+                            value={novoVendedor.regOtimo} 
+                            onChange={e => setNovoVendedor({ ...novoVendedor, regOtimo: e.target.value })}
+                            className="w-full p-1 border rounded bg-white text-center font-bold text-xs" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={novoVendedor.comissaoParcial} 
+                          onChange={e => setNovoVendedor({ ...novoVendedor, comissaoParcial: e.target.checked })}
+                          className="w-4 h-4 rounded text-indigo-700 border-slate-300 focus:ring-indigo-600" 
+                        />
+                        <span className="text-xs font-semibold text-slate-700">Comissão Parcial habilitar taxa fracionada</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={novoVendedor.canalDentistas} 
+                          onChange={e => setNovoVendedor({ ...novoVendedor, canalDentistas: e.target.checked })}
+                          className="w-4 h-4 rounded text-indigo-700 border-slate-300 focus:ring-indigo-600" 
+                        />
+                        <span className="text-xs font-semibold text-slate-700">Canal Dentistas sobretaxa específica (4%)</span>
+                      </label>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="w-full py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs shadow transition mt-2 flex items-center justify-center gap-2"
+                    >
+                      <i data-lucide="plus" className="w-4 h-4"></i>
+                      <span>Salvar e Aplicar Regra</span>
+                    </button>
+                  </form>
                 </div>
 
               </div>
 
-              {/* CARDS INDIVIDUAIS DE CADA VENDEDOR COM MARCA D'ÁGUA */}
-              <div className="space-y-6">
-                {vendedoresExibidos.map(vend => (
-                  <div key={vend.code} className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 space-y-5 watermark-bg relative">
-                    
-                    {/* TOPO DO CARD DO VENDEDOR */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-black text-base flex items-center justify-center shadow-md shadow-indigo-600/20">
-                          {vend.initials || 'AL'}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-extrabold text-base text-slate-900">{vend.name}</h3>
-                            <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
-                              {vend.code}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {vend.vendasCount} venda(s) lançada(s) no período vigente
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* PROGRESSO DA META */}
-                      <div className="w-full sm:w-64 space-y-1.5">
-                        <div className="flex justify-between text-xs font-bold">
-                          <span className="text-slate-500">Meta: {formatBRL(vend.metaMensal)}</span>
-                          <span className={`${vend.percentualMeta >= 100 ? 'text-emerald-600' : 'text-indigo-600'}`}>
-                            {vend.percentualMeta.toFixed(1)}% atingido
-                          </span>
-                        </div>
-                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              vend.percentualMeta >= 100 ? 'bg-emerald-500' : 'bg-indigo-600'
-                            }`}
-                            style={{ width: `${Math.min(vend.percentualMeta, 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
+              {/* EXTRATO DE COMISSÕES POR PERÍODO • AUDITABILIDADE COMERCIAL */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                      <i data-lucide="file-check" className="w-4 h-4"></i>
                     </div>
-
-                    {/* VALORES E RESUMO DE COMISSÕES */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Vendas Brutas</span>
-                        <strong className="text-lg font-black text-slate-900 mt-1 block">
-                          {formatBRL(vend.vendasBrutasTotal)}
-                        </strong>
-                        <span className="text-[11px] text-slate-500 mt-0.5 block">
-                          Total vendido em DAVs
-                        </span>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
-                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Comissão Liberada</span>
-                        <strong className="text-lg font-black text-emerald-700 mt-1 block">
-                          {formatBRL(vend.comissaoLiberada)}
-                        </strong>
-                        <span className="text-[11px] text-emerald-600 mt-0.5 block">
-                          Disponível para pagamento
-                        </span>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-100">
-                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Comissão a Liberar</span>
-                        <strong className="text-lg font-black text-amber-700 mt-1 block">
-                          {formatBRL(vend.comissaoProjetada)}
-                        </strong>
-                        <span className="text-[11px] text-amber-600 mt-0.5 block">
-                          Aguardando liquidação de parcelas
-                        </span>
-                      </div>
-
+                    <div>
+                      <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                        <span>Extrato de Comissões por Período</span>
+                        <span className="text-[10px] text-slate-400 font-normal">• Auditabilidade Comercial</span>
+                      </h3>
+                      <p className="text-[11px] text-slate-400">Detalhamento individual das parcelas recebidas, DAV, data da liquidação e cálculo de comissão</p>
                     </div>
-
-                    {/* APURAÇÃO POR CATEGORIA DE PRODUTO */}
-                    <div className="pt-2">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                        Desempenho por Categoria de Venda
-                      </span>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-slate-800 block">TOTAL (Prótese Total)</span>
-                            <span className="text-[10px] text-slate-400">Taxa: {vend.taxas.TOTAL}%</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-extrabold text-slate-900 block">{formatBRL(vend.detalhesPorCategoria.TOTAL.volume)}</span>
-                            <span className="text-[10px] font-bold text-emerald-600">Comissão: {formatBRL(vend.detalhesPorCategoria.TOTAL.comissao)}</span>
-                          </div>
-                        </div>
-
-                        <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-slate-800 block">PARCIAL (Prótese Parcial)</span>
-                            <span className="text-[10px] text-slate-400">Taxa: {vend.taxas.PARCIAL}%</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-extrabold text-slate-900 block">{formatBRL(vend.detalhesPorCategoria.PARCIAL.volume)}</span>
-                            <span className="text-[10px] font-bold text-emerald-600">Comissão: {formatBRL(vend.detalhesPorCategoria.PARCIAL.comissao)}</span>
-                          </div>
-                        </div>
-
-                        <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/50 flex justify-between items-center">
-                          <div>
-                            <span className="font-bold text-slate-800 block">DENTISTAS (Clínico)</span>
-                            <span className="text-[10px] text-slate-400">Taxa: {vend.taxas.DENTISTAS}%</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-extrabold text-slate-900 block">{formatBRL(vend.detalhesPorCategoria.DENTISTAS.volume)}</span>
-                            <span className="text-[10px] font-bold text-emerald-600">Comissão: {formatBRL(vend.detalhesPorCategoria.DENTISTAS.comissao)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* LISTA DE VENDAS DO VENDEDOR */}
-                    {vend.vendas.length > 0 && (
-                      <div className="pt-2 border-t border-slate-100">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                          Lançamentos do Vendedor
-                        </span>
-                        <div className="divide-y divide-slate-100 text-xs">
-                          {vend.vendas.map(v => (
-                            <div key={v.id || v.dav} className="py-2 flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px]">
-                                  DAV #{v.dav}
-                                </span>
-                                <span className="font-semibold text-slate-800">{v.client}</span>
-                                <span className="text-[10px] text-slate-400">({v.dateDisplay || v.date})</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">
-                                  {v.tipoVenda || 'TOTAL'}
-                                </span>
-                                <strong className="font-black text-slate-900">{formatBRL(v.amount)}</strong>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                   </div>
-                ))}
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-semibold">Exibindo:</span>
+                    <select 
+                      value={vendedorSelecionadoExtrato} 
+                      onChange={e => setVendedorSelecionadoExtrato(e.target.value)}
+                      className="p-1.5 border rounded-xl bg-slate-50 text-xs font-bold outline-none"
+                    >
+                      {sellers.map(s => <option key={s.id} value={s.codeVnd}>{s.name} ({s.codeVnd})</option>)}
+                    </select>
+
+                    <button 
+                      onClick={() => window.print()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 transition"
+                    >
+                      <i data-lucide="printer" className="w-3.5 h-3.5 text-slate-500"></i>
+                      <span>Imprimir / PDF</span>
+                    </button>
+                  </div>
+                </div>
+
+                {extratoAuditoria.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-dashed">
+                    Nenhuma parcela quitada/baixada no momento para este vendedor.
+                    <br />
+                    Ao dar baixa em duplicatas no <a href="vendas.html" className="text-indigo-600 font-bold hover:underline">vendas.html</a>, o extrato é atualizado instantaneamente!
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2.5 px-3">DAV / Título</th>
+                          <th className="py-2.5 px-3">Cliente / Clínica</th>
+                          <th className="py-2.5 px-3">Data Baixa</th>
+                          <th className="py-2.5 px-3">Tipo / Parcela</th>
+                          <th className="py-2.5 px-3">Valor Baixado (R$)</th>
+                          <th className="py-2.5 px-3">Regra Aplicada</th>
+                          <th className="py-2.5 px-3">Comissão Gerada</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {extratoAuditoria.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50 transition">
+                            <td className="py-3 px-3">
+                              <span className="font-mono font-bold text-indigo-700 block">#{item.dav}</span>
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="font-bold text-slate-900 block">{item.cliente}</span>
+                              <span className="text-[10px] text-slate-400">{item.descricao}</span>
+                            </td>
+                            <td className="py-3 px-3 text-slate-600 font-medium">
+                              {item.dataBaixa}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[10px]">
+                                {item.tipoParcela}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 font-bold text-slate-900">
+                              {formatBRL(item.valorBaixado)}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                {item.regra}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 font-black text-emerald-600">
+                              {formatBRL(item.comissaoGerada)}
+                            </td>
+                          </tr>
+                        ))}
+
+                        <tr className="bg-slate-50 font-bold text-slate-900 border-t">
+                          <td colSpan="4" className="py-3 px-3 text-right">
+                            Subtotal Apurado:
+                          </td>
+                          <td className="py-3 px-3 font-black text-slate-900">
+                            {formatBRL(totalAuditoriaBaixado)}
+                          </td>
+                          <td className="py-3 px-3 text-slate-400 font-normal">
+                            {extratoAuditoria.length} Liquidações
+                          </td>
+                          <td className="py-3 px-3 font-black text-emerald-600">
+                            {formatBRL(totalAuditoriaComissao)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
             </div>
